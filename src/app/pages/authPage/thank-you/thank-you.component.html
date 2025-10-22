@@ -1,0 +1,24 @@
+<div class="thank-you-root">
+  <div class="card">
+    <div class="illustration">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="#4f46e5" opacity="0.12" />
+        <path d="M10 14l-2-2 1.4-1.4L10 11.2 14.6 6.6 16 8l-6 6z" fill="#4f46e5"/>
+      </svg>
+    </div>
+
+    <h1 class="title">Thank you for joining Thutonet!</h1>
+    <p class="subtitle">We’ve sent a verification email to the address you provided. Please check your inbox and follow the link to activate your account.</p>
+
+    <div class="actions">
+  <button class="btn primary" (click)="goToLogin()">Go to Login</button>
+      <button class="btn ghost" (click)="resendVerification()" [disabled]="resendInProgress">
+        {{ resendInProgress ? 'Sending...' : 'Resend verification email' }}
+      </button>
+    </div>
+
+  <p class="note">Didn't receive the email? Check your spam folder or try resending. If issues persist, contact support at <a href="mailto:support&#64;thutonet.co">support&#64;thutonet.co</a>.</p>
+
+  <div [hidden]="!message" class="toast">{{ message }}</div>
+  </div>
+</div>

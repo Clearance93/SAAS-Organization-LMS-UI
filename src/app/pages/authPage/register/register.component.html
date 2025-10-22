@@ -1,0 +1,219 @@
+<div class="register-container">
+  <div class="register-card">
+    <div class="register-header">
+      <h1>Create Account</h1>
+      <p>Join ThutoNet and start your learning journey</p>
+    </div>
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+      <div class="error-alert" *ngIf="errorMessage">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{{ errorMessage }}</span>
+      </div>
+
+      <div class="form-group profile-upload-section">
+        <label>Profile Picture</label>
+        <div class="profile-upload-wrapper">
+          <div class="profile-preview">
+            <img 
+              [src]="imagePreview || 'assets/default-avatar.png'" 
+              alt="Profile Preview"
+              class="preview-image"
+            />
+            <div class="upload-overlay" (click)="fileInput.click()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+              <span>{{ imagePreview ? 'Change' : 'Upload' }}</span>
+            </div>
+          </div>
+          <input 
+            #fileInput
+            type="file" 
+            accept="image/*"
+            (change)="onFileSelected($event)"
+            style="display: none;"
+          />
+          <div class="upload-info">
+            <p class="upload-text">Click to upload profile picture</p>
+            <p class="upload-hint">JPG, PNG or GIF (Max 5MB)</p>
+            <button 
+              *ngIf="imagePreview" 
+              type="button" 
+              class="btn-remove-image"
+              (click)="removeImage()">
+              Remove Image
+            </button>
+          </div>
+        </div>
+        <div class="error-message" *ngIf="submitted && f['profilePicture']?.errors">
+          <span *ngIf="f['profilePicture']?.hasError('required')">Profile picture is required</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="firstName">First Name</label>
+        <input
+          type="text"
+          id="firstName"
+          formControlName="firstName"
+          class="form-control"
+          [class.invalid]="submitted && f['firstName'].errors"
+          placeholder="Enter your first name"
+        />
+        <div class="error-message" *ngIf="submitted && f['firstName'].errors">
+          <span *ngIf="f['firstName'].errors['required']">First name is required</span>
+          <span *ngIf="f['firstName'].errors['minlength']">First name must be at least 2 characters</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="lastName">Last Name</label>
+        <input
+          type="text"
+          id="lastName"
+          formControlName="lastName"
+          class="form-control"
+          [class.invalid]="submitted && f['lastName'].errors"
+          placeholder="Enter your last name"
+        />
+        <div class="error-message" *ngIf="submitted && f['lastName'].errors">
+          <span *ngIf="f['lastName'].errors['required']">Last name is required</span>
+          <span *ngIf="f['lastName'].errors['minlength']">Last name must be at least 2 characters</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input
+          type="email"
+          id="email"
+          formControlName="email"
+          class="form-control"
+          [class.invalid]="submitted && f['email'].errors"
+          placeholder="Enter your email"
+        />
+        <div class="error-message" *ngIf="submitted && f['email'].errors">
+          <span *ngIf="f['email'].errors['required']">Email is required</span>
+          <span *ngIf="f['email'].errors['email']">Please enter a valid email</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="password-input-wrapper">
+          <input
+            [type]="hidePassword ? 'password' : 'text'"
+            id="password"
+            formControlName="password"
+            class="form-control"
+            [class.invalid]="submitted && f['password'].errors"
+            placeholder="Create a strong password"
+          />
+          <button
+            type="button"
+            class="toggle-password"
+            (click)="togglePasswordVisibility()"
+            tabindex="-1"
+          >
+            <svg *ngIf="hidePassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <svg *ngIf="!hidePassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="error-message" *ngIf="submitted && f['password'].errors">
+          <span *ngIf="f['password'].errors['required']">Password is required</span>
+          <span *ngIf="f['password'].errors['minlength']">Password must be at least 8 characters</span>
+        </div>
+        <div class="password-strength" *ngIf="f['password'].value">
+          <div class="strength-bar">
+            <div class="strength-fill" [ngClass]="getPasswordStrengthClass()"></div>
+          </div>
+          <span class="strength-text">{{ getPasswordStrengthText() }}</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <div class="password-input-wrapper">
+          <input
+            [type]="hideConfirmPassword ? 'password' : 'text'"
+            id="confirmPassword"
+            formControlName="confirmPassword"
+            class="form-control"
+            [class.invalid]="submitted && f['confirmPassword'].errors"
+            placeholder="Confirm your password"
+          />
+          <button
+            type="button"
+            class="toggle-password"
+            (click)="toggleConfirmPasswordVisibility()"
+            tabindex="-1"
+          >
+            <svg *ngIf="hideConfirmPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <svg *ngIf="!hideConfirmPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="error-message" *ngIf="submitted && f['confirmPassword'].errors">
+          <span *ngIf="f['confirmPassword'].errors['required']">Please confirm your password</span>
+          <span *ngIf="f['confirmPassword'].errors['mustMatch']">Passwords do not match</span>
+        </div>
+      </div>
+
+      <div class="form-group checkbox-group">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            formControlName="acceptTerms"
+            [class.invalid]="submitted && f['acceptTerms'].errors"
+          />
+          <span>I agree to the <a href="#" class="link">Terms and Conditions</a></span>
+        </label>
+        <div class="error-message" *ngIf="submitted && f['acceptTerms'].errors">
+          <span *ngIf="f['acceptTerms'].errors['required']">You must accept the terms and conditions</span>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        class="btn-register"
+        [disabled]="loading"
+      >
+        <span *ngIf="!loading">Create Account</span>
+        <span *ngIf="loading" class="loading-spinner">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spinner">
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+          </svg>
+          Creating account...
+        </span>
+      </button>
+    </form>
+
+    <div class="login-link">
+      <p>Already have an account? <button type="button" class="link-button" (click)="navigateToLogin()">Login here</button></p>
+    </div>
+  </div>
+</div>

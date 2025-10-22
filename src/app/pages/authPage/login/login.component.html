@@ -1,0 +1,97 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <h1>Welcome Back</h1>
+      <p>Please login to your account</p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <div class="error-alert" *ngIf="errorMessage">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{{ errorMessage }}</span>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input
+          type="email"
+          id="email"
+          formControlName="email"
+          class="form-control"
+          [class.invalid]="submitted && f['email'].errors"
+          placeholder="Enter your email"
+        />
+        <div class="error-message" *ngIf="submitted && f['email'].errors">
+          <span *ngIf="f['email'].errors['required']">Email is required</span>
+          <span *ngIf="f['email'].errors['email']">Please enter a valid email</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="password-input-wrapper">
+          <input
+            [type]="hidePassword ? 'password' : 'text'"
+            id="password"
+            formControlName="password"
+            class="form-control"
+            [class.invalid]="submitted && f['password'].errors"
+            placeholder="Enter your password"
+          />
+          <button
+            type="button"
+            class="toggle-password"
+            (click)="togglePasswordVisibility()"
+            tabindex="-1"
+          >
+            <svg *ngIf="hidePassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <svg *ngIf="!hidePassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="error-message" *ngIf="submitted && f['password'].errors">
+          <span *ngIf="f['password'].errors['required']">Password is required</span>
+          <span *ngIf="f['password'].errors['minlength']">Password must be at least 6 characters</span>
+        </div>
+      </div>
+
+      <div class="forgot-password">
+        <a (click)="navigateToForgotPassword()" class="link">Forgot Password?</a>
+      </div>
+
+      <button
+        type="submit"
+        class="btn-login"
+        [disabled]="loading"
+      >
+        <span *ngIf="!loading">Login</span>
+        <span *ngIf="loading" class="loading-spinner">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spinner">
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+          </svg>
+          Logging in...
+        </span>
+      </button>
+    </form>
+
+    <div class="register-link">
+      <p>Don't have an account? <button type="button" class="link-button" (click)="navigateToRegister()">Register here</button></p>
+    </div>
+  </div>
+</div>

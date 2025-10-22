@@ -1,0 +1,138 @@
+<div class="container">
+  <div class="form-wrapper">
+    <h1 class="page-title">Organization Setup</h1>
+    <p class="page-subtitle">Complete your organization registration</p>
+
+    <form [formGroup]="organizationForm" (ngSubmit)="onSubmit()">
+      
+      <div class="form-group">
+        <label for="organizationName">Organization Name <span class="required">*</span></label>
+        <input 
+          type="text" 
+          id="organizationName" 
+          class="form-control" 
+          formControlName="organizationName"
+          placeholder="Enter your organization name"
+          [ngClass]="{ 'is-invalid': submitted && f['organizationName'].errors }">
+        <div class="error-message" *ngIf="submitted && f['organizationName'].errors">
+          <span *ngIf="f['organizationName'].errors['required']">Organization name is required</span>
+          <span *ngIf="f['organizationName'].errors['minlength']">Organization name must be at least 3 characters</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="organizationType">Type of Organization <span class="required">*</span></label>
+        <select 
+          id="organizationType" 
+          class="form-control" 
+          formControlName="organizationType"
+          [ngClass]="{ 'is-invalid': submitted && f['organizationType'].errors }">
+          <option value="">-- Select Organization Type --</option>
+          <option *ngFor="let type of organizationTypes" [value]="type">{{ type }}</option>
+        </select>
+        <div class="error-message" *ngIf="submitted && f['organizationType'].errors">
+          <span *ngIf="f['organizationType'].errors['required']">Organization type is required</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="organizationAddress">Organization Address <span class="required">*</span></label>
+        <textarea 
+          id="organizationAddress" 
+          class="form-control" 
+          formControlName="organizationAddress"
+          rows="3"
+          placeholder="Enter complete address"
+          [ngClass]="{ 'is-invalid': submitted && f['organizationAddress'].errors }"></textarea>
+        <div class="error-message" *ngIf="submitted && f['organizationAddress'].errors">
+          <span *ngIf="f['organizationAddress'].errors['required']">Address is required</span>
+          <span *ngIf="f['organizationAddress'].errors['minlength']">Address must be at least 10 characters</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="organizationContactNumber">Contact Number <span class="required">*</span></label>
+        <input 
+          type="text" 
+          id="organizationContactNumber" 
+          class="form-control" 
+          formControlName="organizationContactNumber"
+          placeholder="e.g., +27 11 123 4567"
+          [ngClass]="{ 'is-invalid': submitted && f['organizationContactNumber'].errors }">
+        <div class="error-message" *ngIf="submitted && f['organizationContactNumber'].errors">
+          <span *ngIf="f['organizationContactNumber'].errors['required']">Contact number is required</span>
+          <span *ngIf="f['organizationContactNumber'].errors['pattern']">Please enter a valid phone number</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="website">Website</label>
+        <input 
+          type="text" 
+          id="website" 
+          class="form-control" 
+          formControlName="website"
+          placeholder="https://www.example.com"
+          [ngClass]="{ 'is-invalid': submitted && f['website'].errors }">
+        <div class="error-message" *ngIf="submitted && f['website'].errors">
+          <span *ngIf="f['website'].errors['pattern']">Please enter a valid URL</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="adminEmail">Admin Email</label>
+        <input 
+          type="email" 
+          id="adminEmail" 
+          class="form-control" 
+          formControlName="adminEmail"
+          placeholder="admin@example.com"
+          [ngClass]="{ 'is-invalid': submitted && f['adminEmail'].errors }">
+        <div class="error-message" *ngIf="submitted && f['adminEmail'].errors">
+          <span *ngIf="f['adminEmail'].errors['email']">Please enter a valid email address</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="serviceDuration">Service Duration <span class="required">*</span></label>
+        <select 
+          id="serviceDuration" 
+          class="form-control" 
+          formControlName="serviceDuration"
+          [ngClass]="{ 'is-invalid': submitted && f['serviceDuration'].errors }">
+          <option value="">-- Select Duration --</option>
+          <option *ngFor="let duration of serviceDurations" [value]="duration.value">
+            {{ duration.label }}
+          </option>
+        </select>
+        <div class="error-message" *ngIf="submitted && f['serviceDuration'].errors">
+          <span *ngIf="f['serviceDuration'].errors['required']">Service duration is required</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Type of Service <span class="required">*</span></label>
+        <div class="checkbox-group">
+          <div class="checkbox-item" *ngFor="let service of serviceTypes">
+            <input 
+              type="checkbox" 
+              [id]="'service-' + service" 
+              [checked]="isServiceTypeSelected(service)"
+              (change)="onServiceTypeChange(service, $event)">
+            <label [for]="'service-' + service">{{ service }}</label>
+          </div>
+        </div>
+        <div class="error-message" *ngIf="submitted && f['serviceType'].errors">
+          <span *ngIf="f['serviceType'].errors['required']">Please select at least one service type</span>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="onCancel()">Cancel</button>
+        <button type="button" class="btn btn-outline" (click)="onReset()">Reset</button>
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </div>
+
+    </form>
+  </div>
+</div>
