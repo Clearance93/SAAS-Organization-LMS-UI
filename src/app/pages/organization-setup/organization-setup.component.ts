@@ -5,7 +5,7 @@ import { OrganizationType, ServiceType, ServiceDuration } from '../../features/o
 import { CreateOrganizationDto } from '../../features/organization/models/organization.interface';
 import { OrganizationService } from '../../services/organization.service';
 import { finalize } from 'rxjs';
-import { Router } from '@angular/router';
+import { Router, NavigationExtras } from '@angular/router';
 
 @Component({
   selector: 'app-organization-setup',
@@ -18,7 +18,8 @@ export class OrganizationSetupComponent implements OnInit {
   organizationForm!: FormGroup;
   submitted = false;
   loading= false;
-  errorMessage = ''
+  errorMessage = '';
+  userEmail: string = ''
 
   organizationTypes = Object.values(OrganizationType);
   serviceTypes = Object.values(ServiceType);
@@ -38,7 +39,12 @@ export class OrganizationSetupComponent implements OnInit {
     private formBuilder: FormBuilder,
     private organizationService: OrganizationService,
     private router: Router
-  ) {}
+  ) {
+    const navigation = this.router.getCurrentNavigation();
+    if (navigation?.extras.state) {
+      this.userEmail = navigation.extras.state['userEmail'] || '';
+    }
+  }
 
   ngOnInit(): void {
     this.initializeForm();
@@ -53,7 +59,7 @@ export class OrganizationSetupComponent implements OnInit {
       website: ['', [Validators.pattern(/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/)]],
       serviceDuration: ['', Validators.required],
       serviceType: [[], Validators.required],
-      adminEmail: ['', [Validators.email]]
+      adminEmail: [this.userEmail, [Validators.required ,Validators.email]]
     });
   }
 

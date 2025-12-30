@@ -1,0 +1,2008 @@
+<div class="settings-container">
+  <header class="settings-header">
+    <div class="header-content">
+      <button class="back-btn" (click)="backToDashboard()" title="Back to Dashboard">
+        ← Back to Dashboard
+      </button>
+      <div class="header-title">
+        <h1>ThutoNet Settings</h1>
+        <p>Complete administrative control center</p>
+      </div>
+      <button 
+        class="btn-save" 
+        [disabled]="isSaving"
+        (click)="saveGeneralSettings()">
+        <span>{{ isSaving ? 'Saving...' : 'Save' }}</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="settings-content">
+    <div class="settings-grid">
+      
+      <aside class="settings-sidebar">
+        <div class="sidebar-card">
+          <div class="search-box">
+            <input 
+              type="text" 
+              placeholder="Search settings..." 
+              [(ngModel)]="searchQuery"
+              class="search-input">
+          </div>
+
+          <nav class="sidebar-nav">
+            <button 
+              *ngFor="let category of filteredCategories; trackBy: trackByFn"
+              class="nav-item"
+              [class.active]="activeSection === category.id"
+              (click)="setActiveSection(category.id)">
+              <div class="nav-icon-simple" [ngClass]="category.color"></div>
+              <span class="nav-label">{{ category.label }}</span>
+            </button>
+          </nav>
+        </div>
+      </aside>
+
+      <main class="settings-main">
+        <div class="content-card">
+          
+          <div class="section-header">
+            <h2>{{ (settingsCategories | filter: 'id': activeSection)[0]?.label }}</h2>
+            <div class="section-divider"></div>
+          </div>
+
+          <div *ngIf="isLoading" class="loading-state">
+            <mat-spinner diameter="40"></mat-spinner>
+            <p>Loading settings...</p>
+          </div>
+
+          <div *ngIf="!isLoading" class="section-content">
+
+            <div *ngIf="activeSection === 'general'" class="settings-section">
+              <form [formGroup]="generalForm">
+                <div class="form-grid">
+                  
+                  <div class="form-group">
+                    <label for="schoolName">School Name</label>
+                    <input 
+                      id="schoolName"
+                      type="text" 
+                      formControlName="name"
+                      class="form-control"
+                      placeholder="Enter school name">
+                  </div>
+
+                  <div class="form-group">
+                    <label for="schoolType">School Type</label>
+                    <select id="schoolType" formControlName="type" class="form-control">
+                      <option value="Primary">Primary</option>
+                      <option value="Secondary">Secondary</option>
+                      <option value="Combined">Combined</option>
+                      <option value="Organization">Organization</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group full-width">
+                    <label for="motto">School Motto</label>
+                    <input 
+                      id="motto"
+                      type="text" 
+                      formControlName="motto"
+                      class="form-control"
+                      placeholder="Enter school motto">
+                  </div>
+
+                  <div class="form-group">
+                    <label for="timezone">Timezone</label>
+                    <select id="timezone" formControlName="timeZone" class="form-control">
+                      <option value="Africa/Johannesburg">Africa/Johannesburg</option>
+                      <option value="Africa/Cairo">Africa/Cairo</option>
+                      <option value="Africa/Lagos">Africa/Lagos</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="locale">Locale</label>
+                    <select id="locale" formControlName="locale" class="form-control">
+                      <option value="en-ZA">English (South Africa)</option>
+                      <option value="en-US">English (US)</option>
+                      <option value="en-GB">English (UK)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="email">Contact Email</label>
+                    <input 
+                      id="email"
+                      type="email" 
+                      formControlName="contactEmail"
+                      class="form-control"
+                      placeholder="school@example.com"
+                      readonly>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="phone">Contact Phone</label>
+                    <input 
+                      id="phone"
+                      type="tel" 
+                      formControlName="contactPhone"
+                      class="form-control"
+                      placeholder="+27 11 234 5678">
+                  </div>
+
+                </div>
+              </form>
+            </div>
+
+            <div *ngIf="activeSection === 'academic'" class="settings-section">
+              
+              <div class="subsection-card">
+                <div class="subsection-header">
+                  <h3>Grades & Levels</h3>
+                  <button class="btn-add" (click)="addGrade()">
+                    <span>Add</span>
+                  </button>
+                </div>
+                
+                <div class="grade-list">
+                  <div 
+                    *ngFor="let grade of grades; trackBy: trackByFn"
+                    class="grade-item"
+                    [class.inactive]="!grade.active">
+                    <div class="grade-info">
+                      <span class="grade-name">{{ grade.name }}</span>
+                      <span class="grade-order">Order: {{ grade.order }}</span>
+                    </div>
+                    <div class="grade-actions">
+                      <button 
+                        class="btn-toggle"
+                        [class.active]="grade.active"
+                        (click)="toggleGrade(grade)">
+                        {{ grade.active ? 'Active' : 'Inactive' }}
+                      </button>
+                      <button class="btn-icon">
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <div *ngIf="activeSection === 'courses'" class="settings-section">
+              
+              <div class="subsection-card">
+                <div class="subsection-header">
+                  <h3>Course Streams ({{ courseStreams.length }})</h3>
+                  <button class="btn-add" (click)="addCourse()" matTooltip="Add a new course stream">
+                    <span>Add Course Stream</span>
+                  </button>
+                </div>
+
+                <div *ngIf="isLoading" class="loading-state">
+                  <mat-spinner diameter="30"></mat-spinner>
+                  <p>Loading course streams...</p>
+                </div>
+
+                <div *ngIf="!isLoading && courseStreams.length > 0" class="course-list">
+                  <div 
+                    *ngFor="let stream of courseStreams | slice: (page - 1) * pageSize : (page - 1) * pageSize + pageSize; trackBy: trackByFn"
+                    class="course-item">
+                    <div class="course-info">
+                      <h4>{{ stream.courseStreamName || 'Untitled Stream' }}</h4>
+                      <p class="course-description">
+                        {{ stream.description || 'No description available' }}
+                      </p>
+                      <p class="course-id">
+                        <small>ID: {{ stream.courseStreamId }}</small>
+                      </p>
+                    </div>
+                    <div class="course-actions">
+                      <button 
+                        class="btn-secondary" 
+                        (click)="editCourseStream(stream)"
+                        matTooltip="Edit course stream">
+                        <span>Edit</span>
+                      </button>
+                      <button 
+                        class="btn-tertiary"
+                        (click)="addSubjectStream(stream)"
+                        matTooltip="View course stream details">
+                        <span>Details</span>
+                      </button>
+                      <button 
+                        class="btn btn-danger"
+                        (click)="deleteCourseStream(stream)"
+                        matTooltip="Delete course stream">
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div *ngIf="!isLoading && courseStreams.length > pageSize" class="pagination-controls mt-4 d-flex justify-content-center">
+                  <ngb-pagination
+                    [collectionSize]="courseStreams.length"
+                    [(page)]="page"
+                    [pageSize]="pageSize"
+                    [maxSize]="5"
+                    [rotate]="true"
+                    [boundaryLinks]="true"></ngb-pagination>
+                </div>
+              </div>
+              
+              <div *ngIf="!isLoading && courseStreams.length === 0" class="empty-state">
+                <p>No course streams yet</p>
+                <button class="btn-add" (click)="addCourse()">
+                  <span>Add Your First Course Stream</span>
+                </button>
+              </div>
+
+            </div>
+
+           <div *ngIf="activeSection === 'exams'" class="settings-section">
+  
+  <div class="exam-grid-container">
+    
+    <div class="subsection-card grading-form-card">
+      <div class="subsection-header">
+        <h3>Add Grading Scale</h3>
+      </div>
+
+      <form [formGroup]="examGradeForm" (ngSubmit)="saveExamGradeScale()" class="grading-form">
+        
+        <div class="form-group-inline">
+          <label for="passMark" class="grade-label">
+            <span class="grade-badge badge-pass-small">Pass</span>
+            <span class="label-text">Pass Mark (%)</span>
+          </label>
+          <input 
+            id="passMark"
+            type="number" 
+            formControlName="passMark"
+            class="form-control-inline"
+            min="0"
+            max="100"
+            placeholder="50">
+          <span class="error-msg" *ngIf="examGradeForm.get('passMark')?.invalid && examGradeForm.get('passMark')?.touched">
+            Required (0-100)
+          </span>
+        </div>
+
+        <div class="form-group-inline">
+          <label for="poorMark" class="grade-label">
+            <span class="grade-badge badge-poor-small">Poor</span>
+            <span class="label-text">Poor Mark (%)</span>
+          </label>
+          <input 
+            id="poorMark"
+            type="number" 
+            formControlName="poorMark"
+            class="form-control-inline"
+            min="0"
+            max="100"
+            placeholder="40">
+          <span class="error-msg" *ngIf="examGradeForm.get('poorMark')?.invalid && examGradeForm.get('poorMark')?.touched">
+            Required (0-100)
+          </span>
+        </div>
+
+        <div class="form-group-inline">
+          <label for="averageMark" class="grade-label">
+            <span class="grade-badge badge-average-small">Average</span>
+            <span class="label-text">Average Mark (%)</span>
+          </label>
+          <input 
+            id="averageMark"
+            type="number" 
+            formControlName="averageMark"
+            class="form-control-inline"
+            min="0"
+            max="100"
+            placeholder="60">
+          <span class="error-msg" *ngIf="examGradeForm.get('averageMark')?.invalid && examGradeForm.get('averageMark')?.touched">
+            Required (0-100)
+          </span>
+        </div>
+
+        <div class="form-group-inline">
+          <label for="excellentMark" class="grade-label">
+            <span class="grade-badge badge-excellent-small">Excellent</span>
+            <span class="label-text">Excellent Mark (%)</span>
+          </label>
+          <input 
+            id="excellentMark"
+            type="number" 
+            formControlName="excellentMark"
+            class="form-control-inline"
+            min="0"
+            max="100"
+            placeholder="75">
+          <span class="error-msg" *ngIf="examGradeForm.get('excellentMark')?.invalid && examGradeForm.get('excellentMark')?.touched">
+            Required (0-100)
+          </span>
+        </div>
+
+        <div class="form-group-inline">
+          <label for="distinctionMark" class="grade-label">
+            <span class="grade-badge badge-distinction-small">Distinction</span>
+            <span class="label-text">Distinction Mark (%)</span>
+          </label>
+          <input 
+            id="distinctionMark"
+            type="number" 
+            formControlName="distinctionMark"
+            class="form-control-inline"
+            min="0"
+            max="100"
+            placeholder="80">
+          <span class="error-msg" *ngIf="examGradeForm.get('distinctionMark')?.invalid && examGradeForm.get('distinctionMark')?.touched">
+            Required (0-100)
+          </span>
+        </div>
+
+        <div class="form-actions-inline">
+          <button 
+            type="submit" 
+            class="btn-primary-inline"
+            [disabled]="examGradeForm.invalid || isSavingGrade">
+            <mat-spinner *ngIf="isSavingGrade" diameter="20"></mat-spinner>
+            <span>{{ isSavingGrade ? 'Saving...' : 'Add Grading Scale' }}</span>
+          </button>
+          <button 
+            type="button" 
+            class="btn-secondary-inline"
+            (click)="resetGradeForm()">
+            <span>Reset</span>
+          </button>
+        </div>
+      </form>
+
+      <div class="grade-preview" *ngIf="examGradeForm.valid">
+        <h4>Preview</h4>
+        <div class="preview-scale">
+          <div class="preview-item">
+            <span class="preview-grade badge-distinction-small">{{ examGradeForm.value.distinctionMark }}%+</span>
+            <span class="preview-label">Distinction</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-grade badge-excellent-small">{{ examGradeForm.value.excellentMark }}-{{ examGradeForm.value.distinctionMark - 1 }}%</span>
+            <span class="preview-label">Excellent</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-grade badge-average-small">{{ examGradeForm.value.averageMark }}-{{ examGradeForm.value.excellentMark - 1 }}%</span>
+            <span class="preview-label">Average</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-grade badge-pass-small">{{ examGradeForm.value.passMark }}-{{ examGradeForm.value.averageMark - 1 }}%</span>
+            <span class="preview-label">Pass</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-grade badge-poor-small">{{ examGradeForm.value.poorMark }}-{{ examGradeForm.value.passMark - 1 }}%</span>
+            <span class="preview-label">Poor</span>
+          </div>
+          <div class="preview-item">
+            <span class="preview-grade badge-fail-small">0-{{ examGradeForm.value.poorMark - 1 }}%</span>
+            <span class="preview-label">Fail</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection-card grading-display-card">
+      <div class="subsection-header">
+        <h3>Grading Scales ({{ examGradeScales.length }})</h3>
+        <button class="btn-refresh" (click)="loadExamGradeScales()" matTooltip="Refresh">
+        </button>
+      </div>
+
+      <div *ngIf="isLoadingGrades" class="loading-state-inline">
+        <mat-spinner diameter="30"></mat-spinner>
+        <p>Loading grading scales...</p>
+      </div>
+
+      <div *ngIf="!isLoadingGrades && examGradeScales.length === 0" class="empty-state-inline">
+        <p>No grading scales configured yet</p>
+        <small>Add your first grading scale using the form on the left</small>
+      </div>
+
+      <div *ngIf="!isLoadingGrades && examGradeScales.length > 0" class="grading-scales-list">
+        <div 
+          *ngFor="let scale of examGradeScales; let i = index; trackBy: trackByFn"
+          class="grading-scale-card"
+          [class.active-scale]="selectedExamScale?.examGradeScaleId === scale.examGradeScaleId">
+          
+          <div class="scale-header">
+            <div class="scale-title">
+              <h4>Grading Scale {{ i + 1 }}</h4>
+              <span class="scale-badge" *ngIf="selectedExamScale?.examGradeScaleId === scale.examGradeScaleId">
+                Active
+              </span>
+            </div>
+            <div class="scale-actions">
+              <button 
+                class="btn-icon-small"
+                (click)="setActiveScale(scale)"
+                matTooltip="Set as active"
+                *ngIf="selectedExamScale?.examGradeScaleId !== scale.examGradeScaleId">
+              </button>
+              <button 
+                class="btn-icon-small btn-edit"
+                (click)="editGradeScale(scale)"
+                matTooltip="Edit">
+              </button>
+              <button 
+                class="btn-icon-small btn-delete"
+                (click)="deleteGradeScale(scale)"
+                matTooltip="Delete">
+              </button>
+            </div>
+          </div>
+
+          <div class="scale-content">
+            <div class="scale-grid">
+              <div class="scale-item">
+                <div class="scale-value badge-distinction">{{ scale.distinctionMark }}%</div>
+                <div class="scale-name">Distinction</div>
+              </div>
+              <div class="scale-item">
+                <div class="scale-value badge-excellent">{{ scale.excellentMark }}%</div>
+                <div class="scale-name">Excellent</div>
+              </div>
+              <div class="scale-item">
+                <div class="scale-value badge-average">{{ scale.averageMark }}%</div>
+                <div class="scale-name">Average</div>
+              </div>
+              <div class="scale-item">
+                <div class="scale-value badge-pass">{{ scale.passMark }}%</div>
+                <div class="scale-name">Pass</div>
+              </div>
+              <div class="scale-item">
+                <div class="scale-value badge-poor">{{ scale.poorMark }}%</div>
+                <div class="scale-name">Poor</div>
+              </div>
+            </div>
+
+            <div class="grade-ranges">
+              <div class="range-bar">
+                <div class="range-segment segment-distinction" 
+                     [style.width.%]="100 - scale.distinctionMark"
+                     matTooltip="Distinction: {{ scale.distinctionMark }}%+">
+                </div>
+                <div class="range-segment segment-excellent" 
+                     [style.width.%]="scale.distinctionMark - scale.excellentMark"
+                     matTooltip="Excellent: {{ scale.excellentMark }}-{{ scale.distinctionMark - 1 }}%">
+                </div>
+                <div class="range-segment segment-average" 
+                     [style.width.%]="scale.excellentMark - scale.averageMark"
+                     matTooltip="Average: {{ scale.averageMark }}-{{ scale.excellentMark - 1 }}%">
+                </div>
+                <div class="range-segment segment-pass" 
+                     [style.width.%]="scale.averageMark - scale.passMark"
+                     matTooltip="Pass: {{ scale.passMark }}-{{ scale.averageMark - 1 }}%">
+                </div>
+                <div class="range-segment segment-poor" 
+                     [style.width.%]="scale.passMark - scale.poorMark"
+                     matTooltip="Poor: {{ scale.poorMark }}-{{ scale.passMark - 1 }}%">
+                </div>
+                <div class="range-segment segment-fail" 
+                     [style.width.%]="scale.poorMark"
+                     matTooltip="Fail: 0-{{ scale.poorMark - 1 }}%">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="subsection-card mt-4">
+    <div class="subsection-header">
+      <h3>Exam Types</h3>
+      <button class="btn-add">
+        <span>Add Type</span>
+      </button>
+    </div>
+    <div class="exam-type-list">
+      <div 
+        *ngFor="let examType of examTypes; trackBy: trackByFn"
+        class="exam-type-item">
+        <span>{{ examType.name }}</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+            <div *ngIf="activeSection === 'library'" class="settings-section">
+              <div class="virtual-library-body">
+                <div class="header">
+                    <h1>📚 Virtual Library</h1>
+                    <p>Explore thousands of books at your fingertips</p>
+                    <button class="add-book-btn" (click)="openAddBookModal()">
+                        <span>+ Add Book</span>
+                    </button>
+                </div>
+
+                <div class="search-container">
+                    <input type="text" class="search-box" placeholder="Search for books, authors, or genres..." (input)="onSearchInput($event)">
+                </div>
+
+                <div class="filter-buttons">
+                    <button class="filter-btn" [class.active]="currentFilter === 'all'" (click)="setFilter('all')">All Books</button>
+                    <button class="filter-btn" [class.active]="currentFilter === 'Fiction'" (click)="setFilter('Fiction')">Fiction</button>
+                    <button class="filter-btn" [class.active]="currentFilter === 'Science'" (click)="setFilter('Science')">Science</button>
+                    <button class="filter-btn" [class.active]="currentFilter === 'History'" (click)="setFilter('History')">History</button>
+                    <button class="filter-btn" [class.active]="currentFilter === 'Technology'" (click)="setFilter('Technology')">Technology</button>
+                    <button class="filter-btn" [class.active]="currentFilter === 'Philosophy'" (click)="setFilter('Philosophy')">Philosophy</button>
+                </div>
+
+                <div class="library-container">
+                    <div *ngFor="let genre of getGenres()" class="shelf">
+                        <h2 class="shelf-title">{{ genre }}</h2>
+                        <div class="books-grid">
+                            <div *ngFor="let book of getBooksByGenre(genre)" class="book">
+                                <div class="book-cover" [style.background-image]="book.coverPage ? 'url(' + book.coverPage + ')' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'" [style.background-size]="'cover'" [style.background-position]="'center'" (click)="openBookModal(book)">
+                                    <div class="book-title" [class.with-image]="book.coverPage">{{ book.title }}</div>
+                                    <div class="book-author" [class.with-image]="book.coverPage">{{ book.author }}</div>
+                                </div>
+                                <div class="book-info">
+                                    <span class="book-genre">{{ book.genre }}</span>
+                                </div>
+                                <div class="book-actions">
+                                    <button class="book-action-btn edit-btn" (click)="editBook(book)" title="Edit Book">
+                                        ✏️
+                                    </button>
+                                    <button class="book-action-btn delete-btn" (click)="deleteBook(book)" title="Delete Book">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal" [class.active]="isBookModalActive" (click)="closeBookModalOutside($event)">
+                    <div class="modal-content" *ngIf="selectedLibraryBook">
+                        <span class="close-btn" (click)="closeBookModal()">&times;</span>
+                        <h2 class="modal-title">{{ selectedLibraryBook.title }}</h2>
+                        <div class="modal-details">
+                            <p><strong>Author:</strong> {{ selectedLibraryBook.author }}</p>
+                            <p><strong>Genre:</strong> {{ selectedLibraryBook.genre }}</p>
+                            <p><strong>Published:</strong> {{ selectedLibraryBook.year }}</p>
+                            <p><strong>Description:</strong> {{ selectedLibraryBook.description }}</p>
+                        </div>
+                        <button class="read-btn" *ngIf="selectedLibraryBook.book" (click)="openPdfReader(selectedLibraryBook)">📖 Read Book</button>
+                        <button class="read-btn" *ngIf="!selectedLibraryBook.book" disabled>No PDF Available</button>
+                    </div>
+                </div>
+
+                <div class="modal" [class.active]="isAddBookModalActive" (click)="closeAddBookModalOutside($event)">
+                    <div class="modal-content">
+                        <span class="close-btn" (click)="closeAddBookModal()">&times;</span>
+                        <h2 class="modal-title">{{ isEditMode ? 'Edit Book' : 'Add New Book' }}</h2>
+                        <form [formGroup]="bookForm" class="book-form">
+                            <div class="form-group">
+                                <label>Title *</label>
+                                <input type="text" formControlName="title" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Author *</label>
+                                <input type="text" formControlName="author" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Genre *</label>
+                                <select formControlName="genre" class="form-input">
+                                    <option value="">Select Genre</option>
+                                    <option value="Fiction">Fiction</option>
+                                    <option value="Science">Science</option>
+                                    <option value="History">History</option>
+                                    <option value="Technology">Technology</option>
+                                    <option value="Philosophy">Philosophy</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Year *</label>
+                                <input type="number" formControlName="year" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Description *</label>
+                                <textarea formControlName="description" class="form-textarea"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Book Cover Image</label>
+                                <div class="image-upload-container">
+                                    <input type="file" #fileInput (change)="onImageSelected($event)" accept="image/*" class="file-input" id="bookImage">
+                                    <label for="bookImage" class="file-upload-btn">
+                                        <span *ngIf="!imagePreview">📁 Choose Image</span>
+                                        <span *ngIf="imagePreview">🔄 Change Image</span>
+                                    </label>
+                                    <button type="button" *ngIf="imagePreview" (click)="removeImage()" class="remove-image-btn">❌ Remove</button>
+                                </div>
+                                <div *ngIf="imagePreview" class="image-preview">
+                                    <img [src]="imagePreview" alt="Book cover preview" class="preview-image">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Book PDF File *</label>
+                                <div class="image-upload-container">
+                                    <input type="file" #pdfInput (change)="onPdfSelected($event)" accept=".pdf" class="file-input" id="bookPdf">
+                                    <label for="bookPdf" class="file-upload-btn">
+                                        <span *ngIf="!pdfPreview">📄 Choose PDF</span>
+                                        <span *ngIf="pdfPreview">🔄 Change PDF</span>
+                                    </label>
+                                    <button type="button" *ngIf="pdfPreview" (click)="removePdf()" class="remove-image-btn">❌ Remove</button>
+                                </div>
+                                <div *ngIf="pdfPreview" class="pdf-preview">
+                                    <p>✅ PDF file selected</p>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="cancel-btn" (click)="closeAddBookModal()">Cancel</button>
+                                <button type="button" class="save-btn" (click)="saveBook()">{{ isEditMode ? 'Update' : 'Add' }} Book</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="pdf-reader-modal" [class.active]="isPdfReaderActive" (click)="closePdfReaderOutside($event)">
+                    <div class="pdf-reader-content">
+                        <div class="pdf-reader-header">
+                            <h2 class="pdf-title">{{ currentBookTitle }}</h2>
+                            <button class="close-pdf-btn" (click)="closePdfReader()">&times;</button>
+                        </div>
+                        <div class="pdf-viewer-container">
+                            <iframe 
+                                *ngIf="safePdfUrl" 
+                                [src]="safePdfUrl" 
+                                class="pdf-iframe"
+                                frameborder="0"
+                                [title]="'Reading: ' + currentBookTitle"
+                                (load)="onPdfLoad()"
+                                (error)="onPdfError()">
+                            </iframe>
+                            
+                            <div *ngIf="!safePdfUrl && currentPdfUrl" class="pdf-fallback">
+                                <p>📄 PDF Viewer</p>
+                                <p>Unable to display PDF in secure viewer.</p>
+                                <p class="pdf-note">Please contact administrator if you continue to have issues.</p>
+                            </div>
+                            
+                            <div *ngIf="!currentPdfUrl" class="pdf-error">
+                                <p>📋 No PDF available for this book</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Services & Modules section commented out
+            <div *ngIf="activeSection === 'services'" class="settings-section">
+              
+              <div class="service-list">
+                <div 
+                  *ngFor="let service of services; trackBy: trackByFn"
+                  class="service-item">
+                  <div class="service-info">
+                    <div class="service-status" [class.active]="service.enabled"></div>
+                    <div class="service-details">
+                      <h4>{{ service.name }}</h4>
+                      <p>{{ service.description }}</p>
+                    </div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input 
+                      type="checkbox" 
+                      [checked]="service.enabled"
+                      (change)="toggleServiceStatus(service)">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+            -->
+
+            <div *ngIf="activeSection === 'users'" class="settings-section">
+              <div class="registration-link-container">
+                <div class="header">
+                  <button class="api-config-btn" (click)="showApiConfig()">⚙️ API Config</button>
+                  <h1>🔗 Registration Link Generator</h1>
+                  <p>Create and manage registration links with backend tracking</p>
+                </div>
+
+                <div class="content">
+                  <div class="form-section">
+                    <h2>📝 Generate New Link</h2>
+                    
+                    <div class="info-banner">
+                      <strong>🎯 Smart Link Management:</strong> Generate secure invitation links that automatically track user registrations and expire when limits are reached. Perfect for controlled onboarding!
+                    </div>
+                    
+                    <div class="form-group">
+                      <label for="organizationId">Organization ID</label>
+                      <input type="text" id="organizationId" placeholder="Enter organization ID" [value]="organizationId" readonly>
+                    </div>
+
+                    <div class="form-group">
+                      <label for="role">User Role</label>
+                      <select id="role" [(ngModel)]="selectedRole">
+                        <option value="student">Student</option>
+                        <option value="teacher">Teacher</option>
+                        <option value="admin">Admin</option>
+                        <option value="learner">Learner</option>
+                        <option value="guest">Guest</option>
+                        <option value="staff">Staff Member</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group">
+                      <label for="maxUsers">Maximum Users</label>
+                      <input type="number" id="maxUsers" placeholder="Enter max number of users" min="1" [(ngModel)]="maxUsers">
+                    </div>
+
+                    <button class="generate-btn" (click)="generateLink()" [disabled]="isGenerating">
+                      {{ isGenerating ? '⏳ Generating...' : '✨ Generate Link' }}
+                    </button>
+                  </div>
+
+                  <div class="links-section">
+                    <h2>🔐 Active Links</h2>
+                    <button class="refresh-btn" (click)="loadLinks()">🔄 Refresh Links</button>
+                    <div id="linksList">
+                      <div *ngIf="isLoadingLinks" class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading links...</p>
+                      </div>
+                      
+                      <div *ngIf="!isLoadingLinks && registrationLinks.length === 0" class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                        </svg>
+                        <h3>No links generated yet</h3>
+                        <p>Create your first registration link to get started</p>
+                      </div>
+                      
+                      <div *ngFor="let link of registrationLinks" class="link-card" [class.expired]="isLinkExpired(link)">
+                        <div class="link-header">
+                          <span class="role-badge" [class]="'role-' + link.role">{{ link.role.toUpperCase() }}</span>
+                          <span style="font-size: 0.85em; color: #999;">{{ formatDate(link.createdAt) }}</span>
+                        </div>
+                        
+                        <div class="usage-text" *ngIf="isLinkExpired(link)">
+                          <strong style="color: #ff6b6b;">EXPIRED</strong>
+                        </div>
+                        
+                        <div class="link-url">{{ getFullUrl(link) }}</div>
+                        
+                        <div class="link-actions">
+                          <button class="btn btn-copy" (click)="copyLink(getFullUrl(link))" [disabled]="isLinkExpired(link)">
+                            📋 Copy Link
+                          </button>
+                          <button class="btn btn-delete" (click)="deleteLink(link.id)">
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- API Config Modal -->
+              <div *ngIf="showApiModal" class="modal show">
+                <div class="modal-content">
+                  <h2>⚙️ API Configuration</h2>
+                  <div class="form-group">
+                    <label for="apiUrl">Backend API URL</label>
+                    <input type="text" id="apiUrl" placeholder="http://localhost:3000/api" [(ngModel)]="apiUrl">
+                  </div>
+                  <div class="modal-actions">
+                    <button class="btn btn-copy" (click)="saveApiConfig()" style="flex: 2;">💾 Save</button>
+                    <button class="btn btn-delete" (click)="closeApiConfig()">Cancel</button>
+                  </div>
+                </div>
+              </div>
+
+              <div *ngIf="toastMessage" class="toast" [class.show]="showToast" [class.success]="toastSuccess" [class.error]="!toastSuccess">
+                <span>{{ toastMessage }}</span>
+              </div>
+            </div>
+
+            <div *ngIf="activeSection === 'integrations'" class="settings-section">
+  
+  <!-- Integrations Header -->
+  <div class="integrations-header">
+    <div class="header-info">
+      <h2>🔗 Integrations</h2>
+      <p>Connect with third-party services to enhance your platform</p>
+    </div>
+    
+    <!-- Search and Filter -->
+    <div class="integrations-controls">
+      <div class="search-box-integration">
+        <input 
+          type="text" 
+          placeholder="Search integrations..." 
+          [(ngModel)]="integrationSearchQuery"
+          class="search-input-integration">
+      </div>
+      
+      <select 
+        [(ngModel)]="selectedCategory" 
+        class="category-filter">
+        <option value="all">All Categories</option>
+        <option *ngFor="let category of integrationCategories.slice(1)" [value]="category">
+          {{ category }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="integration-stats">
+    <div class="stat-card">
+      <div class="stat-icon">📦</div>
+      <div class="stat-info">
+        <h4>{{ availableIntegrations.length }}</h4>
+        <p>Available</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">✅</div>
+      <div class="stat-info">
+        <h4>{{ getConfiguredIntegrationsCount() }}</h4>
+        <p>Configured</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">🟢</div>
+      <div class="stat-info">
+        <h4>{{ getEnabledIntegrationsCount() }}</h4>
+        <p>Active</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Integrations Grid -->
+  <div class="integrations-grid">
+    <div 
+      *ngFor="let integration of filteredIntegrations; trackBy: trackByFn"
+      class="integration-card"
+      [class.configured]="integration.configured"
+      [class.enabled]="integration.enabled">
+      
+      <!-- Integration Header -->
+      <div class="integration-card-header">
+        <div class="integration-icon" [style.background-color]="integration.color">
+          {{ integration.icon }}
+        </div>
+        <div class="integration-status" [ngClass]="getIntegrationStatusColor(integration)">
+          {{ getIntegrationStatusText(integration) }}
+        </div>
+      </div>
+
+      <!-- Integration Content -->
+      <div class="integration-content">
+        <h3>{{ integration.name }}</h3>
+        <p class="integration-category">{{ integration.category }}</p>
+        <p class="integration-description">{{ integration.description }}</p>
+        
+        <!-- Features -->
+        <div class="integration-features">
+          <span 
+            *ngFor="let feature of integration.features" 
+            class="feature-tag">
+            {{ feature }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Integration Actions -->
+      <div class="integration-actions">
+        <button 
+          *ngIf="!integration.configured"
+          class="btn-configure"
+          (click)="openIntegrationConfig(integration)">
+          <span>⚙️ Configure</span>
+        </button>
+        
+        <button 
+          *ngIf="integration.configured"
+          class="btn-toggle-integration"
+          [class.active]="integration.enabled"
+          (click)="toggleIntegration(integration)">
+          <span>{{ integration.enabled ? '🟢 Enabled' : '⚪ Disabled' }}</span>
+        </button>
+        
+        <button 
+          *ngIf="integration.configured"
+          class="btn-disconnect"
+          (click)="disconnectIntegration(integration, $event)"
+          matTooltip="Disconnect integration">
+          <span>🔌 Disconnect</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="filteredIntegrations.length === 0" class="empty-state-integrations">
+    <div class="empty-icon">🔍</div>
+    <h3>No integrations found</h3>
+    <p>Try adjusting your search or filter criteria</p>
+  </div>
+
+  <!-- Configuration Modal -->
+  <div *ngIf="isConfigModalOpen" class="modal-overlay" (click)="closeIntegrationConfig()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Configure {{ selectedIntegration?.name }}</h2>
+        <button class="close-btn" (click)="closeIntegrationConfig()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="integration-info-banner">
+          <div class="info-icon" [style.background-color]="selectedIntegration?.color">
+            {{ selectedIntegration?.icon }}
+          </div>
+          <div class="info-text">
+            <h4>{{ selectedIntegration?.name }}</h4>
+            <p>{{ selectedIntegration?.description }}</p>
+          </div>
+        </div>
+
+        <form class="config-form">
+          <div class="form-group">
+            <label for="apiKey">API Key *</label>
+            <input 
+              id="apiKey"
+              type="text" 
+              [(ngModel)]="integrationConfig.apiKey"
+              name="apiKey"
+              class="form-control"
+              placeholder="Enter your API key"
+              required>
+            <small class="form-hint">Get this from your {{ selectedIntegration?.name }} dashboard</small>
+          </div>
+
+          <div class="form-group">
+            <label for="apiSecret">API Secret</label>
+            <input 
+              id="apiSecret"
+              type="password" 
+              [(ngModel)]="integrationConfig.apiSecret"
+              name="apiSecret"
+              class="form-control"
+              placeholder="Enter your API secret">
+          </div>
+
+          <div class="form-group">
+            <label for="webhookUrl">Webhook URL</label>
+            <input 
+              id="webhookUrl"
+              type="text" 
+              [(ngModel)]="integrationConfig.webhookUrl"
+              name="webhookUrl"
+              class="form-control"
+              placeholder="https://your-domain.com/webhook"
+              readonly>
+            <small class="form-hint">Use this URL in your {{ selectedIntegration?.name }} webhook settings</small>
+          </div>
+
+          <div class="form-group-checkbox">
+            <input 
+              id="testMode"
+              type="checkbox" 
+              [(ngModel)]="integrationConfig.testMode"
+              name="testMode">
+            <label for="testMode">Enable test mode</label>
+          </div>
+
+          <div class="config-note">
+            <strong>📝 Note:</strong> Make sure to test the integration after configuration. You can find detailed setup instructions in the {{ selectedIntegration?.name }} documentation.
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeIntegrationConfig()">
+          Cancel
+        </button>
+        <button class="btn-save-config" (click)="saveIntegrationConfig()">
+          💾 Save Configuration
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+            <div *ngIf="activeSection === 'storage'" class="settings-section">
+  
+  <!-- Storage Overview Header -->
+  <div class="storage-header">
+    <div class="header-info">
+      <h2>💾 Storage & Data Management</h2>
+      <p>Monitor storage usage, configure backups, and manage data retention</p>
+    </div>
+    <button class="btn-refresh" (click)="updateStorageStats()" [disabled]="isLoading">
+      <span>{{ isLoading ? '⏳ Updating...' : '🔄 Refresh' }}</span>
+    </button>
+  </div>
+
+  <!-- Storage Statistics -->
+  <div class="storage-stats-section">
+    <div class="storage-overview-card">
+      <h3>📊 Storage Overview</h3>
+      
+      <div class="storage-visual">
+        <div class="storage-circle">
+          <svg viewBox="0 0 200 200" class="storage-svg">
+            <circle cx="100" cy="100" r="80" fill="none" stroke="#f3f4f6" stroke-width="20"/>
+            <circle 
+              cx="100" 
+              cy="100" 
+              r="80" 
+              fill="none" 
+              [attr.stroke]="getStorageColor()" 
+              stroke-width="20"
+              [style.stroke-dasharray]="502.4"
+              [style.stroke-dashoffset]="502.4 - (502.4 * storageStats.percentage / 100)"
+              stroke-linecap="round"
+              transform="rotate(-90 100 100)"/>
+          </svg>
+          <div class="storage-percentage">
+            <span class="percentage-value">{{ storageStats.percentage.toFixed(1) }}%</span>
+            <span class="percentage-label">Used</span>
+          </div>
+        </div>
+
+        <div class="storage-details">
+          <div class="storage-detail-item">
+            <span class="detail-label">Total Storage</span>
+            <span class="detail-value">{{ storageStats.total }} GB</span>
+          </div>
+          <div class="storage-detail-item">
+            <span class="detail-label">Used Space</span>
+            <span class="detail-value used">{{ storageStats.used.toFixed(1) }} GB</span>
+          </div>
+          <div class="storage-detail-item">
+            <span class="detail-label">Available Space</span>
+            <span class="detail-value available">{{ storageStats.available.toFixed(1) }} GB</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-cleanup" (click)="cleanupTempFiles()">
+        <span>🧹 Clean Up Temporary Files</span>
+      </button>
+    </div>
+
+    <!-- Storage Breakdown -->
+    <div class="storage-breakdown-card">
+      <h3>📁 Storage Breakdown</h3>
+      
+      <div class="breakdown-list">
+        <div 
+          *ngFor="let item of storageBreakdown"
+          class="breakdown-item">
+          <div class="breakdown-header">
+            <div class="breakdown-info">
+              <span class="breakdown-icon">{{ item.icon }}</span>
+              <div class="breakdown-text">
+                <span class="breakdown-category">{{ item.category }}</span>
+                <span class="breakdown-count">{{ item.items }} items</span>
+              </div>
+            </div>
+            <div class="breakdown-size">
+              <span class="size-value">{{ formatFileSize(item.size) }}</span>
+              <span class="size-percentage">{{ item.percentage.toFixed(1) }}%</span>
+            </div>
+          </div>
+          <div class="breakdown-bar">
+            <div 
+              class="breakdown-fill"
+              [style.width.%]="item.percentage"
+              [style.background-color]="item.color">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backup Configuration -->
+  <div class="backup-section">
+    <div class="subsection-card">
+      <div class="subsection-header">
+        <h3>🔄 Automatic Backup Settings</h3>
+        <div class="backup-status" [class.backing-up]="isBackingUp">
+          <span *ngIf="!isBackingUp">{{ getBackupStatusIcon(backupSettings.backupStatus) }} {{ backupSettings.backupStatus === 'success' ? 'Up to date' : 'Failed' }}</span>
+          <span *ngIf="isBackingUp">⏳ Backing up...</span>
+        </div>
+      </div>
+
+      <form class="backup-form">
+        <div class="form-row">
+          <div class="form-group-checkbox-large">
+            <input 
+              type="checkbox" 
+              id="autoBackup"
+              [(ngModel)]="backupSettings.autoBackup"
+              name="autoBackup">
+            <label for="autoBackup">
+              <strong>Enable Automatic Backups</strong>
+              <span>Automatically backup your data at scheduled intervals</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-grid" *ngIf="backupSettings.autoBackup">
+          <div class="form-group">
+            <label for="frequency">Backup Frequency</label>
+            <select 
+              id="frequency" 
+              [(ngModel)]="backupSettings.frequency"
+              name="frequency"
+              class="form-control">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="backupTime">Backup Time</label>
+            <input 
+              type="time" 
+              id="backupTime"
+              [(ngModel)]="backupSettings.time"
+              name="backupTime"
+              class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label for="retention">Retention Period (days)</label>
+            <input 
+              type="number" 
+              id="retention"
+              [(ngModel)]="backupSettings.retention"
+              name="retention"
+              class="form-control"
+              min="1"
+              max="365">
+          </div>
+
+          <div class="form-group">
+            <label for="cloudProvider">Cloud Provider</label>
+            <select 
+              id="cloudProvider" 
+              [(ngModel)]="backupSettings.cloudProvider"
+              name="cloudProvider"
+              class="form-control">
+              <option value="google-drive">Google Drive</option>
+              <option value="dropbox">Dropbox</option>
+              <option value="aws-s3">AWS S3</option>
+              <option value="local">Local Storage</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="backup-options" *ngIf="backupSettings.autoBackup">
+          <h4>What to Include</h4>
+          <div class="options-grid">
+            <div class="option-checkbox">
+              <input 
+                type="checkbox" 
+                id="includeDatabase"
+                [(ngModel)]="backupSettings.includeDatabase"
+                name="includeDatabase">
+              <label for="includeDatabase">💾 Database</label>
+            </div>
+            <div class="option-checkbox">
+              <input 
+                type="checkbox" 
+                id="includeDocuments"
+                [(ngModel)]="backupSettings.includeDocuments"
+                name="includeDocuments">
+              <label for="includeDocuments">📄 Documents</label>
+            </div>
+            <div class="option-checkbox">
+              <input 
+                type="checkbox" 
+                id="includeMedia"
+                [(ngModel)]="backupSettings.includeMedia"
+                name="includeMedia">
+              <label for="includeMedia">🖼️ Media Files</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="backup-schedule-info" *ngIf="backupSettings.autoBackup">
+          <div class="schedule-item">
+            <span class="schedule-label">Last Backup:</span>
+            <span class="schedule-value">{{ formatDateTime(backupSettings.lastBackup) }}</span>
+          </div>
+          <div class="schedule-item">
+            <span class="schedule-label">Next Backup:</span>
+            <span class="schedule-value">{{ formatDateTime(backupSettings.nextBackup) }}</span>
+          </div>
+        </div>
+
+        <div class="backup-actions">
+          <button 
+            type="button"
+            class="btn-save-backup"
+            (click)="saveBackupSettings()"
+            [disabled]="isSavingStorage">
+            <span>{{ isSavingStorage ? '💾 Saving...' : '💾 Save Backup Settings' }}</span>
+          </button>
+          <button 
+            type="button"
+            class="btn-backup-now"
+            (click)="initiateBackup()"
+            [disabled]="isBackingUp">
+            <span>{{ isBackingUp ? '⏳ Backing Up...' : '▶️ Backup Now' }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Backup History -->
+  <div class="backup-history-section">
+    <div class="subsection-card">
+      <div class="subsection-header">
+        <h3>📜 Backup History</h3>
+        <span class="history-count">{{ backupHistory.length }} backups</span>
+      </div>
+
+      <div class="backup-history-list">
+        <div 
+          *ngFor="let backup of backupHistory"
+          class="backup-history-item"
+          [class.failed]="backup.status === 'failed'">
+          
+          <div class="backup-icon" [ngClass]="getBackupStatusColor(backup.status)">
+            {{ getBackupStatusIcon(backup.status) }}
+          </div>
+
+          <div class="backup-info">
+            <div class="backup-main-info">
+              <span class="backup-id">{{ backup.id }}</span>
+              <span class="backup-type" [class.manual]="backup.type === 'manual'">
+                {{ backup.type === 'manual' ? '👤 Manual' : '🤖 Automatic' }}
+              </span>
+            </div>
+            <div class="backup-details">
+              <span class="backup-date">{{ formatDateTime(backup.date) }}</span>
+              <span class="backup-size">{{ formatFileSize(backup.size) }}</span>
+              <span class="backup-duration">⏱️ {{ backup.duration }}</span>
+            </div>
+            <div *ngIf="backup.status === 'failed' && backup.error" class="backup-error">
+              ⚠️ {{ backup.error }}
+            </div>
+          </div>
+
+          <div class="backup-actions-buttons">
+            <button 
+              *ngIf="backup.status === 'completed'"
+              class="btn-icon-action"
+              (click)="downloadBackup(backup)"
+              matTooltip="Download backup">
+              ⬇️
+            </button>
+            <button 
+              *ngIf="backup.status === 'completed'"
+              class="btn-icon-action"
+              (click)="restoreBackup(backup)"
+              matTooltip="Restore from this backup">
+              ↩️
+            </button>
+            <button 
+              class="btn-icon-action delete"
+              (click)="deleteBackup(backup, $event)"
+              matTooltip="Delete backup">
+              🗑️
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="backupHistory.length === 0" class="empty-state-small">
+        <p>No backup history available</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Retention Policies -->
+  <div class="retention-section">
+    <div class="subsection-card">
+      <div class="subsection-header">
+        <h3>⏰ Data Retention Policies</h3>
+        <p class="subsection-description">Configure how long different types of data are kept</p>
+      </div>
+
+      <div class="retention-policies-list">
+        <div 
+          *ngFor="let policy of dataRetentionPolicies"
+          class="retention-policy-item">
+          
+          <div class="policy-info">
+            <div class="policy-header">
+              <span class="policy-name">{{ policy.name }}</span>
+              <label class="toggle-switch-small">
+                <input 
+                  type="checkbox" 
+                  [checked]="policy.enabled"
+                  (change)="toggleRetentionPolicy(policy)">
+                <span class="toggle-slider-small"></span>
+              </label>
+            </div>
+            <p class="policy-description">{{ policy.description }}</p>
+          </div>
+
+          <div class="policy-retention">
+            <label class="retention-label">Retention Period</label>
+            <select 
+              [value]="policy.retention"
+              (change)="onRetentionChange(policy, $event)"
+              [disabled]="!policy.enabled"
+              class="retention-select">
+              <option value="7-days">7 Days</option>
+              <option value="30-days">30 Days</option>
+              <option value="90-days">90 Days</option>
+              <option value="1-year">1 Year</option>
+              <option value="3-years">3 Years</option>
+              <option value="7-years">7 Years</option>
+              <option value="permanent">Permanent</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Export -->
+  <div class="export-section">
+    <div class="subsection-card">
+      <div class="subsection-header">
+        <h3>📤 Export Data</h3>
+        <p class="subsection-description">Download your data in various formats</p>
+      </div>
+
+      <div class="export-options-grid">
+        <div 
+          *ngFor="let option of exportOptions"
+          class="export-option-card">
+          
+          <div class="export-icon">{{ option.icon }}</div>
+          <div class="export-info">
+            <h4>{{ option.name }}</h4>
+            <p>{{ option.description }}</p>
+            <span class="export-format">{{ option.format }}</span>
+          </div>
+          <button 
+            class="btn-export"
+            (click)="exportData(option)"
+            [disabled]="isExporting && selectedExportType === option.id">
+            <span *ngIf="!(isExporting && selectedExportType === option.id)">📥 Export</span>
+            <span *ngIf="isExporting && selectedExportType === option.id">⏳ Exporting...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="storage-tips">
+    <div class="tip-card">
+      <div class="tip-icon">💡</div>
+      <div class="tip-content">
+        <h4>Storage Management Tips</h4>
+        <ul>
+          <li>Regularly clean up temporary files to free space</li>
+          <li>Enable automatic backups to prevent data loss</li>
+          <li>Review retention policies to comply with regulations</li>
+          <li>Export important data periodically for offline storage</li>
+          <li>Monitor storage usage to avoid running out of space</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+           <div *ngIf="activeSection === 'billing'" class="settings-section">
+  
+  <!-- Billing Header -->
+  <div class="billing-header">
+    <div class="header-info">
+      <h2>💳 Billing & Subscription</h2>
+      <p>Manage your subscription, invoices, and payment methods</p>
+    </div>
+  </div>
+
+  <!-- Current Subscription Overview -->
+  <div class="subscription-overview">
+    <div class="current-plan-card">
+      <div class="plan-header">
+        <div class="plan-title-section">
+          <h3>Current Plan</h3>
+          <span class="plan-badge" [ngClass]="getSubscriptionStatusColor(currentSubscription.status)">
+            {{ currentSubscription.status | uppercase }}
+          </span>
+        </div>
+        <div class="plan-price">
+          <span class="price-amount">{{ formatCurrency(currentSubscription.price) }}</span>
+          <span class="price-period">/ {{ currentSubscription.billingCycle }}</span>
+        </div>
+      </div>
+
+      <div class="plan-details">
+        <h4 class="plan-name">{{ currentSubscription.plan }} Plan</h4>
+        
+        <div class="plan-info-grid">
+          <div class="info-item">
+            <span class="info-label">Start Date</span>
+            <span class="info-value">{{ formatDate(currentSubscription.startDate) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Renewal Date</span>
+            <span class="info-value">{{ formatDate(currentSubscription.renewalDate) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Users</span>
+            <span class="info-value">{{ currentSubscription.users }} / {{ currentSubscription.maxUsers }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Storage</span>
+            <span class="info-value">{{ currentSubscription.storage }}</span>
+          </div>
+        </div>
+
+        <div class="renewal-notice" *ngIf="getDaysUntilRenewal() <= 30 && currentSubscription.status === 'active'">
+          <span class="notice-icon">📅</span>
+          <span class="notice-text">
+            Renews in {{ getDaysUntilRenewal() }} days
+            <span *ngIf="!currentSubscription.autoRenew" style="color: #f59e0b;"> - Auto-renewal is OFF</span>
+          </span>
+        </div>
+
+        <div class="plan-features">
+          <h5>Included Features:</h5>
+          <div class="features-grid">
+            <div *ngFor="let feature of currentSubscription.features" class="feature-item">
+              ✓ {{ feature }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="plan-actions">
+        <button 
+          class="btn-secondary-action"
+          (click)="toggleAutoRenew()">
+          <span>{{ currentSubscription.autoRenew ? '🔄 Auto-Renewal ON' : '⏸️ Auto-Renewal OFF' }}</span>
+        </button>
+        <button 
+          class="btn-danger-action"
+          (click)="cancelSubscription()"
+          *ngIf="currentSubscription.status === 'active'">
+          <span>❌ Cancel Subscription</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Billing Statistics -->
+    <div class="billing-stats-card">
+      <h3>Billing Summary</h3>
+      
+      <div class="stats-list">
+        <div class="stat-item">
+          <div class="stat-icon">💰</div>
+          <div class="stat-content">
+            <span class="stat-label">Total Spent (2024)</span>
+            <span class="stat-value">{{ formatCurrency(billingStats.totalSpent) }}</span>
+          </div>
+        </div>
+
+        <div class="stat-item">
+          <div class="stat-icon">📊</div>
+          <div class="stat-content">
+            <span class="stat-label">Average Monthly</span>
+            <span class="stat-value">{{ formatCurrency(billingStats.averageMonthly) }}</span>
+          </div>
+        </div>
+
+        <div class="stat-item">
+          <div class="stat-icon">📅</div>
+          <div class="stat-content">
+            <span class="stat-label">Next Billing</span>
+            <span class="stat-value">{{ formatCurrency(billingStats.nextBilling) }}</span>
+            <span class="stat-detail">{{ formatDate(billingStats.nextBillingDate) }}</span>
+          </div>
+        </div>
+
+        <div class="stat-item" *ngIf="billingStats.outstandingAmount > 0">
+          <div class="stat-icon">⚠️</div>
+          <div class="stat-content">
+            <span class="stat-label">Outstanding</span>
+            <span class="stat-value outstanding">{{ formatCurrency(billingStats.outstandingAmount) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Available Plans -->
+  <div class="plans-section">
+    <div class="subsection-card">
+      <div class="subsection-header">
+        <h3>📦 Change Plan</h3>
+        <div class="billing-cycle-toggle">
+          <button 
+            class="cycle-btn"
+            [class.active]="selectedBillingCycle === 'monthly'"
+            (click)="selectBillingCycle('monthly')">
+            Monthly
+          </button>
+          <button 
+            class="cycle-btn"
+            [class.active]="selectedBillingCycle === 'annually'"
+            (click)="selectBillingCycle('annually')">
+            Annually
+            <span class="save-badge">Save 17%</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="plans-grid">
+        <div 
+          *ngFor="let plan of availablePlans"
+          class="plan-card"
+          [class.selected]="selectedPlan === plan.id"
+          [class.popular]="plan.popular"
+          (click)="selectPlan(plan.id)">
+          
+          <div class="popular-badge" *ngIf="plan.popular">
+            ⭐ Most Popular
+          </div>
+
+          <div class="plan-card-header">
+            <h4>{{ plan.name }}</h4>
+            <p class="plan-description">{{ plan.description }}</p>
+          </div>
+
+          <div class="plan-pricing">
+            <div class="price-main">
+              <span class="currency">R</span>
+              <span class="amount">{{ calculatePlanPrice(plan).toLocaleString() }}</span>
+            </div>
+            <div class="price-period">per {{ selectedBillingCycle === 'monthly' ? 'month' : 'year' }}</div>
+            <div class="savings-info" *ngIf="selectedBillingCycle === 'annually' && calculateMonthlySavings(plan) > 0">
+              💰 Save R{{ calculateMonthlySavings(plan).toLocaleString() }}/year
+            </div>
+          </div>
+
+          <div class="plan-features-list">
+            <div *ngFor="let feature of plan.features" class="feature-list-item">
+              <span class="feature-check">✓</span>
+              <span>{{ feature }}</span>
+            </div>
+          </div>
+
+          <div class="plan-limits">
+            <div class="limit-item">
+              <span class="limit-icon">👥</span>
+              <span>{{ plan.limits.students }} students</span>
+            </div>
+            <div class="limit-item">
+              <span class="limit-icon">💾</span>
+              <span>{{ plan.limits.storage }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="plan-change-action">
+        <button 
+          class="btn-change-plan"
+          (click)="changePlan()"
+          [disabled]="isChangingPlan || selectedPlan === currentSubscription.plan.toLowerCase()">
+          <span *ngIf="!isChangingPlan">{{ selectedPlan === currentSubscription.plan.toLowerCase() ? '✓ Current Plan' : '🔄 Change to ' + (availablePlans | filter: 'id': selectedPlan)[0]?.name }}</span>
+          <span *ngIf="isChangingPlan">⏳ Processing...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invoices -->
+  <div class="invoices-section">
+    <div class="subsection-card">
+      <div class="subsection-header">
+        <h3>🧾 Invoices</h3>
+        <span class="invoice-count">{{ invoices.length }} total</span>
+      </div>
+
+      <div class="invoices-table">
+        <div class="table-header">
+          <div class="col-invoice">Invoice</div>
+          <div class="col-date">Date</div>
+          <div class="col-description">Description</div>
+          <div class="col-amount">Amount</div>
+          <div class="col-status">Status</div>
+          <div class="col-actions">Actions</div>
+        </div>
+
+        <div 
+          *ngFor="let invoice of invoices"
+          class="table-row"
+          [class.unpaid]="invoice.status !== 'paid'">
+          
+          <div class="col-invoice">
+            <span class="invoice-id">{{ invoice.id }}</span>
+          </div>
+
+          <div class="col-date">
+            {{ formatDate(invoice.date) }}
+          </div>
+
+          <div class="col-description">
+            {{ invoice.description }}
+          </div>
+
+          <div class="col-amount">
+            <strong>{{ formatCurrency(invoice.amount) }}</strong>
+          </div>
+
+          <div class="col-status">
+            <span class="status-badge-small" [ngClass]="getInvoiceStatusColor(invoice.status)">
+              {{ getInvoiceStatusIcon(invoice.status) }} {{ invoice.status | uppercase }}
+            </span>
+          </div>
+
+          <div class="col-actions">
+            <button 
+              class="btn-icon-small"
+              (click)="viewInvoice(invoice)"
+              matTooltip="View details">
+              👁️
+            </button>
+            <button 
+              class="btn-icon-small"
+              (click)="downloadInvoice(invoice)"
+              matTooltip="Download PDF">
+              ⬇️
+            </button>
+            <button 
+              *ngIf="invoice.status !== 'paid'"
+              class="btn-icon-small pay"
+              (click)="payInvoice(invoice)"
+              matTooltip="Pay now">
+              💳
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="invoices.length === 0" class="empty-state-small">
+        <p>No invoices yet</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Methods -->
+  <div class="payment-methods-section">
+    <div class="subsection-card">
+      <div class="subsection-header">
+        <h3>💳 Payment Methods</h3>
+        <button class="btn-add-small" (click)="openAddPaymentMethod()">
+          <span>+ Add Payment Method</span>
+        </button>
+      </div>
+
+      <div class="payment-methods-grid">
+        <div 
+          *ngFor="let method of paymentMethods"
+          class="payment-method-card"
+          [class.default]="method.isDefault">
+          
+          <div class="method-icon">
+            <span *ngIf="method.type === 'card'">💳</span>
+            <span *ngIf="method.type === 'bank_account'">🏦</span>
+          </div>
+
+          <div class="method-details">
+            <div class="method-header">
+              <span class="method-brand">{{ method.brand || method.bank }}</span>
+              <span class="default-badge" *ngIf="method.isDefault">Default</span>
+            </div>
+            
+            <div class="method-info">
+              <span *ngIf="method.type === 'card'">
+                •••• •••• •••• {{ method.last4 }}
+              </span>
+              <span *ngIf="method.type === 'bank_account'">
+                {{ method.accountType }} •••• {{ method.last4 }}
+              </span>
+            </div>
+
+            <div class="method-expiry" *ngIf="method.type === 'card'">
+              Expires {{ method.expiryMonth }}/{{ method.expiryYear }}
+            </div>
+
+            <div class="method-holder">
+              {{ method.holderName }}
+            </div>
+          </div>
+
+          <div class="method-actions">
+            <button 
+              *ngIf="!method.isDefault"
+              class="btn-link-small"
+              (click)="setDefaultPaymentMethod(method)">
+              Set as default
+            </button>
+            <button 
+              class="btn-link-small danger"
+              (click)="removePaymentMethod(method)">
+              Remove
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="paymentMethods.length === 0" class="empty-state-small">
+        <p>No payment methods added</p>
+        <button class="btn-add" (click)="openAddPaymentMethod()">
+          <span>+ Add Your First Payment Method</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Payment Method Modal -->
+  <div *ngIf="isAddingPaymentMethod" class="modal-overlay" (click)="closeAddPaymentMethod()">
+    <div class="modal-dialog payment-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Add Payment Method</h2>
+        <button class="close-btn" (click)="closeAddPaymentMethod()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="payment-type-selector">
+          <button 
+            class="type-btn"
+            [class.active]="paymentMethodForm.type === 'card'"
+            (click)="paymentMethodForm.type = 'card'">
+            💳 Credit/Debit Card
+          </button>
+          <button 
+            class="type-btn"
+            [class.active]="paymentMethodForm.type === 'bank_account'"
+            (click)="paymentMethodForm.type = 'bank_account'">
+            🏦 Bank Account
+          </button>
+        </div>
+
+        <!-- Card Form -->
+        <form class="payment-form" *ngIf="paymentMethodForm.type === 'card'">
+          <div class="form-group">
+            <label for="cardNumber">Card Number *</label>
+            <input 
+              type="text" 
+              id="cardNumber"
+              [(ngModel)]="paymentMethodForm.cardNumber"
+              name="cardNumber"
+              class="form-control"
+              placeholder="1234 5678 9012 3456"
+              maxlength="19">
+          </div>
+
+          <div class="form-group">
+            <label for="cardHolder">Cardholder Name *</label>
+            <input 
+              type="text" 
+              id="cardHolder"
+              [(ngModel)]="paymentMethodForm.cardHolder"
+              name="cardHolder"
+              class="form-control"
+              placeholder="John Doe">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="expiryMonth">Expiry Month *</label>
+              <select 
+                id="expiryMonth"
+                [(ngModel)]="paymentMethodForm.expiryMonth"
+                name="expiryMonth"
+                class="form-control">
+                <option value="">MM</option>
+                <option *ngFor="let month of [1,2,3,4,5,6,7,8,9,10,11,12]" [value]="month">
+                  {{ month < 10 ? '0' + month : month }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="expiryYear">Expiry Year *</label>
+              <select 
+                id="expiryYear"
+                [(ngModel)]="paymentMethodForm.expiryYear"
+                name="expiryYear"
+                class="form-control">
+                <option value="">YYYY</option>
+                <option *ngFor="let year of [2024,2025,2026,2027,2028,2029,2030,2031]" [value]="year">
+                  {{ year }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="cvv">CVV *</label>
+              <input 
+                type="text" 
+                id="cvv"
+                [(ngModel)]="paymentMethodForm.cvv"
+                name="cvv"
+                class="form-control"
+                placeholder="123"
+                maxlength="4">
+            </div>
+          </div>
+        </form>
+
+        <!-- Bank Account Form -->
+        <form class="payment-form" *ngIf="paymentMethodForm.type === 'bank_account'">
+          <div class="form-group">
+            <label for="bankName">Bank Name *</label>
+            <select 
+              id="bankName"
+              [(ngModel)]="paymentMethodForm.bankName"
+              name="bankName"
+              class="form-control">
+              <option value="">Select Bank</option>
+              <option value="ABSA">ABSA</option>
+              <option value="Standard Bank">Standard Bank</option>
+              <option value="FNB">FNB</option>
+              <option value="Nedbank">Nedbank</option>
+              <option value="Capitec">Capitec</option>
+              <option value="African Bank">African Bank</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="accountType">Account Type *</label>
+            <select 
+              id="accountType"
+              [(ngModel)]="paymentMethodForm.accountType"
+              name="accountType"
+              class="form-control">
+              <option value="cheque">Cheque/Current</option>
+              <option value="savings">Savings</option>
+              <option value="transmission">Transmission</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="accountNumber">Account Number *</label>
+            <input 
+              type="text" 
+              id="accountNumber"
+              [(ngModel)]="paymentMethodForm.accountNumber"
+              name="accountNumber"
+              class="form-control"
+              placeholder="1234567890">
+          </div>
+
+          <div class="form-group">
+            <label for="branchCode">Branch Code *</label>
+            <input 
+              type="text" 
+              id="branchCode"
+              [(ngModel)]="paymentMethodForm.branchCode"
+              name="branchCode"
+              class="form-control"
+              placeholder="250655">
+          </div>
+        </form>
+
+        <div class="security-notice">
+          <span class="notice-icon">🔒</span>
+          <span class="notice-text">
+            Your payment information is encrypted and securely stored. We never store your full card details.
+          </span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="closeAddPaymentMethod()">
+          Cancel
+        </button>
+        <button class="btn-save-config" (click)="savePaymentMethod()">
+          💾 Add Payment Method
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invoice Detail Modal -->
+  <div *ngIf="showInvoiceModal && selectedInvoice" class="modal-overlay" (click)="closeInvoiceModal()">
+    <div class="modal-dialog invoice-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Invoice Details</h2>
+        <button class="close-btn" (click)="closeInvoiceModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="invoice-detail-card">
+          <div class="invoice-header-section">
+            <h3>{{ selectedInvoice.id }}</h3>
+            <span class="status-badge-large" [ngClass]="getInvoiceStatusColor(selectedInvoice.status)">
+              {{ selectedInvoice.status | uppercase }}
+            </span>
+          </div>
+
+          <div class="invoice-details-grid">
+            <div class="detail-row">
+              <span class="detail-label">Issue Date:</span>
+              <span class="detail-value">{{ formatDate(selectedInvoice.date) }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Due Date:</span>
+              <span class="detail-value">{{ formatDate(selectedInvoice.dueDate) }}</span>
+            </div>
+            <div class="detail-row" *ngIf="selectedInvoice.paidDate">
+              <span class="detail-label">Paid Date:</span>
+              <span class="detail-value">{{ formatDate(selectedInvoice.paidDate) }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Payment Method:</span>
+              <span class="detail-value">{{ selectedInvoice.paymentMethod }}</span>
+            </div>
+          </div>
+
+          <div class="invoice-line-items">
+            <h4>Items</h4>
+            <div class="line-item">
+              <span>{{ selectedInvoice.description }}</span>
+              <span>{{ formatCurrency(selectedInvoice.amount) }}</span>
+            </div>
+          </div>
+
+          <div class="invoice-total">
+            <span>Total Amount</span>
+            <span class="total-amount">{{ formatCurrency(selectedInvoice.amount) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary-action" (click)="downloadInvoice(selectedInvoice)">
+          ⬇️ Download PDF
+        </button>
+        <button class="btn-cancel" (click)="closeInvoiceModal()">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+          </div>
+        </div>
+      </main>
+
+    </div>
+  </div>
+</div>

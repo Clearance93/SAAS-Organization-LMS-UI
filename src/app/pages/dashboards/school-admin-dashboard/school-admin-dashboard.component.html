@@ -1,0 +1,181 @@
+<div class="dashboard-container">
+  <div *ngIf="isLoading" class="loading-overlay">
+    <div class="spinner"></div>
+    <p>Loading dashboard data...</p>
+  </div>
+
+  <div *ngIf="errorMessage" class="error-banner">
+    <span class="error-icon">⚠️</span>
+    <span>{{ errorMessage }}</span>
+    <button class="retry-button" (click)="refreshDashboard()">Retry</button>
+  </div>
+
+  <header class="dashboard-header">
+    <div class="header-left">
+      <h1>Welcome to <span style="color: red;">{{ dashboardStats?.organizationName || 'School Dashboard' }}</span> School</h1>
+      <p class="subtitle">Monitor and manage your school operations</p>
+    </div>
+    <div class="header-right">
+      <button class="icon-button" (click)="openCommunicationCenter()" title="Messages">
+        <span class="notification-badge" *ngIf="unreadMessageCount > 0">{{ unreadMessageCount }}</span>
+        🔔
+      </button>
+      <button class="icon-button" (click)="settings()">
+        ⚙️
+      </button>
+      <button class="icon-button logout button" (click)="logout()" title="logout">
+         ⏻
+      </button>
+      <div class="admin-profile" (click)="openProfileModal()" style="cursor: pointer;">
+        <img *ngIf="adminProfilePicture" 
+             [src]="adminProfilePicture" 
+             alt="Admin Profile" 
+             class="avatar-image"
+             (error)="onProfileImageError()">
+        <div *ngIf="!adminProfilePicture" class="avatar">{{ adminInitials }}</div>
+        <span>{{ adminName }}</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="stats-grid">
+    <div class="stat-card" 
+         *ngFor="let stat of statCards" 
+         [style.border-left-color]="stat.color">
+      <div class="stat-header">
+        <span class="stat-icon">{{ stat.icon }}</span>
+        <span class="stat-title">{{ stat.title }}</span>
+      </div>
+      <div class="stat-value">{{ stat.value }}</div>
+      <div class="stat-trend" 
+           [class.positive]="stat.trend && stat.trend > 0" 
+           [class.negative]="stat.trend && stat.trend < 0"
+           [class.neutral]="stat.trend === 0">
+        <span *ngIf="stat.trend && stat.trend > 0">↑ {{ stat.trend }}%</span>
+        <span *ngIf="stat.trend && stat.trend < 0">↓ {{ Math.abs(stat.trend) }}%</span>
+        <span *ngIf="stat.trend === 0">—</span>
+        <span class="trend-label">{{ stat.trendLabel }}</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="content-grid">
+    <div class="card attendance-card">
+      <div class="card-header">
+        <h3>Attendance Rate</h3>
+        <select class="period-selector">
+          <option>This Week</option>
+          <option>This Month</option>
+          <option>This Year</option>
+        </select>
+      </div>
+      <div class="attendance-content">
+        <div class="attendance-circle">
+          <svg viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="85" fill="none" stroke="#e5e7eb" stroke-width="20"/>
+            <circle cx="100" cy="100" r="85" fill="none" stroke="#6366f1" stroke-width="20"
+                    [attr.stroke-dasharray]="534" 
+                    [attr.stroke-dashoffset]="534 - (534 * attendanceRate / 100)"
+                    transform="rotate(-90 100 100)"/>
+          </svg>
+          <div class="attendance-percentage">{{ attendanceRate }}%</div>
+        </div>
+        <div class="attendance-chart">
+          <div class="bar" *ngFor="let data of attendanceData">
+            <div class="bar-fill" [style.height.%]="data.value"></div>
+            <span class="bar-label">{{ data.label }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card events-card">
+      <div class="card-header">
+        <h3>Upcoming Events</h3>
+        <button class="view-all-btn">View All</button>
+      </div>
+      <div class="events-list">
+        <div class="event-item" 
+             *ngFor="let event of upcomingEvents" 
+             [ngClass]="getEventTypeClass(event.type)">
+          <div class="event-indicator"></div>
+          <div class="event-details">
+            <span class="event-title">{{ event.title }}</span>
+            <span class="event-date">{{ event.date }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card progress-card">
+      <div class="card-header">
+        <h3>Student Progress</h3>
+        <div class="progress-legend">
+          <span class="legend-item">
+            <span class="legend-dot"></span>
+            Average Score
+          </span>
+        </div>
+      </div>
+      <div class="progress-chart">
+        <svg viewBox="0 0 600 200" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="progressGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.3" />
+              <stop offset="100%" style="stop-color:#6366f1;stop-opacity:0" />
+            </linearGradient>
+          </defs>
+          <path [attr.d]="getProgressAreaPath()" fill="url(#progressGradient)" />
+          <path [attr.d]="getProgressLinePath()" fill="none" stroke="#6366f1" stroke-width="3" />
+        </svg>
+        <div class="progress-bars">
+          <div class="progress-bar-item" *ngFor="let data of progressData">
+            <div class="progress-bar-fill" [style.height.%]="data.value"></div>
+            <span class="progress-bar-label">{{ data.label }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card quick-actions-card">
+      <div class="card-header">
+        <h3>Quick Actions</h3>
+      </div>
+      <div class="quick-actions-grid">
+        <button class="action-button" 
+                *ngFor="let action of quickActions"
+                (click)="handleQuickAction(action.action)">
+          <span class="action-icon">{{ action.icon }}</span>
+          <span class="action-title">{{ action.title }}</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="card activities-card">
+      <div class="card-header">
+        <h3>Recent Activities</h3>
+        <button class="refresh-btn" (click)="refreshDashboard()">🔄</button>
+      </div>
+      <div class="activities-list">
+        <div class="activity-item" *ngFor="let activity of recentActivities">
+          <div class="activity-avatar">{{ activity.avatar }}</div>
+          <div class="activity-content">
+            <div class="activity-text">
+              <strong>{{ activity.user }}</strong> {{ activity.action }}
+            </div>
+            <span class="activity-time">{{ activity.time }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-admin-profile-modal
+  [isOpen]="isProfileModalOpen"
+  [adminData]="adminProfileData"
+  [adminEmail]="adminEmail"
+  (close)="closeProfileModal()"
+  (editProfile)="onEditProfile()"
+  (changePhoto)="onChangePhoto()">
+</app-admin-profile-modal>

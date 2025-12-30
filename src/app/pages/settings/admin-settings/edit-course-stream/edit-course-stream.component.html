@@ -1,0 +1,87 @@
+<div class="page-container">
+  <div class="main-container">
+    <button class="back-btn" (click)="navigateBack()">← Back to Settings</button>
+
+    <div class="header-wrapper">
+      <div class="header-icon">📚</div>
+      <div class="header-content">
+        <h1 class="page-title">Edit Course Stream</h1>
+        <p class="page-subtitle">Update course stream information</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="form-header">Course Stream Details</div>
+
+      <div *ngIf="isLoading" class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p class="loading-text">Loading course stream...</p>
+      </div>
+
+      <div *ngIf="loadError" class="error-container">
+        <div class="error-icon">⚠️</div>
+        <p class="error-message">{{ loadError }}</p>
+      </div>
+
+      <div *ngIf="!isLoading && !loadError">
+        <form [formGroup]="courseStreamForms" (ngSubmit)="onSubmit()" novalidate>
+          <div class="form-group">
+            <label class="label">Course Stream Name <span class="required">*</span></label>
+            <input
+              type="text"
+              formControlName="courseStreamName"
+              class="form-input"
+              placeholder="e.g., Science Stream, Arts & Humanities"
+              maxlength="100"
+            />
+
+            <div *ngIf="courseStreamName?.invalid && (courseStreamName?.touched || courseStreamName?.dirty)" class="error-text">
+              <span *ngIf="courseStreamName?.errors?.['required']">Name is required.</span>
+              <span *ngIf="courseStreamName?.errors?.['minlength']">Minimum 3 characters required.</span>
+              <span *ngIf="courseStreamName?.errors?.['maxlength']">Maximum 100 characters allowed.</span>
+            </div>
+
+            <div class="char-count">{{ (courseStreamName?.value?.length || 0) }} / 100</div>
+          </div>
+
+          <div class="form-group">
+            <label class="label">Description <span class="required">*</span></label>
+            <textarea
+              formControlName="description"
+              class="form-textarea"
+              placeholder="Provide a detailed description of the course stream, including its focus areas, target students, and key objectives..."
+              maxlength="2000"
+            ></textarea>
+
+            <div *ngIf="description?.invalid && (description?.touched || description?.dirty)" class="error-text">
+              <span *ngIf="description?.errors?.['required']">Description is required.</span>
+              <span *ngIf="description?.errors?.['minlength']">Minimum 10 characters required.</span>
+              <span *ngIf="description?.errors?.['maxlength']">Maximum 2000 characters allowed.</span>
+            </div>
+
+            <div class="char-count">{{ (description?.value?.length || 0) }} / 2000</div>
+          </div>
+
+          <div class="tips-box">
+            <h4>💡 Tips for Course Stream Details</h4>
+            <ul>
+              <li>Use clear, descriptive names that students and parents can easily understand</li>
+              <li>Include key subjects and career pathways in the description</li>
+              <li>Highlight what makes this stream unique or beneficial</li>
+            </ul>
+          </div>
+
+          <div class="actions">
+            <button type="button" class="btn-secondary" (click)="onCancel()">Cancel</button>
+            <button type="submit" class="btn-primary" [disabled]="courseStreamForms.invalid || isSaving">
+              <span *ngIf="!isSaving">Save Changes</span>
+              <span *ngIf="isSaving">Saving...</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+  

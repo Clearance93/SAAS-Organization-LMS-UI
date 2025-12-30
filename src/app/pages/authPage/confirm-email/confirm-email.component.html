@@ -1,0 +1,85 @@
+<div class="confirm-email-container">
+  <div class="confirm-card">
+    <div class="header">
+      <div class="icon-wrapper" [class.success]="isConfirmed">
+        <svg *ngIf="!isConfirmed && !errorMessage" xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+          <polyline points="22,6 12,13 2,6"></polyline>
+        </svg>
+        
+        <svg *ngIf="isConfirmed" xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        
+        <svg *ngIf="errorMessage" xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="15" y1="9" x2="9" y2="15"></line>
+          <line x1="9" y1="9" x2="15" y2="15"></line>
+        </svg>
+      </div>
+      
+      <h1 *ngIf="!isConfirmed && !errorMessage">Confirm Your Email</h1>
+      <h1 *ngIf="isConfirmed" class="success-title">Email Confirmed!</h1>
+      <h1 *ngIf="errorMessage && !isConfirmed" class="error-title">Confirmation Failed</h1>
+    </div>
+
+    <div class="content">
+      <div *ngIf="!isConfirmed && !errorMessage && !isLoading">
+        <p class="description">
+          Click the button below to confirm your email address and activate your account.
+        </p>
+        <p class="info-text">
+          User ID: <strong>{{ userId }}</strong>
+        </p>
+      </div>
+
+      <div *ngIf="isLoading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Confirming your email...</p>
+      </div>
+
+      <div *ngIf="isConfirmed && successMessage">
+        <div class="success-message">
+          <p>{{ successMessage }}</p>
+        </div>
+        <p class="redirect-text">
+          You will be redirected to the login page in a few seconds...
+        </p>
+      </div>
+
+      <div *ngIf="errorMessage && !isConfirmed">
+        <div class="error-message">
+          <p>{{ errorMessage }}</p>
+        </div>
+        <p class="help-text">
+          Please try again or contact support if the problem persists.
+        </p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button 
+        *ngIf="!isConfirmed && !isLoading" 
+        class="btn btn-primary" 
+        (click)="confirmEmail()"
+        [disabled]="isLoading">
+        Confirm Email
+      </button>
+
+      <button 
+        *ngIf="isConfirmed" 
+        class="btn btn-success" 
+        (click)="goToLogin()">
+        Go to Login
+      </button>
+
+      <button 
+        *ngIf="errorMessage && !isConfirmed && !isLoading" 
+        class="btn btn-secondary" 
+        (click)="goToLogin()">
+        Back to Login
+      </button>
+    </div>
+  </div>
+</div>

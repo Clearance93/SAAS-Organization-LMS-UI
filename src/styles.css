@@ -1,1 +1,58 @@
-/* You can add global styles to this file, and also import other style files */
+
+:root {
+  --theme-primary: #3B82F6;
+  --theme-primary-rgb: 59, 130, 246;
+  --theme-primary-light: #93C5FD;
+  --theme-primary-lighter: #DBEAFE;
+  --theme-primary-dark: #2563EB;
+  --theme-primary-darker: #1D4ED8;
+  --theme-primary-10: rgba(59, 130, 246, 0.1);
+  --theme-primary-20: rgba(59, 130, 246, 0.2);
+  --theme-primary-50: rgba(59, 130, 246, 0.5);
+}
+
+.btn-primary,
+.btn-save {
+  background-color: var(--theme-primary) !important;
+  border-color: var(--theme-primary) !important;
+}
+
+.btn-primary:hover,
+.btn-save:hover {
+  background-color: var(--theme-primary-dark) !important;
+}
+
+.nav-item.active {
+  background-color: var(--theme-primary-10) !important;
+  border-left: 3px solid var(--theme-primary) !important;
+}
+
+.nav-item.active .nav-label {
+  color: var(--theme-primary) !important;
+}
+
+a {
+  color: var(--theme-primary);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--theme-primary) !important;
+  box-shadow: 0 0 0 3px var(--theme-primary-10) !important;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--theme-primary) !important;
+}
+
+.color-option.selected {
+  box-shadow: 0 0 0 3px white, 0 0 0 5px var(--theme-primary) !important;
+  transform: scale(1.1);
+}
+
+* {
+  transition: background-color 0.3s ease, 
+              border-color 0.3s ease, 
+              color 0.3s ease;
+}

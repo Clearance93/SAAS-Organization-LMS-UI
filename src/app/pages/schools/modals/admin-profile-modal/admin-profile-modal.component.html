@@ -1,0 +1,147 @@
+<div class="modal-overlay" *ngIf="isOpen" (click)="onOverlayClick($event)">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Admin Profile</h2>
+      <button class="close-button" (click)="closeModal()" aria-label="Close">
+        <span>×</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div *ngIf="isLoading" class="loading-state">
+        <div class="spinner-small"></div>
+        <p>Loading profile...</p>
+      </div>
+
+      <div *ngIf="errorMessage" class="error-message">
+        <span class="error-icon">⚠️</span>
+        <span>{{ errorMessage }}</span>
+      </div>
+
+      <div *ngIf="!isLoading && adminData" class="profile-content">
+        <div class="profile-picture-section">
+          <div class="profile-picture-container">
+            <img 
+              *ngIf="adminData.adminProfilePicture" 
+              [src]="adminData.adminProfilePicture" 
+              alt="Admin Profile Picture"
+              class="profile-picture"
+              (error)="onImageError()">
+            <div *ngIf="!adminData.adminProfilePicture" class="profile-picture-placeholder">
+              {{ getInitials(adminData.firstName, adminData.lastName) }}
+            </div>
+          </div>
+          <button class="change-photo-btn" (click)="onChangePhoto()">
+            Change Photo
+          </button>
+        </div>
+
+        <div class="profile-info-grid">
+          <div class="info-section">
+            <h3 class="section-title">Organization Information</h3>
+            <div class="info-row">
+              <span class="info-label">Organization Name</span>
+              <span class="info-value">{{ adminData.organizationName }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Organization ID</span>
+              <span class="info-value organization-id">{{ adminData.organizationSetupId }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Type of Service</span>
+              <div class="info-value">
+                <span 
+                  *ngFor="let service of getServiceTypes(adminData.typeOfService)" 
+                  class="service-badge">
+                  {{ service }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <h3 class="section-title">Personal Information</h3>
+            <div class="info-row">
+              <span class="info-label">First Name</span>
+              <span class="info-value">{{ adminData.firstName }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Last Name</span>
+              <span class="info-value">{{ adminData.lastName }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Business Email</span>
+              <span class="info-value">{{ adminData.adminBusinessEmail || 'Not provided' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Admin ID</span>
+              <span class="info-value admin-id">{{ adminData.adminId }}</span>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <h3 class="section-title">Organization Statistics</h3>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-icon">👨‍🎓</span>
+                <div class="stat-content">
+                  <span class="stat-number">{{ adminData.totalStudents }}</span>
+                  <span class="stat-label">Students</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-icon">👨‍🏫</span>
+                <div class="stat-content">
+                  <span class="stat-number">{{ adminData.totalTeachers }}</span>
+                  <span class="stat-label">Teachers</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-icon">👥</span>
+                <div class="stat-content">
+                  <span class="stat-number">{{ adminData.totalStuff }}</span>
+                  <span class="stat-label">Staff</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-icon">⚙️</span>
+                <div class="stat-content">
+                  <span class="stat-number">{{ adminData.totalAdmins }}</span>
+                  <span class="stat-label">Admins</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-icon">🎫</span>
+                <div class="stat-content">
+                  <span class="stat-number">{{ adminData.totalGuests }}</span>
+                  <span class="stat-label">Guests</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <h3 class="section-title">Role & Permissions</h3>
+            <div class="info-row">
+              <span class="info-label">Account Type</span>
+              <span class="info-value">
+                <span class="role-badge" [class.super-admin]="adminData.isSuperAdmin">
+                  {{ adminData.isSuperAdmin ? 'Super Admin' : 'Admin' }}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeModal()">
+        Close
+      </button>
+      <button class="btn-primary" (click)="onEditProfile()">
+        Edit Profile
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,125 @@
+<div class="add-subject-container">
+  <div class="form-card">
+    <div class="form-header">
+      <div class="header-content">
+        <div class="icon-wrapper">
+          <svg xmlns="http://www.w3.org/2000/svg" class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="form-title">Add New Subject</h1>
+          <p class="form-subtitle">Create a new subject for this course stream</p>
+        </div>
+      </div>
+      <button class="close-btn" (click)="onCancel()" type="button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="alert alert-error" *ngIf="submitError && !isSubmitting">
+      <svg xmlns="http://www.w3.org/2000/svg" class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span>{{ submitError }}</span>
+    </div>
+
+    <div class="alert alert-success" *ngIf="submitSuccess">
+      <svg xmlns="http://www.w3.org/2000/svg" class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <span>Subject added successfully! Redirecting...</span>
+    </div>
+
+    <form [formGroup]="subjectForm" (ngSubmit)="onSubmit()" class="subject-form">
+      <div class="form-group">
+        <label for="subjectName" class="form-label">
+          Subject Name <span class="required">*</span>
+        </label>
+        <div class="input-wrapper">
+          <svg xmlns="http://www.w3.org/2000/svg" class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+          </svg>
+          <input
+            type="text"
+            id="subjectName"
+            formControlName="subjectName"
+            class="form-input"
+            [class.input-error]="isFieldInvalid('subjectName')"
+            placeholder="e.g., Mathematics, English Literature, Physics"
+          />
+        </div>
+        <span class="error-message" *ngIf="isFieldInvalid('subjectName')">
+          {{ getFieldError('subjectName') }}
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label for="gradeLevel" class="form-label">
+          Grade Level <span class="required">*</span>
+        </label>
+        <div class="input-wrapper">
+          <svg xmlns="http://www.w3.org/2000/svg" class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <input
+            type="text"
+            id="gradeLevel"
+            formControlName="gradeLevel"
+            class="form-input"
+            [class.input-error]="isFieldInvalid('gradeLevel')"
+            placeholder="e.g., Grade 10, Grade 11, Grade 12"
+          />
+        </div>
+        <span class="error-message" *ngIf="isFieldInvalid('gradeLevel')">
+          {{ getFieldError('gradeLevel') }}
+        </span>
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="onCancel()"
+          [disabled]="isSubmitting"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="isSubmitting || subjectForm.invalid"
+        >
+          <span *ngIf="!isSubmitting">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Add Subject
+          </span>
+          <span *ngIf="isSubmitting" class="loading-spinner">
+            <svg class="spinner" viewBox="0 0 24 24">
+              <circle class="spinner-circle" cx="12" cy="12" r="10" fill="none" stroke-width="3"></circle>
+            </svg>
+            Adding...
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,83 @@
+<div class="modal-container">
+  <div class="modal-header">
+    <h2>Add Grade & Stream</h2>
+    <button class="close-btn" (click)="onCancel()" [disabled]="isSubmitting">
+    </button>
+  </div>
+
+  <form [formGroup]="gradeForm" (ngSubmit)="onSubmit()">
+    <div class="modal-body">
+      
+      <div class="form-group">
+        <label for="gradeName">Grade Name <span class="required">*</span></label>
+        <input 
+          id="gradeName"
+          type="text" 
+          formControlName="gradeName"
+          class="form-control"
+          placeholder="e.g., Grade 10, Form 1"
+          [class.error]="f['gradeName'].invalid && f['gradeName'].touched">
+        <div class="error-message" *ngIf="f['gradeName'].invalid && f['gradeName'].touched">
+          <span *ngIf="f['gradeName'].errors?.['required']">Grade name is required</span>
+          <span *ngIf="f['gradeName'].errors?.['minlength']">Grade name must be at least 1 character</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="streamName">Stream Name <span class="required">*</span></label>
+        <input 
+          id="streamName"
+          type="text" 
+          formControlName="streamName"
+          class="form-control"
+          placeholder="e.g., A, B, Science, Grade 8A, Grade 8A Science"
+          [class.error]="f['streamName'].invalid && f['streamName'].touched">
+        <div class="error-message" *ngIf="f['streamName'].invalid && f['streamName'].touched">
+          <span *ngIf="f['streamName'].errors?.['required']">Stream name is required</span>
+          <span *ngIf="f['streamName'].errors?.['minlength']">Stream name must be at least 1 character</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="teacherId">Class Teacher <span class="required">*</span></label>
+        <select 
+          id="teacherId"
+          formControlName="teacherId"
+          class="form-control"
+          [class.error]="f['teacherId'].invalid && f['teacherId'].touched">
+          <option *ngIf="isLoadingTeachers" value="">Loading teachers...</option>
+          <option *ngIf="!isLoadingTeachers && teachers.length === 0" value="" disabled>No teachers found</option>
+          <option *ngIf="!isLoadingTeachers && teachers.length > 0" value="">Select a teacher</option>
+          <option *ngFor="let teacher of teachers" [value]="teacher.teacherEmail">
+            {{ teacher.firstName }} {{ teacher.lastName }}
+          </option>
+        </select>
+        <div class="error-message" *ngIf="f['teacherId'].invalid && f['teacherId'].touched">
+          <span *ngIf="f['teacherId'].errors?.['required']">Please select a teacher</span>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <p>This will create both a grade level and a stream/class within that grade.</p>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button 
+        type="button" 
+        class="btn-secondary"
+        (click)="onCancel()"
+        [disabled]="isSubmitting">
+        Cancel
+      </button>
+      <button 
+        type="submit" 
+        class="btn-primary"
+        [disabled]="gradeForm.invalid || isSubmitting">
+        <mat-spinner *ngIf="isSubmitting" diameter="20"></mat-spinner>
+        <span>{{ isSubmitting ? 'Adding...' : 'Add Grade & Stream' }}</span>
+      </button>
+    </div>
+  </form>
+</div>

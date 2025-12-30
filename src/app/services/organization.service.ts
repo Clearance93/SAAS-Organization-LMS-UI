@@ -12,7 +12,7 @@ import { OrganizationType, ServiceType, ServiceDuration } from '../features/orga
 export class OrganizationService {
 
   //private apiUrl = 'http://thutonetapi-prod.westeurope.azurecontainer.io/api';
-  private apiUrl = 'https://localhost:7109/api';
+  private apiUrl = 'https://localhost:7270/api';
 
   private httpOptions = {
     headers: new HttpHeaders({
@@ -23,7 +23,7 @@ export class OrganizationService {
   constructor(private http: HttpClient) { }
 
   createOrganization(organization: CreateOrganizationDto): Observable<Organization> {
-    const url = `${this.apiUrl}/OrganizationSetup/addNewOrganization`;
+    const url = `${this.apiUrl}/Organization/Add-New-Organization`;
     const apiPayload = {
       OrganizationName: organization.organizationName,
       TypeOfOrganization: this.stringifyOrganizationType(organization.organizationType),
