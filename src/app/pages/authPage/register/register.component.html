@@ -67,8 +67,8 @@
           placeholder="Enter your first name"
         />
         <div class="error-message" *ngIf="submitted && f['firstName'].errors">
-          <span *ngIf="f['firstName'].errors['required']">First name is required</span>
-          <span *ngIf="f['firstName'].errors['minlength']">First name must be at least 2 characters</span>
+          <span *ngIf="f['firstName'].errors?.['required']">First name is required</span>
+          <span *ngIf="f['firstName'].errors?.['minlength']">First name must be at least 2 characters</span>
         </div>
       </div>
 
@@ -83,8 +83,8 @@
           placeholder="Enter your last name"
         />
         <div class="error-message" *ngIf="submitted && f['lastName'].errors">
-          <span *ngIf="f['lastName'].errors['required']">Last name is required</span>
-          <span *ngIf="f['lastName'].errors['minlength']">Last name must be at least 2 characters</span>
+          <span *ngIf="f['lastName'].errors?.['required']">Last name is required</span>
+          <span *ngIf="f['lastName'].errors?.['minlength']">Last name must be at least 2 characters</span>
         </div>
       </div>
 
@@ -99,8 +99,8 @@
           placeholder="Enter your email"
         />
         <div class="error-message" *ngIf="submitted && f['email'].errors">
-          <span *ngIf="f['email'].errors['required']">Email is required</span>
-          <span *ngIf="f['email'].errors['email']">Please enter a valid email</span>
+          <span *ngIf="f['email'].errors?.['required']">Email is required</span>
+          <span *ngIf="f['email'].errors?.['email']">Please enter a valid email</span>
         </div>
       </div>
 
@@ -132,8 +132,8 @@
           </button>
         </div>
         <div class="error-message" *ngIf="submitted && f['password'].errors">
-          <span *ngIf="f['password'].errors['required']">Password is required</span>
-          <span *ngIf="f['password'].errors['minlength']">Password must be at least 8 characters</span>
+          <span *ngIf="f['password'].errors?.['required']">Password is required</span>
+          <span *ngIf="f['password'].errors?.['minlength']">Password must be at least 8 characters</span>
         </div>
         <div class="password-strength" *ngIf="f['password'].value">
           <div class="strength-bar">
@@ -171,8 +171,8 @@
           </button>
         </div>
         <div class="error-message" *ngIf="submitted && f['confirmPassword'].errors">
-          <span *ngIf="f['confirmPassword'].errors['required']">Please confirm your password</span>
-          <span *ngIf="f['confirmPassword'].errors['mustMatch']">Passwords do not match</span>
+          <span *ngIf="f['confirmPassword'].errors?.['required']">Please confirm your password</span>
+          <span *ngIf="f['confirmPassword'].errors?.['mustMatch']">Passwords do not match</span>
         </div>
       </div>
 
@@ -186,7 +186,7 @@
           <span>I agree to the <a href="#" class="link">Terms and Conditions</a></span>
         </label>
         <div class="error-message" *ngIf="submitted && f['acceptTerms'].errors">
-          <span *ngIf="f['acceptTerms'].errors['required']">You must accept the terms and conditions</span>
+          <span *ngIf="f['acceptTerms'].errors?.['required']">You must accept the terms and conditions</span>
         </div>
       </div>
 

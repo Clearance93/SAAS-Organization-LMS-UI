@@ -1,0 +1,154 @@
+<div class="communication-center">
+  <div class="communication-header">
+    <button class="back-btn" (click)="backToDashboard()" title="Back to Dashboard">
+      ← Back to Dashboard
+    </button>
+    <h1>📧 Communication Center</h1>
+    <button class="compose-btn" (click)="startComposing()">✏️ Compose Message</button>
+  </div>
+
+  <div class="communication-layout">
+    <!-- Messages List -->
+    <div class="messages-sidebar">
+      <div class="messages-header">
+        <h3>Messages</h3>
+        <button class="refresh-btn" (click)="loadMessages()">🔄</button>
+      </div>
+      
+      <div class="messages-list">
+        <div 
+          *ngFor="let message of messages" 
+          class="message-item"
+          [class.unread]="!message.isRead"
+          [class.selected]="selectedMessage?.id === message.id"
+          (click)="selectMessage(message)">
+          
+          <div class="message-avatar">
+            {{ message.senderName.charAt(0).toUpperCase() }}
+          </div>
+          
+          <div class="message-preview">
+            <div class="message-sender">{{ message.senderName }}</div>
+            <div class="message-subject">{{ message.subject }}</div>
+            <div class="message-time">{{ formatDate(message.timestamp) }}</div>
+          </div>
+          
+          <div class="message-status">
+            <span *ngIf="!message.isRead" class="unread-dot"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message Content / Compose -->
+    <div class="message-content">
+      <!-- Compose New Message -->
+      <div *ngIf="isComposing" class="compose-form">
+        <div class="compose-header">
+          <h3>✏️ New Message</h3>
+          <button class="close-btn" (click)="cancelCompose()">✕</button>
+        </div>
+        
+        <form class="compose-fields">
+          <div class="form-group">
+            <label>Recipient Type:</label>
+            <select [(ngModel)]="newMessage.recipientRole" name="recipientRole" (change)="onRoleChange()">
+              <option value="student">Students</option>
+              <option value="learner">Learners</option>
+              <option value="teacher">Teachers</option>
+              <option value="staff">Staff Members</option>
+              <option value="guest">Guests</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label class="broadcast-toggle">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="newMessage.isBroadcast" 
+                name="isBroadcast"
+                (change)="onBroadcastToggle()">
+              <span class="toggle-text">📢 Send to {{ getRoleDisplayName(newMessage.recipientRole) }}</span>
+            </label>
+          </div>
+          
+          <div class="form-group" *ngIf="!newMessage.isBroadcast">
+            <label>Recipient:</label>
+            <select [(ngModel)]="newMessage.recipientId" name="recipientId" [required]="!newMessage.isBroadcast">
+              <option value="">Select recipient...</option>
+              <option *ngFor="let user of getAvailableUsers()" [value]="user.id">
+                {{ user.name }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="broadcast-info" *ngIf="newMessage.isBroadcast">
+            <div class="broadcast-card">
+              <span class="broadcast-icon">📢</span>
+              <div class="broadcast-details">
+                <strong>Broadcasting to {{ getRoleDisplayName(newMessage.recipientRole) }}</strong>
+                <p>This message will be sent to all users with the {{ newMessage.recipientRole }} role in your organization.</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Subject:</label>
+            <input 
+              type="text" 
+              [(ngModel)]="newMessage.subject" 
+              name="subject"
+              placeholder="Enter message subject..."
+              required>
+          </div>
+          
+          <div class="form-group">
+            <label>Message:</label>
+            <textarea 
+              [(ngModel)]="newMessage.content" 
+              name="content"
+              placeholder="Type your message here..."
+              rows="8"
+              required></textarea>
+          </div>
+          
+          <div class="compose-actions">
+            <button type="button" class="cancel-btn" (click)="cancelCompose()">Cancel</button>
+            <button 
+              type="button" 
+              class="send-btn" 
+              (click)="sendMessage()"
+              [disabled]="(!newMessage.isBroadcast && !newMessage.recipientId) || !newMessage.subject || !newMessage.content">
+              {{ newMessage.isBroadcast ? '📢 Send Broadcast' : '📤 Send Message' }}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Selected Message View -->
+      <div *ngIf="selectedMessage && !isComposing" class="message-view">
+        <div class="message-header">
+          <div class="message-info">
+            <h3>{{ selectedMessage.subject }}</h3>
+            <div class="message-meta">
+              <span class="sender">From: {{ selectedMessage.senderName }} ({{ selectedMessage.senderRole }})</span>
+              <span class="timestamp">{{ formatDate(selectedMessage.timestamp) }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="message-body">
+          <p>{{ selectedMessage.content }}</p>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!selectedMessage && !isComposing" class="empty-state">
+        <div class="empty-icon">📬</div>
+        <h3>Select a message to read</h3>
+        <p>Choose a message from the list to view its content</p>
+        <button class="compose-btn" (click)="startComposing()">✏️ Compose New Message</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,46 @@
+<div class="details-container">
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading course stream details...</p>
+  </div>
+
+  <div *ngIf="error && !loading" class="error-state">
+    <div class="error-icon">⚠️</div>
+    <h2>Error</h2>
+    <p>{{ error }}</p>
+    <button (click)="loadCourseStream()" class="retry-btn">Try Again</button>
+    <button (click)="goBack()" class="back-btn">Go Back</button>
+  </div>
+
+  <div *ngIf="courseStream && !loading" class="details-content">
+    <div class="details-header">
+      <button (click)="goBack()" class="back-button">
+        ← Back
+      </button>
+      <h1>Course Stream Details</h1>
+    </div>
+
+    <div class="details-card">
+      <div class="detail-row">
+        <span class="detail-label">Course Stream Name:</span>
+        <span class="detail-value">{{ courseStream.courseStreamName }}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Stream ID:</span>
+        <span class="detail-value">{{ courseStream.courseStreamId }}</span>
+      </div>
+
+      <div class="detail-row" *ngIf="courseStream.description">
+        <span class="detail-label">Description:</span>
+        <span class="detail-value">{{ courseStream.description }}</span>
+      </div>
+
+    </div>
+
+    <div class="actions">
+      <button class="edit-btn" (click)="addSchoolSubject()">Add Subject</button>
+      <button class="delete-btn" (click)="deleteCourseStream(courseStream)">Delete Course Stream</button>
+    </div>
+  </div>
+</div>

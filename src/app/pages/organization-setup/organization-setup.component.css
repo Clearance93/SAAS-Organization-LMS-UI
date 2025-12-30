@@ -411,3 +411,19 @@ select.form-control:hover {
 html {
   scroll-behavior: smooth;
 }
+
+.email-input-wrapper {
+  position: relative;
+}
+
+.email-hint {
+  display: block;
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.form-control[formControlName="adminEmail"] {
+  background-color: #f9fafb;
+}

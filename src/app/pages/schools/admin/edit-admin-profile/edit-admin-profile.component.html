@@ -1,0 +1,151 @@
+<div class="edit-admin-container">
+  <div class="page-header">
+    <button class="back-button" (click)="onCancel()">
+      <span class="back-icon">←</span>
+      Back to Dashboard
+    </button>
+    <h1 class="page-title">Edit Admin Profile</h1>
+    <p class="page-subtitle">Update your personal information</p>
+  </div>
+
+  <div *ngIf="successMessage" class="alert alert-success">
+    <span class="alert-icon">✓</span>
+    {{ successMessage }}
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-error">
+    <span class="alert-icon">⚠</span>
+    {{ errorMessage }}
+  </div>
+
+  <form [formGroup]="adminForm" (ngSubmit)="onSubmit()" class="admin-form">
+    <div class="form-section">
+      <h2 class="section-title">Profile Picture</h2>
+      <div class="profile-picture-section">
+        <div class="image-preview-container">
+          <div class="image-preview" [class.has-image]="previewImage">
+            <img *ngIf="previewImage" [src]="previewImage" alt="Profile preview" />
+            <div *ngIf="!previewImage" class="placeholder-icon">
+              <span>👤</span>
+              <p>No image selected</p>
+            </div>
+          </div>
+          <button 
+            *ngIf="previewImage && previewImage !== originalProfilePicture" 
+            type="button" 
+            class="remove-image-btn"
+            (click)="removeImage()"
+            title="Reset to original">
+            ↺
+          </button>
+        </div>
+        <div class="image-upload-actions">
+          <label for="profilePicture" class="upload-button">
+            <span>📷</span>
+            Change Image
+          </label>
+          <input 
+            type="file" 
+            id="profilePicture" 
+            accept="image/*"
+            (change)="onImageSelect($event)"
+            class="file-input"
+          />
+          <p class="upload-hint">Recommended: Square image, max 5MB</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2 class="section-title">Personal Information</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstName" class="form-label">
+            First Name <span class="required">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="firstName" 
+            formControlName="firstName"
+            class="form-input"
+            [class.error]="hasError('firstName')"
+            placeholder="Enter first name"
+          />
+          <span *ngIf="hasError('firstName')" class="error-message">
+            {{ getErrorMessage('firstName') }}
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label for="lastName" class="form-label">
+            Last Name <span class="required">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="lastName" 
+            formControlName="lastName"
+            class="form-input"
+            [class.error]="hasError('lastName')"
+            placeholder="Enter last name"
+          />
+          <span *ngIf="hasError('lastName')" class="error-message">
+            {{ getErrorMessage('lastName') }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2 class="section-title">Account Information (Read-only)</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="adminBusinessEmail" class="form-label">
+            Email Address
+          </label>
+          <input 
+            type="email" 
+            id="adminBusinessEmail" 
+            formControlName="adminBusinessEmail"
+            class="form-input readonly-input"
+            readonly
+          />
+          <p class="field-hint">Email cannot be changed</p>
+        </div>
+
+        <div class="form-group">
+          <label for="organizationId" class="form-label">
+            Organization ID
+          </label>
+          <input 
+            type="text" 
+            id="organizationId" 
+            formControlName="organizationId"
+            class="form-input readonly-input"
+            readonly
+          />
+          <p class="field-hint">Organization ID cannot be changed</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button 
+        type="button" 
+        class="btn btn-secondary"
+        (click)="onCancel()"
+        [disabled]="isSubmitting">
+        Cancel
+      </button>
+      <button 
+        type="submit" 
+        class="btn btn-primary"
+        [disabled]="isSubmitting || adminForm.invalid">
+        <span *ngIf="!isSubmitting">Save Changes</span>
+        <span *ngIf="isSubmitting" class="loading-spinner">
+          <span class="spinner"></span>
+          Saving...
+        </span>
+      </button>
+    </div>
+  </form>
+</div>

@@ -192,7 +192,11 @@ export class RegisterComponent implements OnInit {
       .subscribe({
         next: (response: any) => {
           console.log('Registration successful', response);
-          this.router.navigate(['/organization-setup']);
+          this.router.navigate(['/organization-setup'], {
+            state: {
+              userEmail: response.email || this.f['email'].value.trim()
+            }
+          });
         },
         error: (error: any) => {
           console.error('Registration error', error);

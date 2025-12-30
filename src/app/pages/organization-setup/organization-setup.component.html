@@ -80,17 +80,22 @@
       </div>
 
       <div class="form-group">
-        <label for="adminEmail">Admin Email</label>
+      <label for="adminEmail">Admin Email <span class="required">*</span></label>
+      <div class="email-input-wrapper">
         <input 
-          type="email" 
-          id="adminEmail" 
-          class="form-control" 
-          formControlName="adminEmail"
-          placeholder="admin@example.com"
-          [ngClass]="{ 'is-invalid': submitted && f['adminEmail'].errors }">
-        <div class="error-message" *ngIf="submitted && f['adminEmail'].errors">
-          <span *ngIf="f['adminEmail'].errors['email']">Please enter a valid email address</span>
-        </div>
+        type="email" 
+        id="adminEmail" 
+        class="form-control" 
+        formControlName="adminEmail"
+        readonly
+        placeholder="admin@example.com"
+        [ngClass]="{ 'is-invalid': submitted && f['adminEmail'].errors }">
+        <span class="email-hint">Using your registered email</span>
+      </div>
+      <div class="error-message" *ngIf="submitted && f['adminEmail'].errors">
+            <span *ngIf="f['adminEmail'].errors['required']">Admin email is required</span>
+            <span *ngIf="f['adminEmail'].errors['email']">Please enter a valid email address</span>
+       </div>
       </div>
 
       <div class="form-group">

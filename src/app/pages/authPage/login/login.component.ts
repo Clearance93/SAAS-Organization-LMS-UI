@@ -56,7 +56,8 @@ export class LoginComponent implements OnInit {
     .subscribe({
       next: (response) => {
         console.log('Login successful', response);
-        this.router.navigate(['/dashboard']);
+        localStorage.setItem('adminEmail', this.loginForm.value.email)
+        this.router.navigate(['/school-admin-dashboard']);
       },
       error: (error) => {
         console.error('Login error', error);

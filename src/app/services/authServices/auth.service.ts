@@ -1,13 +1,15 @@
 import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { LoginAuthUser } from '../../features/organization/models/auth/login-auth-user';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, switchMap, tap } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { LoginRequest } from '../../features/organization/models/auth/login-request';
 import { LoginResponse } from '../../features/organization/models/auth/login-response';
 import { RegisterRequest } from '../../features/organization/models/auth/register-request';
 import { ForgotPasswordRequest } from '../../interfaces/forgot-password/forgot-password-request';
 import { ResetPasswordRequest } from '../../interfaces/forgot-password/reset-password-request';
+import { ConfirmEmailRequest } from '../../interfaces/auth/confirm-email-request';
+import { EmailConfirmationResponse } from '../../interfaces/auth/email-confirmation-response';
 
 @Injectable({
   providedIn: 'root'
@@ -15,7 +17,9 @@ import { ResetPasswordRequest } from '../../interfaces/forgot-password/reset-pas
 export class AuthService {
  
 
-  private apiUrl = 'https://localhost:7109/api/Auth';
+  private apiUrl = 'https://localhost:7270/api/Auth';
+  private adminApiUrl = 'https://localhost:7270/api/Admin';
+
   private currentUserSubject: BehaviorSubject<LoginAuthUser | null>;
 
   public currentUser: Observable<LoginAuthUser | null> | undefined;
@@ -31,11 +35,6 @@ export class AuthService {
     this.currentUser = this.currentUserSubject.asObservable();
    }
 
-  /**
-   * Register a new user.
-   * Calls: POST https://localhost:7109/api/Auth/register
-   * Returns the HttpClient Observable so callers can subscribe and handle errors.
-   */
   register(registerRequest: RegisterRequest): Observable<any> {
     const headers = new HttpHeaders({
       'Content-Type': 'application/json'
@@ -63,8 +62,29 @@ export class AuthService {
           };
           if (this.isBrowser) {
             localStorage.setItem('currentUser', JSON.stringify(user));
+
+            localStorage.setItem('adminEmail', credentials.email);
           }
           this.currentUserSubject.next(user);
+        }),
+        switchMap(response => {
+          return this.http.get<any>(`${this.adminApiUrl}/getAdminByEmail/${credentials.email}`)
+            .pipe(
+              tap(adminProfile => {
+                if (this.isBrowser && adminProfile.organizationSetupId) {
+                  localStorage.setItem('organizationId', adminProfile.organizationSetupId);
+                }
+                if (this.isBrowser) {
+                  localStorage.setItem('adminProfile', JSON.stringify(adminProfile))
+                }
+              }),
+              switchMap(() => {
+                return new Observable<LoginResponse>(observer => {
+                  observer.next(response);
+                  observer.complete()
+                });
+              })
+            );
         })
       );
    }
@@ -72,6 +92,8 @@ export class AuthService {
    logout(): void {
     if (this.isBrowser) {
       localStorage.removeItem('currentUser');
+      localStorage.removeItem('adminEmail');
+      localStorage.removeItem('organizationId');
     }
     this.currentUserSubject.next(null)
    }
@@ -115,5 +137,13 @@ export class AuthService {
       apiPayload,
       { headers, responseType: 'text' as 'json' }
     );
+  }
+
+  confirmEmail(userId: string, token: string): Observable<EmailConfirmationResponse> {
+
+    const encodedToken = encodeURIComponent(token);
+    const url = `${this.apiUrl}/confirm-email/${userId}-token/${encodedToken}`;
+
+    return this.http.put<EmailConfirmationResponse>(url, {});
   }
 }
