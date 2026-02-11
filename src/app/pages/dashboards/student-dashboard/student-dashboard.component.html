@@ -1,0 +1,47 @@
+<div class="student-dashboard">
+  <div class="sidebar">
+    <!-- Sidebar navigation -->
+    <nav>
+      <ul>
+        <li>Dashboard</li>
+        <li>Courses</li>
+        <li>Assignments</li>
+        <li>Grades</li>
+        <li>Profile</li>
+      </ul>
+    </nav>
+  </div>
+
+  <div class="main-content">
+    <h1>Student Dashboard</h1>
+
+    <div class="dashboard-grid">
+      <div class="card assignments">
+        <h2>Assignments</h2>
+        <ul>
+          <li *ngFor="let assignment of assignments">
+            {{ assignment.title }} - Due: {{ assignment.dueDate }}
+          </li>
+        </ul>
+      </div>
+
+      <div class="card grades">
+        <h2>Grades</h2>
+        <ul>
+          <li *ngFor="let grade of grades">
+            {{ grade.subject }}: {{ grade.grade }} ({{ grade.percentage }}%)
+          </li>
+        </ul>
+      </div>
+
+      <div class="card announcements">
+        <h2>Announcements</h2>
+        <ul>
+          <li *ngFor="let announcement of announcements">
+            {{ announcement.title }} - {{ announcement.date }}
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
