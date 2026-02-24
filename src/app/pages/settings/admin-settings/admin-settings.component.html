@@ -2,18 +2,36 @@
   <header class="settings-header">
     <div class="header-content">
       <button class="back-btn" (click)="backToDashboard()" title="Back to Dashboard">
-        ← Back to Dashboard
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Back to Dashboard
       </button>
       <div class="header-title">
-        <h1>ThutoNet Settings</h1>
-        <p>Complete administrative control center</p>
+        <div class="title-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Admin Settings</h1>
+          <p>Complete administrative control center</p>
+        </div>
       </div>
-      <button 
-        class="btn-save" 
-        [disabled]="isSaving"
-        (click)="saveGeneralSettings()">
-        <span>{{ isSaving ? 'Saving...' : 'Save' }}</span>
-      </button>
+      <div class="header-actions">
+        <button 
+          class="btn-save" 
+          [disabled]="isSaving"
+          (click)="saveGeneralSettings()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17,21 17,13 7,13 7,21"/>
+            <polyline points="7,3 7,8 15,8"/>
+          </svg>
+          <span>{{ isSaving ? 'Saving...' : 'Save Changes' }}</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -23,6 +41,12 @@
       <aside class="settings-sidebar">
         <div class="sidebar-card">
           <div class="search-box">
+            <div class="search-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="M21 21l-4.35-4.35"/>
+              </svg>
+            </div>
             <input 
               type="text" 
               placeholder="Search settings..." 
@@ -31,14 +55,63 @@
           </div>
 
           <nav class="sidebar-nav">
-            <button 
-              *ngFor="let category of filteredCategories; trackBy: trackByFn"
-              class="nav-item"
-              [class.active]="activeSection === category.id"
-              (click)="setActiveSection(category.id)">
-              <div class="nav-icon-simple" [ngClass]="category.color"></div>
-              <span class="nav-label">{{ category.label }}</span>
-            </button>
+            <div class="nav-section">
+              <h3 class="nav-section-title">Configuration</h3>
+              <button 
+                *ngFor="let category of filteredCategories.slice(0, 4); trackBy: trackByFn"
+                class="nav-item"
+                [class.active]="activeSection === category.id"
+                (click)="setActiveSection(category.id)">
+                <div class="nav-icon" [ngClass]="category.color">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" *ngIf="category.id === 'general'"/>
+                    <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1" *ngIf="category.id === 'general'"/>
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" *ngIf="category.id === 'courses'"/>
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" *ngIf="category.id === 'courses'"/>
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" *ngIf="category.id === 'exams'"/>
+                    <polyline points="14,2 14,8 20,8" *ngIf="category.id === 'exams'"/>
+                    <line x1="16" y1="13" x2="8" y2="13" *ngIf="category.id === 'exams'"/>
+                    <line x1="16" y1="17" x2="8" y2="17" *ngIf="category.id === 'exams'"/>
+                    <polyline points="10,9 9,9 8,9" *ngIf="category.id === 'exams'"/>
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" *ngIf="category.id === 'library'"/>
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" *ngIf="category.id === 'library'"/>
+                  </svg>
+                </div>
+                <div class="nav-content">
+                  <span class="nav-label">{{ category.label }}</span>
+                  <span class="nav-description">{{ category.description }}</span>
+                </div>
+              </button>
+            </div>
+            
+            <div class="nav-section">
+              <h3 class="nav-section-title">Management</h3>
+              <button 
+                *ngFor="let category of filteredCategories.slice(4); trackBy: trackByFn"
+                class="nav-item"
+                [class.active]="activeSection === category.id"
+                (click)="setActiveSection(category.id)">
+                <div class="nav-icon" [ngClass]="category.color">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" *ngIf="category.id === 'users'"/>
+                    <circle cx="8.5" cy="7" r="4" *ngIf="category.id === 'users'"/>
+                    <line x1="20" y1="8" x2="20" y2="14" *ngIf="category.id === 'users'"/>
+                    <line x1="23" y1="11" x2="17" y2="11" *ngIf="category.id === 'users'"/>
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" *ngIf="category.id === 'integrations'"/>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" *ngIf="category.id === 'integrations'"/>
+                    <ellipse cx="12" cy="5" rx="9" ry="3" *ngIf="category.id === 'storage'"/>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" *ngIf="category.id === 'storage'"/>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" *ngIf="category.id === 'storage'"/>
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2" *ngIf="category.id === 'billing'"/>
+                    <line x1="1" y1="10" x2="23" y2="10" *ngIf="category.id === 'billing'"/>
+                  </svg>
+                </div>
+                <div class="nav-content">
+                  <span class="nav-label">{{ category.label }}</span>
+                  <span class="nav-description">{{ category.description }}</span>
+                </div>
+              </button>
+            </div>
           </nav>
         </div>
       </aside>
@@ -47,8 +120,41 @@
         <div class="content-card">
           
           <div class="section-header">
-            <h2>{{ (settingsCategories | filter: 'id': activeSection)[0]?.label }}</h2>
-            <div class="section-divider"></div>
+            <div class="section-title">
+              <div class="section-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3" *ngIf="activeSection === 'general'"/>
+                  <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1" *ngIf="activeSection === 'general'"/>
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" *ngIf="activeSection === 'courses'"/>
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" *ngIf="activeSection === 'courses'"/>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" *ngIf="activeSection === 'exams'"/>
+                  <polyline points="14,2 14,8 20,8" *ngIf="activeSection === 'exams'"/>
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" *ngIf="activeSection === 'library'"/>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" *ngIf="activeSection === 'library'"/>
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" *ngIf="activeSection === 'users'"/>
+                  <circle cx="8.5" cy="7" r="4" *ngIf="activeSection === 'users'"/>
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" *ngIf="activeSection === 'integrations'"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" *ngIf="activeSection === 'integrations'"/>
+                  <ellipse cx="12" cy="5" rx="9" ry="3" *ngIf="activeSection === 'storage'"/>
+                  <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" *ngIf="activeSection === 'storage'"/>
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2" *ngIf="activeSection === 'billing'"/>
+                  <line x1="1" y1="10" x2="23" y2="10" *ngIf="activeSection === 'billing'"/>
+                </svg>
+              </div>
+              <div>
+                <h2>{{ (settingsCategories | filter: 'id': activeSection)[0]?.label }}</h2>
+                <p class="section-description">{{ (settingsCategories | filter: 'id': activeSection)[0]?.description }}</p>
+              </div>
+            </div>
+            <div class="section-actions">
+              <button class="btn-help" title="Get Help">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div *ngIf="isLoading" class="loading-state">
@@ -59,186 +165,284 @@
           <div *ngIf="!isLoading" class="section-content">
 
             <div *ngIf="activeSection === 'general'" class="settings-section">
-              <form [formGroup]="generalForm">
-                <div class="form-grid">
-                  
-                  <div class="form-group">
-                    <label for="schoolName">School Name</label>
-                    <input 
-                      id="schoolName"
-                      type="text" 
-                      formControlName="name"
-                      class="form-control"
-                      placeholder="Enter school name">
-                  </div>
-
-                  <div class="form-group">
-                    <label for="schoolType">School Type</label>
-                    <select id="schoolType" formControlName="type" class="form-control">
-                      <option value="Primary">Primary</option>
-                      <option value="Secondary">Secondary</option>
-                      <option value="Combined">Combined</option>
-                      <option value="Organization">Organization</option>
-                    </select>
-                  </div>
-
-                  <div class="form-group full-width">
-                    <label for="motto">School Motto</label>
-                    <input 
-                      id="motto"
-                      type="text" 
-                      formControlName="motto"
-                      class="form-control"
-                      placeholder="Enter school motto">
-                  </div>
-
-                  <div class="form-group">
-                    <label for="timezone">Timezone</label>
-                    <select id="timezone" formControlName="timeZone" class="form-control">
-                      <option value="Africa/Johannesburg">Africa/Johannesburg</option>
-                      <option value="Africa/Cairo">Africa/Cairo</option>
-                      <option value="Africa/Lagos">Africa/Lagos</option>
-                    </select>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="locale">Locale</label>
-                    <select id="locale" formControlName="locale" class="form-control">
-                      <option value="en-ZA">English (South Africa)</option>
-                      <option value="en-US">English (US)</option>
-                      <option value="en-GB">English (UK)</option>
-                    </select>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="email">Contact Email</label>
-                    <input 
-                      id="email"
-                      type="email" 
-                      formControlName="contactEmail"
-                      class="form-control"
-                      placeholder="school@example.com"
-                      readonly>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="phone">Contact Phone</label>
-                    <input 
-                      id="phone"
-                      type="tel" 
-                      formControlName="contactPhone"
-                      class="form-control"
-                      placeholder="+27 11 234 5678">
-                  </div>
-
-                </div>
-              </form>
-            </div>
-
-            <div *ngIf="activeSection === 'academic'" class="settings-section">
-              
-              <div class="subsection-card">
-                <div class="subsection-header">
-                  <h3>Grades & Levels</h3>
-                  <button class="btn-add" (click)="addGrade()">
-                    <span>Add</span>
-                  </button>
-                </div>
-                
-                <div class="grade-list">
-                  <div 
-                    *ngFor="let grade of grades; trackBy: trackByFn"
-                    class="grade-item"
-                    [class.inactive]="!grade.active">
-                    <div class="grade-info">
-                      <span class="grade-name">{{ grade.name }}</span>
-                      <span class="grade-order">Order: {{ grade.order }}</span>
+              <div class="settings-cards">
+                <div class="settings-card">
+                  <div class="card-header">
+                    <div class="card-title">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9,22 9,12 15,12 15,22"/>
+                      </svg>
+                      <span>Organization Profile</span>
                     </div>
-                    <div class="grade-actions">
-                      <button 
-                        class="btn-toggle"
-                        [class.active]="grade.active"
-                        (click)="toggleGrade(grade)">
-                        {{ grade.active ? 'Active' : 'Inactive' }}
-                      </button>
-                      <button class="btn-icon">
-                      </button>
+                    <div class="card-badge">Required</div>
+                  </div>
+                  <form [formGroup]="generalForm">
+                    <div class="form-grid">
+                      <div class="form-group">
+                        <label for="schoolName">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                          </svg>
+                          Organization Name
+                        </label>
+                        <input 
+                          id="schoolName"
+                          type="text" 
+                          formControlName="name"
+                          class="form-control"
+                          placeholder="Enter organization name">
+                      </div>
+
+                      <div class="form-group">
+                        <label for="schoolType">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                          </svg>
+                          Organization Type
+                        </label>
+                        <select id="schoolType" formControlName="type" class="form-control">
+                          <option value="Primary">Primary School</option>
+                          <option value="Secondary">Secondary School</option>
+                          <option value="Combined">Combined School</option>
+                          <option value="Organization">Organization</option>
+                        </select>
+                      </div>
+
+                      <div class="form-group full-width">
+                        <label for="motto">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 9V5a3 3 0 0 0-6 0v4"/>
+                            <rect x="2" y="9" width="20" height="12" rx="2" ry="2"/>
+                          </svg>
+                          Organization Motto
+                        </label>
+                        <input 
+                          id="motto"
+                          type="text" 
+                          formControlName="motto"
+                          class="form-control"
+                          placeholder="Enter organization motto">
+                      </div>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="settings-card">
+                  <div class="card-header">
+                    <div class="card-title">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12,6 12,12 16,14"/>
+                      </svg>
+                      <span>Regional Settings</span>
                     </div>
                   </div>
+                  <form [formGroup]="generalForm">
+                    <div class="form-grid">
+                      <div class="form-group">
+                        <label for="timezone">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12,6 12,12 16,14"/>
+                          </svg>
+                          Timezone
+                        </label>
+                        <select id="timezone" formControlName="timeZone" class="form-control">
+                          <option value="Africa/Johannesburg">Africa/Johannesburg</option>
+                          <option value="Africa/Cairo">Africa/Cairo</option>
+                          <option value="Africa/Lagos">Africa/Lagos</option>
+                        </select>
+                      </div>
+
+                      <div class="form-group">
+                        <label for="locale">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="2" y1="12" x2="22" y2="12"/>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                          </svg>
+                          Language & Locale
+                        </label>
+                        <select id="locale" formControlName="locale" class="form-control">
+                          <option value="en-ZA">English (South Africa)</option>
+                          <option value="en-US">English (US)</option>
+                          <option value="en-GB">English (UK)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+
+                <div class="settings-card">
+                  <div class="card-header">
+                    <div class="card-title">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                      </svg>
+                      <span>Contact Information</span>
+                    </div>
+                  </div>
+                  <form [formGroup]="generalForm">
+                    <div class="form-grid">
+                      <div class="form-group">
+                        <label for="email">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                          </svg>
+                          Contact Email
+                        </label>
+                        <input 
+                          id="email"
+                          type="email" 
+                          formControlName="contactEmail"
+                          class="form-control"
+                          placeholder="organization@example.com"
+                          readonly>
+                      </div>
+
+                      <div class="form-group">
+                        <label for="phone">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                          </svg>
+                          Contact Phone
+                        </label>
+                        <input 
+                          id="phone"
+                          type="tel" 
+                          formControlName="contactPhone"
+                          class="form-control"
+                          placeholder="+27 11 234 5678">
+                      </div>
+                    </div>
+                  </form>
                 </div>
               </div>
-
             </div>
 
             <div *ngIf="activeSection === 'courses'" class="settings-section">
-              
-              <div class="subsection-card">
-                <div class="subsection-header">
-                  <h3>Course Streams ({{ courseStreams.length }})</h3>
-                  <button class="btn-add" (click)="addCourse()" matTooltip="Add a new course stream">
-                    <span>Add Course Stream</span>
-                  </button>
-                </div>
+              <div class="settings-cards">
+                <div class="settings-card full-width">
+                  <div class="card-header">
+                    <div class="card-title">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                      </svg>
+                      <span>Course Streams</span>
+                      <div class="item-count">{{ courseStreams.length }}</div>
+                    </div>
+                    <div class="header-actions">
+                      <button class="btn-add" (click)="addCourse()" matTooltip="Add a new course stream">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <line x1="12" y1="5" x2="12" y2="19"/>
+                          <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        <span>Add Course Stream</span>
+                      </button>
+                      <button class="btn-add btn-add-secondary" (click)="addSubject()" matTooltip="Add a new subject">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                        </svg>
+                        <span>Add Subject</span>
+                      </button>
+                    </div>
+                  </div>
 
                 <div *ngIf="isLoading" class="loading-state">
                   <mat-spinner diameter="30"></mat-spinner>
                   <p>Loading course streams...</p>
                 </div>
 
-                <div *ngIf="!isLoading && courseStreams.length > 0" class="course-list">
-                  <div 
-                    *ngFor="let stream of courseStreams | slice: (page - 1) * pageSize : (page - 1) * pageSize + pageSize; trackBy: trackByFn"
-                    class="course-item">
-                    <div class="course-info">
-                      <h4>{{ stream.courseStreamName || 'Untitled Stream' }}</h4>
-                      <p class="course-description">
-                        {{ stream.description || 'No description available' }}
-                      </p>
-                      <p class="course-id">
-                        <small>ID: {{ stream.courseStreamId }}</small>
-                      </p>
-                    </div>
-                    <div class="course-actions">
-                      <button 
-                        class="btn-secondary" 
-                        (click)="editCourseStream(stream)"
-                        matTooltip="Edit course stream">
-                        <span>Edit</span>
-                      </button>
-                      <button 
-                        class="btn-tertiary"
-                        (click)="addSubjectStream(stream)"
-                        matTooltip="View course stream details">
-                        <span>Details</span>
-                      </button>
-                      <button 
-                        class="btn btn-danger"
-                        (click)="deleteCourseStream(stream)"
-                        matTooltip="Delete course stream">
-                        <span>Delete</span>
-                      </button>
+                  <div *ngIf="!isLoading && courseStreams.length > 0" class="course-grid">
+                    <div 
+                      *ngFor="let stream of courseStreams | slice: (page - 1) * pageSize : (page - 1) * pageSize + pageSize; trackBy: trackByFn"
+                      class="course-card">
+                      <div class="course-header">
+                        <div class="course-icon">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                          </svg>
+                        </div>
+                        <div class="course-status active">Active</div>
+                      </div>
+                      <div class="course-content">
+                        <h4>{{ stream.courseStreamName || 'Untitled Stream' }}</h4>
+                        <p class="course-description">
+                          {{ stream.description || 'No description available' }}
+                        </p>
+                        <div class="course-meta">
+                          <span class="course-id">ID: {{ stream.courseStreamId }}</span>
+                        </div>
+                      </div>
+                      <div class="course-actions">
+                        <button 
+                          class="btn-action edit" 
+                          (click)="editCourseStream(stream)"
+                          matTooltip="Edit course stream">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                          </svg>
+                        </button>
+                        <button 
+                          class="btn-action view"
+                          (click)="addSubjectStream(stream)"
+                          matTooltip="View course stream details">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                          </svg>
+                        </button>
+                        <button 
+                          class="btn-action delete"
+                          (click)="deleteCourseStream(stream)"
+                          matTooltip="Delete course stream">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3,6 5,6 21,6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            <line x1="10" y1="11" x2="10" y2="17"/>
+                            <line x1="14" y1="11" x2="14" y2="17"/>
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
                 
-                <div *ngIf="!isLoading && courseStreams.length > pageSize" class="pagination-controls mt-4 d-flex justify-content-center">
-                  <ngb-pagination
-                    [collectionSize]="courseStreams.length"
-                    [(page)]="page"
-                    [pageSize]="pageSize"
-                    [maxSize]="5"
-                    [rotate]="true"
-                    [boundaryLinks]="true"></ngb-pagination>
+                  <div *ngIf="!isLoading && courseStreams.length > pageSize" class="pagination-wrapper">
+                    <ngb-pagination
+                      [collectionSize]="courseStreams.length"
+                      [(page)]="page"
+                      [pageSize]="pageSize"
+                      [maxSize]="5"
+                      [rotate]="true"
+                      [boundaryLinks]="true"></ngb-pagination>
+                  </div>
+                  
+                  <div *ngIf="!isLoading && courseStreams.length === 0" class="empty-state">
+                    <div class="empty-icon">
+                      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                      </svg>
+                    </div>
+                    <h3>No course streams yet</h3>
+                    <p>Create your first course stream to get started with curriculum management.</p>
+                    <button class="btn-add" (click)="addCourse()">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                      <span>Add Your First Course Stream</span>
+                    </button>
+                  </div>
                 </div>
               </div>
-              
-              <div *ngIf="!isLoading && courseStreams.length === 0" class="empty-state">
-                <p>No course streams yet</p>
-                <button class="btn-add" (click)="addCourse()">
-                  <span>Add Your First Course Stream</span>
-                </button>
-              </div>
-
             </div>
 
            <div *ngIf="activeSection === 'exams'" class="settings-section">
@@ -2004,5 +2208,15 @@
       </main>
 
     </div>
+  </div>
+  
+  <!-- Quick Actions Floating Button -->
+  <div class="quick-actions">
+    <button class="quick-action-btn" title="Quick Actions">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+    </button>
   </div>
 </div>

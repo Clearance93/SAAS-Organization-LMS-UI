@@ -1,0 +1,194 @@
+<div class="report-container">
+  <header class="report-header">
+    <button class="back-btn" (click)="backToDashboard()">← Back to Dashboard</button>
+    <h1>School Performance Report</h1>
+    <div class="header-actions">
+      <button class="action-btn download-btn" (click)="downloadReport()" [disabled]="!reportData">
+        📥 Download Report
+      </button>
+      <button class="action-btn email-btn" (click)="sendReportViaEmail()" [disabled]="!reportData">
+        📧 Send via Email
+      </button>
+    </div>
+  </header>
+
+  <div *ngIf="isLoading" class="loading">
+    <div class="spinner"></div>
+    <p>Loading report data...</p>
+  </div>
+
+  <div *ngIf="!isLoading && reportData" class="report-content">
+    <div class="report-info">
+      <h2>{{ organizationName }}</h2>
+      <p class="report-date">Generated on: {{ reportData.generatedDate || (Date.now() | date:'medium') }}</p>
+    </div>
+
+    <div class="stats-section">
+      <h3>📊 Overview Statistics</h3>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">👨🎓</div>
+          <div class="stat-info">
+            <div class="stat-value">{{ reportData.totalStudents || 0 }}</div>
+            <div class="stat-label">Total Students</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👨🏫</div>
+          <div class="stat-info">
+            <div class="stat-value">{{ reportData.totalTeachers || 0 }}</div>
+            <div class="stat-label">Total Teachers</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">👥</div>
+          <div class="stat-info">
+            <div class="stat-value">{{ reportData.totalStaff || 0 }}</div>
+            <div class="stat-label">Staff Members</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📚</div>
+          <div class="stat-info">
+            <div class="stat-value">{{ reportData.totalClasses || 0 }}</div>
+            <div class="stat-label">Active Classes</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✓</div>
+          <div class="stat-info">
+            <div class="stat-value">{{ reportData.averageAttendance || 0 }}%</div>
+            <div class="stat-label">Avg Attendance</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📈</div>
+          <div class="stat-info">
+            <div class="stat-value">{{ reportData.overallPerformance || 0 }}%</div>
+            <div class="stat-label">Overall Performance</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="performance-section">
+      <h3>📈 Class Performance Breakdown</h3>
+      <div class="table-container">
+        <table class="performance-table">
+          <thead>
+            <tr>
+              <th>Class Name</th>
+              <th>Performance %</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let perf of reportData.classPerformance">
+              <td>{{ perf.className }}</td>
+              <td>
+                <div class="progress-bar">
+                  <div class="progress-fill" [style.width.%]="perf.performancePercentage"></div>
+                  <span class="progress-text">{{ perf.performancePercentage }}%</span>
+                </div>
+              </td>
+              <td>
+                <span class="status-badge" [ngClass]="{
+                  'excellent': perf.performancePercentage >= 80,
+                  'good': perf.performancePercentage >= 60 && perf.performancePercentage < 80,
+                  'average': perf.performancePercentage >= 40 && perf.performancePercentage < 60,
+                  'poor': perf.performancePercentage < 40
+                }">
+                  {{ perf.performancePercentage >= 80 ? 'Excellent' : 
+                     perf.performancePercentage >= 60 ? 'Good' : 
+                     perf.performancePercentage >= 40 ? 'Average' : 'Needs Improvement' }}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="!reportData.classPerformance || reportData.classPerformance.length === 0">
+              <td colspan="3" class="no-data">No class performance data available</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="attendance-section">
+      <h3>📅 Attendance Summary</h3>
+      <div class="attendance-grid">
+        <div class="attendance-card">
+          <div class="attendance-label">Present Today</div>
+          <div class="attendance-value">{{ reportData.presentToday || 0 }}</div>
+        </div>
+        <div class="attendance-card">
+          <div class="attendance-label">Absent Today</div>
+          <div class="attendance-value absent">{{ reportData.absentToday || 0 }}</div>
+        </div>
+        <div class="attendance-card">
+          <div class="attendance-label">Weekly Average</div>
+          <div class="attendance-value">{{ reportData.weeklyAttendance || 0 }}%</div>
+        </div>
+        <div class="attendance-card">
+          <div class="attendance-label">Monthly Average</div>
+          <div class="attendance-value">{{ reportData.monthlyAttendance || 0 }}%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="additional-metrics">
+      <h3>📋 Additional Metrics</h3>
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <span class="metric-label">Total Assignments</span>
+          <span class="metric-value">{{ reportData.totalAssignments || 0 }}</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Completed Assignments</span>
+          <span class="metric-value">{{ reportData.completedAssignments || 0 }}</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Pending Assignments</span>
+          <span class="metric-value">{{ reportData.pendingAssignments || 0 }}</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Active Events</span>
+          <span class="metric-value">{{ reportData.activeEvents || 0 }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!isLoading && !reportData" class="no-data-message">
+    <p>No report data available. Please try again later.</p>
+  </div>
+</div>
+
+<!-- Email Modal -->
+<div class="modal-overlay" *ngIf="isEmailModalOpen" (click)="closeEmailModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Send Report via Email</h3>
+      <button class="close-btn" (click)="closeEmailModal()">×</button>
+    </div>
+    <form [formGroup]="emailForm" (ngSubmit)="submitEmailReport()">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="email">Recipient Email Address</label>
+          <input 
+            type="email" 
+            id="email"
+            formControlName="email" 
+            placeholder="Enter email address"
+            class="email-input">
+          <small class="error-text" *ngIf="emailForm.get('email')?.invalid && emailForm.get('email')?.touched">
+            Please enter a valid email address
+          </small>
+        </div>
+        <p class="info-text">The complete school performance report will be sent to this email address.</p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeEmailModal()">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!emailForm.valid">Send Report</button>
+      </div>
+    </form>
+  </div>
+</div>

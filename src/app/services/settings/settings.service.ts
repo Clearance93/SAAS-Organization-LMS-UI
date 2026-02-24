@@ -338,9 +338,17 @@ export class SettingsService {
 
   getTeachersByOrganization(organizationId: string): Observable<Teacher[]> {
     const url = `${this.schoolApiUrl}getAllTeachers/${organizationId}`;
+    console.log('Fetching teachers from:', url);
+    
     return this.http.get<any[]>(url).pipe(
-      map(teachers => teachers.map(t => TeacherModel.fromJson(t))),
-      catchError(this.handleError<Teacher[]>('getTeachersByOrganization', []))
+      map(teachers => {
+        console.log('Raw teachers response:', teachers);
+        return teachers.map(t => TeacherModel.fromJson(t));
+      }),
+      catchError(error => {
+        console.error('Error fetching teachers:', error);
+        return this.handleError<Teacher[]>('getTeachersByOrganization', [])(error);
+      })
     );
   }
 
@@ -440,7 +448,13 @@ export class SettingsService {
         console.log('Exam grade scales fetched:', scales);
         this.examGradeScalesSubject.next(scales);
       }),
-      catchError(this.handleError<IExamGradeScale[]>('getExamGradeScales', []))
+      catchError(error => {
+        console.error('getExamGradeScales failed:', error);
+        if (error.name === 'HttpErrorResponse' && error.status === 0) {
+          console.warn('SSL certificate error - using empty array for exam grade scales');
+        }
+        return this.handleError<IExamGradeScale[]>('getExamGradeScales', [])(error);
+      })
     );
   }
 

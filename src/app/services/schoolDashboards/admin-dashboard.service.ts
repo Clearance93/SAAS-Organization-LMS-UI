@@ -68,6 +68,7 @@ export class AdminDashboardService {
           totalStudents: response.totalStudents,
           totalGuests: response.totalGuests,
           totalStaff: response.totalStaff,
+          totalCourseStreams: response.totalCourseStreams,
           typeOfService: response.typeOfService,
           adminId: response.adminId,
           firstName: response.firstName,
@@ -182,6 +183,16 @@ export class AdminDashboardService {
               localStorage.setItem('adminProfile', JSON.stringify(updatedAdmin));
             }
           }
+        }),
+        catchError(error => this.handleError(error))
+      )
+  }
+
+  updateAdminWithFile(adminId: string, formData: FormData): Observable<any> {
+    return this.http.put(`${this.apiUrl}Admin/updateAdminWithFile/${adminId}`, formData)
+      .pipe(
+        tap(response => {
+          console.log('Admin updated successfully with file:', response);
         }),
         catchError(error => this.handleError(error))
       )

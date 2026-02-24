@@ -1,0 +1,67 @@
+<div class="virtual-library-body">
+  <div class="header">
+    <h1>📚 Virtual Library</h1>
+    <p>Explore thousands of books at your fingertips</p>
+  </div>
+
+  <div class="search-container">
+    <input type="text" class="search-box" placeholder="Search for books, authors, or genres..." (input)="onSearchInput($event)">
+  </div>
+
+  <div class="filter-buttons">
+    <button class="filter-btn" [class.active]="currentFilter === 'all'" (click)="setFilter('all')">All Books</button>
+    <button class="filter-btn" *ngFor="let g of getGenres()" [class.active]="currentFilter === g" (click)="setFilter(g)">{{ g }}</button>
+  </div>
+
+  <div class="library-container">
+    <div *ngFor="let genre of getGenres()" class="shelf">
+      <h2 class="shelf-title">{{ genre }}</h2>
+      <div class="books-grid">
+        <div *ngFor="let book of getBooksByGenre(genre)" class="book">
+          <div class="book-cover" [style.background-image]="book.coverPage ? 'url(' + book.coverPage + ')' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'" [style.background-size]="'cover'" [style.background-position]="'center'" (click)="openBookModal(book)">
+            <div class="book-title" [class.with-image]="book.coverPage">{{ book.title }}</div>
+            <div class="book-author" [class.with-image]="book.coverPage">{{ book.author }}</div>
+          </div>
+          <div class="book-info">
+            <span class="book-genre">{{ book.genre }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" [class.active]="isBookModalActive" (click)="closeBookModalOutside($event)">
+    <div class="modal-content" *ngIf="selectedLibraryBook">
+      <span class="close-btn" (click)="closeBookModal()">&times;</span>
+      <h2 class="modal-title">{{ selectedLibraryBook.title }}</h2>
+      <div class="modal-details">
+        <p><strong>Author:</strong> {{ selectedLibraryBook.author }}</p>
+        <p><strong>Genre:</strong> {{ selectedLibraryBook.genre }}</p>
+        <p><strong>Published:</strong> {{ selectedLibraryBook.year || 'N/A' }}</p>
+        <p><strong>Description:</strong> {{ selectedLibraryBook.description }}</p>
+      </div>
+      <button class="read-btn" *ngIf="selectedLibraryBook.book" (click)="openPdfReader(selectedLibraryBook)">📖 Read Book</button>
+      <button class="read-btn" *ngIf="!selectedLibraryBook.book" disabled>No PDF Available</button>
+    </div>
+  </div>
+
+  <div class="pdf-reader-modal" [class.active]="isPdfReaderActive" (click)="closePdfReaderOutside($event)">
+    <div class="pdf-reader-content">
+      <div class="pdf-reader-header">
+        <h2 class="pdf-title">{{ currentBookTitle }}</h2>
+        <button class="close-pdf-btn" (click)="closePdfReader()">&times;</button>
+      </div>
+      <div class="pdf-viewer-container">
+        <iframe *ngIf="safePdfUrl" [src]="safePdfUrl" class="pdf-iframe" frameborder="0" [title]="'Reading: ' + currentBookTitle" (load)="onPdfLoad()" (error)="onPdfError()"></iframe>
+        <div *ngIf="!safePdfUrl && currentPdfUrl" class="pdf-fallback">
+          <p>📄 PDF Viewer</p>
+          <p>Unable to display PDF in secure viewer.</p>
+          <p class="pdf-note">Please contact administrator if you continue to have issues.</p>
+        </div>
+        <div *ngIf="!currentPdfUrl" class="pdf-error">
+          <p>📋 No PDF available for this book</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

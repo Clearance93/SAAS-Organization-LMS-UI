@@ -40,18 +40,22 @@
 
       <div class="form-group">
         <label for="teacherId">Class Teacher <span class="required">*</span></label>
-        <select 
-          id="teacherId"
-          formControlName="teacherId"
-          class="form-control"
-          [class.error]="f['teacherId'].invalid && f['teacherId'].touched">
-          <option *ngIf="isLoadingTeachers" value="">Loading teachers...</option>
-          <option *ngIf="!isLoadingTeachers && teachers.length === 0" value="" disabled>No teachers found</option>
-          <option *ngIf="!isLoadingTeachers && teachers.length > 0" value="">Select a teacher</option>
-          <option *ngFor="let teacher of teachers" [value]="teacher.teacherEmail">
-            {{ teacher.firstName }} {{ teacher.lastName }}
-          </option>
-        </select>
+        <div class="select-wrapper">
+          <select 
+            id="teacherId"
+            formControlName="teacherId"
+            class="form-control"
+            [class.error]="f['teacherId'].invalid && f['teacherId'].touched"
+            [disabled]="isLoadingTeachers">
+            <option *ngIf="isLoadingTeachers" value="">Loading teachers...</option>
+            <option *ngIf="!isLoadingTeachers && teachers.length === 0" value="" disabled>No teachers found</option>
+            <option *ngIf="!isLoadingTeachers && teachers.length > 0" value="">Select a teacher</option>
+            <option *ngFor="let teacher of teachers" [value]="teacher.teacherEmail">
+              {{ teacher.firstName }} {{ teacher.lastName }}
+            </option>
+          </select>
+          <mat-spinner *ngIf="isLoadingTeachers" diameter="20" class="loading-spinner"></mat-spinner>
+        </div>
         <div class="error-message" *ngIf="f['teacherId'].invalid && f['teacherId'].touched">
           <span *ngIf="f['teacherId'].errors?.['required']">Please select a teacher</span>
         </div>
@@ -59,6 +63,10 @@
 
       <div class="info-box">
         <p>This will create both a grade level and a stream/class within that grade.</p>
+      </div>
+      
+      <div *ngIf="isLoadingTeachers" class="loading-info">
+        <p>Loading teachers from your organization...</p>
       </div>
 
     </div>
@@ -68,13 +76,13 @@
         type="button" 
         class="btn-secondary"
         (click)="onCancel()"
-        [disabled]="isSubmitting">
+        [disabled]="isSubmitting || isLoadingTeachers">
         Cancel
       </button>
       <button 
         type="submit" 
         class="btn-primary"
-        [disabled]="gradeForm.invalid || isSubmitting">
+        [disabled]="gradeForm.invalid || isSubmitting || isLoadingTeachers">
         <mat-spinner *ngIf="isSubmitting" diameter="20"></mat-spinner>
         <span>{{ isSubmitting ? 'Adding...' : 'Add Grade & Stream' }}</span>
       </button>

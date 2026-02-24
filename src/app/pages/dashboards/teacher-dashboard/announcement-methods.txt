@@ -1,0 +1,14 @@
+
+  loadAnnouncements(): void {
+    this.communicationService.getBroadcastMessages('Teacher').subscribe({
+      next: (messages) => {
+        this.announcements = messages;
+        this.unreadAnnouncementsCount = messages.filter((m: any) => !m.isRead).length;
+      },
+      error: (err) => console.error('Failed to load announcements:', err)
+    });
+  }
+
+  refreshAnnouncements(): void {
+    this.loadAnnouncements();
+  }

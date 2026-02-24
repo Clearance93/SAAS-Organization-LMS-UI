@@ -1,0 +1,49 @@
+<div class="ai-assistant-container">
+  <button class="ai-fab" (click)="toggleChat()" *ngIf="!isOpen">
+    🤖
+  </button>
+
+  <div class="chat-window" *ngIf="isOpen" [class.minimized]="isMinimized">
+    <div class="chat-header">
+      <div class="header-left">
+        <span class="ai-icon">🤖</span>
+        <span class="ai-title">AI Assistant</span>
+      </div>
+      <div class="header-actions">
+        <button class="header-btn" (click)="minimizeChat()" title="Minimize">−</button>
+        <button class="header-btn" (click)="closeChat()" title="Close">×</button>
+      </div>
+    </div>
+
+    <div class="chat-body" *ngIf="!isMinimized">
+      <div class="messages-container">
+        <div *ngFor="let message of messages" 
+             class="message" 
+             [class.user-message]="message.isUser"
+             [class.ai-message]="!message.isUser">
+          <div class="message-content">{{ message.text }}</div>
+          <div class="message-time">{{ message.timestamp | date:'short' }}</div>
+        </div>
+        <div *ngIf="isLoading" class="message ai-message">
+          <div class="message-content typing-indicator">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-footer">
+        <button class="clear-btn" (click)="clearChat()" title="Clear chat">🗑️</button>
+        <input 
+          type="text" 
+          [(ngModel)]="userInput" 
+          (keyup.enter)="sendMessage()"
+          placeholder="Ask me anything..."
+          class="chat-input"
+          [disabled]="isLoading">
+        <button class="send-btn" (click)="sendMessage()" [disabled]="!userInput.trim() || isLoading">
+          ➤
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

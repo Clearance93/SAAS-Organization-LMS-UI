@@ -63,8 +63,8 @@
       </div>
 
       <div class="form-group">
-        <label for="gradeLevel" class="form-label">
-          Grade Level <span class="required">*</span>
+        <label for="gradeId" class="form-label">
+          Grade <span class="required">*</span>
         </label>
         <div class="input-wrapper">
           <svg xmlns="http://www.w3.org/2000/svg" class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -74,17 +74,21 @@
             <line x1="16" y1="17" x2="8" y2="17"></line>
             <polyline points="10 9 9 9 8 9"></polyline>
           </svg>
-          <input
-            type="text"
-            id="gradeLevel"
-            formControlName="gradeLevel"
+          <select
+            id="gradeId"
+            formControlName="gradeId"
             class="form-input"
-            [class.input-error]="isFieldInvalid('gradeLevel')"
-            placeholder="e.g., Grade 10, Grade 11, Grade 12"
-          />
+            [class.input-error]="isFieldInvalid('gradeId')"
+          >
+            <option value="" disabled>Select a grade</option>
+            <option *ngFor="let grade of grades" [value]="grade.gradeId">
+              {{ grade.gradeName }} ({{ grade.gradeLevel }})
+            </option>
+          </select>
+          <div *ngIf="loadingGrades" class="loading-text">Loading grades...</div>
         </div>
-        <span class="error-message" *ngIf="isFieldInvalid('gradeLevel')">
-          {{ getFieldError('gradeLevel') }}
+        <span class="error-message" *ngIf="isFieldInvalid('gradeId')">
+          {{ getFieldError('gradeId') }}
         </span>
       </div>
 
@@ -104,7 +108,7 @@
         <button
           type="submit"
           class="btn btn-primary"
-          [disabled]="isSubmitting || subjectForm.invalid"
+          [disabled]="isSubmitting || subjectForm.invalid || loadingGrades"
         >
           <span *ngIf="!isSubmitting">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

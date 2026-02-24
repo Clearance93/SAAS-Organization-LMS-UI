@@ -16,11 +16,31 @@ import { AdminProfileModalComponent } from './pages/schools/modals/admin-profile
 import { ConfirmEmailComponent } from './pages/authPage/confirm-email/confirm-email.component';
 import { EditAdminProfileComponent } from './pages/schools/admin/edit-admin-profile/edit-admin-profile.component';
 import { AdminSettingsComponent } from './pages/settings/admin-settings/admin-settings.component';
+import { LibraryComponent } from './pages/library/library.component';
 import { AddGradeModalComponent } from './pages/modals/add-grade-modal/add-grade-modal.component';
 import { AddCourseStreamComponent } from './pages/settings/admin-settings/add-course-stream/add-course-stream.component';
 import { EditCourseStreamComponent } from './pages/settings/admin-settings/edit-course-stream/edit-course-stream.component';
 import { DetailsComponent } from './pages/settings/admin-settings/details/details.component';
 import { AddSchoolSubjectComponent } from './pages/settings/admin-settings/add-school-subject/add-school-subject.component';
+import { TeacherDashboardComponent } from './pages/dashboards/teacher-dashboard/teacher-dashboard.component';
+import { TeacherSettingsComponent } from './pages/settings/teacher-settings/teacher-settings.component';
+import { StudentDashboardComponent } from './pages/dashboards/student-dashboard/student-dashboard.component';
+import { StudentSettingsComponent } from './pages/settings/student-settings/student-settings.component';
+import { CommunicationCenterComponent } from './pages/communication/communication-center.component';
+import { AdminReportComponent } from './pages/reports/admin-report/admin-report.component';
+import { TeacherReportComponent } from './pages/reports/teacher-report/teacher-report.component';
+import { TrainingProgramsComponent } from './pages/training/training-programs.component';
+import { CertificationsComponent } from './pages/certifications/certifications.component';
+import { ScheduleWorkshopComponent } from './pages/workshops/schedule-workshop.component';
+import { JoinWorkshopComponent } from './pages/workshops/join-workshop.component';
+import { ManageCoursesComponent } from './pages/courses/manage-courses.component';
+import { FaithProgramsComponent } from './pages/faith/faith-programs.component';
+import { ComplianceReportsComponent } from './pages/compliance/compliance-reports.component';
+import { StaffDevelopmentComponent } from './pages/training/staff-development.component';
+import { LeadershipTrainingComponent } from './pages/training/leadership-training.component';
+import { ParentDashboardComponent } from './pages/dashboards/parent-dashboard/parent-dashboard.component';
+import { ParentSettingsComponent } from './pages/settings/parent-settings/parent-settings.component';
+import { ChurchAdminDashboardComponent } from './pages/dashboards/church-admin-dashboard/church-admin-dashboard.component';
 
 export const routes: Routes = [
     { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -42,11 +62,30 @@ export const routes: Routes = [
     { path: 'admin-profile-modal', component: AdminProfileModalComponent },
     { path: 'edit-admin-profile', component: EditAdminProfileComponent },
     { path: 'admin-settings', component: AdminSettingsComponent },
+    { path: 'library', component: LibraryComponent },
     { path: 'add-grade-modal', component: AddGradeModalComponent },
     { path: 'add-course-stream', component: AddCourseStreamComponent },
     { path: 'edit-course-stream', component: EditCourseStreamComponent },
     { path: 'details', component: DetailsComponent },
     { path: 'add-school-subject', component: AddSchoolSubjectComponent },
-    { path: 'communication-center', loadComponent: () => import('./pages/communication/communication-center.component').then(m => m.CommunicationCenterComponent) },
-    { path: '**', redirectTo: 'login' } // Wildcard route should always be last
+    { path: "teacher-dashboard", component: TeacherDashboardComponent },
+    { path: "teacher-settings", component: TeacherSettingsComponent },
+    { path: "student-dashboard", component: StudentDashboardComponent },
+    { path: "student-settings", component: StudentSettingsComponent },
+    { path: "communication-center", component: CommunicationCenterComponent },
+    { path: "generate-report", component: AdminReportComponent },
+    { path: "teacher-report", component: TeacherReportComponent },
+    { path: "training-programs", component: TrainingProgramsComponent },
+    { path: "certifications", component: CertificationsComponent },
+    { path: "schedule-workshop", component: ScheduleWorkshopComponent },
+    { path: "join-workshop", component: JoinWorkshopComponent },
+    { path: "manage-courses", component: ManageCoursesComponent },
+    { path: "faith-programs", component: FaithProgramsComponent },
+    { path: "compliance-reports", component: ComplianceReportsComponent },
+    { path: "staff-development", component: StaffDevelopmentComponent },
+    { path: "leadership-training", component: LeadershipTrainingComponent },
+    { path: "parent-dashboard", component: ParentDashboardComponent },
+    { path: "parent-settings", component: ParentSettingsComponent },
+    { path: "church-admin-dashboard", component: ChurchAdminDashboardComponent },
+    { path: '**', redirectTo: 'login' }
 ];

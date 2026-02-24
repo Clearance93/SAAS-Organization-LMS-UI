@@ -1,0 +1,285 @@
+<div class="teacher-report-page">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <button class="back-btn" (click)="backToDashboard()">← Back to Dashboard</button>
+      <h1>📊 Teacher Reports</h1>
+    </div>
+  </header>
+
+  <!-- Tab Navigation -->
+  <div class="tabs">
+    <button class="tab-btn" [class.active]="activeTab === 'my-reports'" (click)="activeTab = 'my-reports'">
+      My Reports
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'student-reports'" (click)="activeTab = 'student-reports'">
+      Student Reports
+    </button>
+  </div>
+
+  <!-- My Reports Tab -->
+  <div class="tab-content" *ngIf="activeTab === 'my-reports'">
+    <div class="content-grid">
+      <!-- Report Configuration -->
+      <div class="card config-card">
+        <h2>Generate My Report</h2>
+        <p class="description">Create a comprehensive report of your teaching performance and class statistics</p>
+        
+        <div class="form-group">
+          <label>Select Class</label>
+          <select [(ngModel)]="selectedClass" class="form-control">
+            <option value="">Choose a class</option>
+            <option *ngFor="let cls of teachingClasses" [value]="cls.teachingClassId">
+              {{ cls.className }} - {{ cls.subject }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Report Period</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" [(ngModel)]="reportPeriod" value="term" name="period">
+              <span>Term Report</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" [(ngModel)]="reportPeriod" value="year" name="period">
+              <span>Year Report</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-row" *ngIf="reportPeriod === 'term'">
+          <div class="form-group">
+            <label>Term</label>
+            <select [(ngModel)]="selectedTerm" class="form-control">
+              <option value="1">Term 1</option>
+              <option value="2">Term 2</option>
+              <option value="3">Term 3</option>
+              <option value="4">Term 4</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Year</label>
+            <input type="number" [(ngModel)]="selectedYear" class="form-control" min="2020" max="2030">
+          </div>
+        </div>
+
+        <div class="form-group" *ngIf="reportPeriod === 'year'">
+          <label>Year</label>
+          <input type="number" [(ngModel)]="selectedYear" class="form-control" min="2020" max="2030">
+        </div>
+
+        <button class="generate-btn" (click)="generateMyReport()" [disabled]="!selectedClass || isGeneratingReport">
+          <span *ngIf="!isGeneratingReport">📄 Generate Report</span>
+          <span *ngIf="isGeneratingReport">⏳ Generating...</span>
+        </button>
+      </div>
+
+      <!-- Report Preview -->
+      <div class="card preview-card" *ngIf="myReportData">
+        <div class="preview-header">
+          <h2>Report Preview</h2>
+          <button class="download-btn" (click)="downloadMyReportPDF()">
+            📥 Download PDF
+          </button>
+        </div>
+
+        <div class="report-preview">
+          <div class="preview-section">
+            <h3>{{ myReportData.className }} - {{ myReportData.subject }}</h3>
+            <p class="period-info">{{ myReportData.period }} {{ myReportData.year }}</p>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value">{{ myReportData.totalStudents }}</div>
+              <div class="stat-label">Total Students</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ myReportData.averageGrade }}%</div>
+              <div class="stat-label">Average Grade</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ myReportData.passRate }}%</div>
+              <div class="stat-label">Pass Rate</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ myReportData.attendanceRate }}%</div>
+              <div class="stat-label">Attendance</div>
+            </div>
+          </div>
+
+          <div class="preview-section">
+            <h4>Top Performers</h4>
+            <div class="student-list">
+              <div class="student-item" *ngFor="let student of myReportData.topPerformers">
+                <span>{{ student.name }}</span>
+                <span class="grade">{{ student.grade }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-section">
+            <h4>Students Needing Attention</h4>
+            <div class="student-list">
+              <div class="student-item attention" *ngFor="let student of myReportData.needsAttention">
+                <div>
+                  <div>{{ student.name }}</div>
+                  <div class="issue">{{ student.issue }}</div>
+                </div>
+                <span class="grade">{{ student.grade }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Report Info Card -->
+      <div class="card info-card" *ngIf="!myReportData">
+        <h3>📋 What's Included in Your Report?</h3>
+        <ul class="info-list">
+          <li>✓ Class performance overview and statistics</li>
+          <li>✓ Student attendance and participation rates</li>
+          <li>✓ Assignment completion and grading summary</li>
+          <li>✓ Top performing students recognition</li>
+          <li>✓ Students requiring additional support</li>
+          <li>✓ Subject topic performance breakdown</li>
+          <li>✓ Comparative analysis across terms/years</li>
+          <li>✓ Professional PDF format for presentations</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student Reports Tab -->
+  <div class="tab-content" *ngIf="activeTab === 'student-reports'">
+    <div class="content-grid">
+      <!-- Student Report Form -->
+      <div class="card config-card">
+        <h2>Generate Student Report</h2>
+        <p class="description">Create individual student reports for term or year assessments</p>
+
+        <form [formGroup]="studentReportForm">
+          <div class="form-group">
+            <label>Select Class</label>
+            <select formControlName="classId" class="form-control" (change)="onClassChange($any($event.target).value)">
+              <option value="">Choose a class</option>
+              <option *ngFor="let cls of teachingClasses" [value]="cls.teachingClassId">
+                {{ cls.className }} - {{ cls.subject }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Select Student</label>
+            <select formControlName="studentId" class="form-control">
+              <option value="">Choose a student</option>
+              <option *ngFor="let student of students" [value]="student.id">
+                {{ student.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Report Template</label>
+            <div class="template-grid">
+              <label class="template-card" *ngFor="let template of reportTemplates">
+                <input type="radio" formControlName="template" [value]="template.id" name="template">
+                <div class="template-content">
+                  <div class="template-name">{{ template.name }}</div>
+                  <div class="template-desc">{{ template.description }}</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Report Period</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" formControlName="period" value="term">
+                <span>Term Report</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" formControlName="period" value="year">
+                <span>Year Report</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-row" *ngIf="studentReportForm.get('period')?.value === 'term'">
+            <div class="form-group">
+              <label>Term</label>
+              <select formControlName="term" class="form-control">
+                <option value="1">Term 1</option>
+                <option value="2">Term 2</option>
+                <option value="3">Term 3</option>
+                <option value="4">Term 4</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Year</label>
+              <input type="number" formControlName="year" class="form-control" min="2020" max="2030">
+            </div>
+          </div>
+
+          <div class="form-group" *ngIf="studentReportForm.get('period')?.value === 'year'">
+            <label>Year</label>
+            <input type="number" formControlName="year" class="form-control" min="2020" max="2030">
+          </div>
+
+          <div class="form-group">
+            <label>Include in Report</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="includeAttendance">
+                <span>Attendance Record</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="includeGrades">
+                <span>Grade Breakdown</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="includeComments">
+                <span>Teacher Comments</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" *ngIf="studentReportForm.get('includeComments')?.value">
+            <label>Teacher's Comment</label>
+            <textarea formControlName="teacherComment" class="form-control" rows="4" 
+                      placeholder="Enter your comments about the student's performance..."></textarea>
+          </div>
+
+          <button type="button" class="generate-btn" (click)="generateStudentReport()" 
+                  [disabled]="!studentReportForm.valid">
+            📄 Generate & Download Report
+          </button>
+        </form>
+      </div>
+
+      <!-- Templates Info -->
+      <div class="card info-card">
+        <h3>📝 Report Templates</h3>
+        <div class="template-info">
+          <div class="template-detail" *ngFor="let template of reportTemplates">
+            <h4>{{ template.name }}</h4>
+            <p>{{ template.description }}</p>
+            <ul class="feature-list">
+              <li *ngIf="template.id === 'standard'">Traditional grade format with A-F scale</li>
+              <li *ngIf="template.id === 'standard'">Subject-wise performance summary</li>
+              <li *ngIf="template.id === 'detailed'">Comprehensive subject breakdown</li>
+              <li *ngIf="template.id === 'detailed'">Skills and competencies assessment</li>
+              <li *ngIf="template.id === 'summary'">Quick overview format</li>
+              <li *ngIf="template.id === 'summary'">Ideal for progress updates</li>
+              <li *ngIf="template.id === 'narrative'">Detailed written assessment</li>
+              <li *ngIf="template.id === 'narrative'">Personalized feedback and recommendations</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

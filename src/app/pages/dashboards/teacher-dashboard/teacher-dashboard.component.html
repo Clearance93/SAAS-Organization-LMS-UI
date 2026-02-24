@@ -1,0 +1,1078 @@
+<div class="teacher-dashboard">
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="header-left">
+      <h1>Welcome, {{ teacherName }}</h1>
+      <p class="subtitle" 
+         [class.current-class]="hasCurrentClass()" 
+         [class.next-class]="!hasCurrentClass() && hasNextClass()">
+        {{ getCurrentClassInfo() }}
+      </p>
+    </div>
+    <div class="header-right">
+      <button class="icon-button" (click)="openMessages()" title="Messages" style="position: relative;">
+        📧
+        <span *ngIf="unreadMessagesCount > 0" class="unread-badge">{{ unreadMessagesCount }}</span>
+      </button>
+      <button class="icon-button" (click)="settings()" title="Settings">⚙️</button>
+      <button class="icon-button logout-btn" (click)="logout()" title="Logout">⏻</button>
+      <div class="teacher-profile">
+        <div class="avatar">{{ getTeacherInitials() }}</div>
+        <span>{{ teacherName }}</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Grid -->
+  <div class="content-grid">
+    
+    <!-- Today's Schedule -->
+    <div class="card schedule-card">
+      <div class="card-header">
+        <h3>📅 Today's Schedule</h3>
+        <button class="add-btn" (click)="openAddClassModal()">+ Add Today's Class</button>
+      </div>
+      <div class="date">{{ getCurrentDate() }}</div>
+      <div class="schedule-list">
+        <div class="schedule-item" 
+             *ngFor="let item of paginatedTodaySchedule" 
+             [ngClass]="getStatusClass(item.status)">
+          <div class="schedule-time">{{ item.time }}</div>
+          <div class="schedule-details">
+            <div class="schedule-class">{{ item.class }}</div>
+            <div class="schedule-room">{{ item.room }}</div>
+          </div>
+          <div class="schedule-status">
+            <span *ngIf="item.status === 'current'" class="status-badge current">In Progress</span>
+            <span *ngIf="item.status === 'completed'" class="status-badge completed">Completed</span>
+          </div>
+        </div>
+      </div>
+      <div class="pagination" *ngIf="scheduleTotalPages > 1">
+        <button (click)="prevSchedulePage()" [disabled]="scheduleCurrentPage === 1">‹</button>
+        <span>{{ scheduleCurrentPage }} / {{ scheduleTotalPages }}</span>
+        <button (click)="nextSchedulePage()" [disabled]="scheduleCurrentPage === scheduleTotalPages">›</button>
+      </div>
+    </div>
+
+    <!-- My Classes -->
+    <div class="card classes-card">
+      <div class="card-header">
+        <h3>👥 My Classes</h3>
+      </div>
+      <div class="classes-list">
+        <div class="class-item" *ngFor="let class of paginatedMyClasses" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <div class="class-info">
+            <div class="class-name" style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem;">{{ class.name }}</div>
+            <div class="class-details" style="display: flex; gap: 1.5rem; align-items: center; color: white;">
+              <span style="display: flex; align-items: center; gap: 0.5rem;"><span style="font-size: 1.2rem;">👥</span> {{ class.students }} students</span>
+              <span style="display: flex; align-items: center; gap: 0.5rem;"><span style="font-size: 1.2rem;">📍</span> {{ class.time }}</span>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="myClasses.length === 0" style="text-align: center; padding: 3rem; color: #6b7280;">
+          <p style="font-size: 3rem; margin: 0 0 1rem 0;">🏫</p>
+          <p style="margin: 0; font-size: 1.1rem;">No classes assigned yet</p>
+        </div>
+      </div>
+      <div class="pagination" *ngIf="classesTotalPages > 1">
+        <button (click)="prevClassesPage()" [disabled]="classesCurrentPage === 1">‹</button>
+        <span>{{ classesCurrentPage }} / {{ classesTotalPages }}</span>
+        <button (click)="nextClassesPage()" [disabled]="classesCurrentPage === classesTotalPages">›</button>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card quick-actions-card">
+      <div class="card-header">
+        <h3>⚡ Quick Actions</h3>
+      </div>
+      <div class="quick-actions-grid">
+        <button class="quick-action-btn" 
+                *ngFor="let action of quickActions"
+                (click)="handleQuickAction(action.action)"
+                style="position: relative;">
+          <span class="action-icon">{{ action.icon }}</span>
+          <span class="action-title">{{ action.title }}</span>
+          <span *ngIf="action.badge && action.badge > 0" 
+                style="position: absolute; top: 5px; right: 5px; background: #ef4444; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">
+            {{ action.badge }}
+          </span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Assignments & Grades -->
+    <div class="card assignments-card">
+      <div class="card-header">
+        <h3>📝 Recent Assignments</h3>
+        <div>
+          <button class="refresh-btn" (click)="loadAssignments()" title="Refresh" style="margin-right: 8px; padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄</button>
+          <button class="add-btn" (click)="openAssignmentModal()">+ New Assignment</button>
+        </div>
+      </div>
+      <div class="assignments-list">
+        <div class="assignment-item schedule-item" 
+             *ngFor="let assignment of paginatedAssignments" 
+             [ngClass]="{'schedule-upcoming': !isAssignmentOverdue(assignment), 'schedule-overdue': isAssignmentOverdue(assignment)}">
+          <div class="schedule-time">{{ assignment.assignmentDueDate | date:'MMM d' }}</div>
+          <div class="schedule-details">
+            <div class="schedule-class">{{ assignment.assignmentTitle }}</div>
+            <div class="schedule-room">{{ assignment.assignmentSubject }}</div>
+          </div>
+          <div class="schedule-status">
+            <div class="submission-rate">{{ getSubmissionCount(assignment) }}</div>
+            <button class="grade-btn" (click)="openGradeModal()">Grade</button>
+          </div>
+        </div>
+        <div *ngIf="filteredSortedAssignments.length === 0" class="no-assignments">
+          <p>No upcoming assignments. Click "+ New Assignment" to create one.</p>
+        </div>
+
+        <div class="pagination" *ngIf="assignmentsTotalPages > 1">
+          <button (click)="prevAssignmentsPage()" [disabled]="assignmentsCurrentPage === 1">‹</button>
+          <span>{{ assignmentsCurrentPage }} / {{ assignmentsTotalPages }}</span>
+          <button (click)="nextAssignmentsPage()" [disabled]="assignmentsCurrentPage === assignmentsTotalPages">›</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Class Performance -->
+    <div class="card performance-card">
+      <div class="card-header">
+        <h3>📈 Class Performance</h3>
+      </div>
+      <div class="performance-list">
+        <div class="performance-item" *ngFor="let perf of classPerformanceList">
+          <div class="performance-class">{{ perf.class }}</div>
+          <div class="performance-average">{{ perf.average }}%</div>
+          <div class="performance-trend">{{ getTrendIcon(perf.trend) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendance Overview -->
+    <div class="card attendance-overview-card">
+      <div class="card-header">
+        <h3>📊 Attendance Overview</h3>
+        <select class="class-selector" [(ngModel)]="selectedAttendanceSubject">
+          <option *ngFor="let subject of getTeacherSubjects()" [value]="subject">{{ subject }}</option>
+        </select>
+      </div>
+      <div class="attendance-stats">
+        <div class="stat-item">
+          <div class="stat-label">This Week</div>
+          <div class="stat-details">
+            <span class="stat-value present">{{ getWeeklyPresent() }} Present</span>
+            <span class="stat-value absent">{{ getWeeklyAbsent() }} Absent</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">This Month</div>
+          <div class="stat-details">
+            <span class="stat-value present">{{ getMonthlyPresent() }} Present</span>
+            <span class="stat-value absent">{{ getMonthlyAbsent() }} Absent</span>
+          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Today</div>
+          <div class="stat-details">
+            <span class="stat-value present">{{ getTodayPresent() }} Present</span>
+            <span class="stat-value absent">{{ getTodayAbsent() }} Absent</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Attendance Modal -->
+<div class="modal-overlay" *ngIf="isAttendanceModalOpen" (click)="closeAttendanceModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Take Attendance</h3>
+      <button class="close-btn" (click)="closeAttendanceModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="attendance-controls">
+        <select [(ngModel)]="selectedClass" class="class-select">
+          <option *ngFor="let class of myClasses" [value]="class.name">{{ class.name }}</option>
+        </select>
+        <input type="date" [(ngModel)]="attendanceDate" class="date-input">
+      </div>
+      <div class="students-list">
+        <div class="student-item" *ngFor="let student of students">
+          <div class="student-info">
+            <div class="student-avatar">{{ getInitials(student.name) }}</div>
+            <span class="student-name">{{ student.name }}</span>
+          </div>
+          <div class="attendance-toggle">
+            <button class="toggle-btn" 
+                    [class.present]="student.isPresent"
+                    [class.absent]="!student.isPresent"
+                    (click)="toggleAttendance(student.id)">
+              {{ student.isPresent ? 'Present' : 'Absent' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="cancel-btn" (click)="closeAttendanceModal()">Cancel</button>
+      <button class="save-btn" (click)="saveAttendance()">Save Attendance</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assignment Modal -->
+<div class="modal-overlay" *ngIf="isAssignmentModalOpen" (click)="closeAssignmentModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 700px;">
+    <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px 12px 0 0;">
+      <h3 style="margin: 0; font-size: 1.5rem;">📝 Create Assignment</h3>
+      <button class="close-btn" (click)="closeAssignmentModal()" style="color: white; font-size: 2rem;">×</button>
+    </div>
+    <form [formGroup]="assignmentForm" (ngSubmit)="createAssignment()" style="padding: 2rem;">
+      <div class="form-group">
+        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Assignment Title *</label>
+        <input type="text" formControlName="title" placeholder="Enter assignment title" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+      </div>
+      <div class="form-group">
+        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Description *</label>
+        <textarea formControlName="description" placeholder="Assignment description" rows="4" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; resize: vertical;"></textarea>
+      </div>
+      <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div class="form-group">
+          <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Due Date *</label>
+          <input type="date" formControlName="dueDate" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+        </div>
+        <div class="form-group">
+          <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Points *</label>
+          <input type="number" formControlName="points" min="1" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+        </div>
+      </div>
+      <div class="form-group">
+        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Stream *</label>
+        <select formControlName="gradeStreamId" (change)="onAssignmentStreamSelected($any($event.target).value)" required style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; background: white;">
+          <option value="">Select Grade & Subject</option>
+          <ng-container *ngIf="teacherSubjectsWithGrades.length > 0">
+            <option *ngFor="let item of teacherSubjectsWithGrades" [value]="item.gradeStreamId">
+              {{ item.subjectName }} - {{ item.streamGradeName }}
+            </option>
+          </ng-container>
+          <ng-container *ngIf="teacherSubjectsWithGrades.length === 0">
+            <option *ngFor="let stream of streams" [value]="stream.streamId">
+              {{ stream.streamName }}
+            </option>
+          </ng-container>
+        </select>
+      </div>
+      <div class="form-group">
+        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Subject *</label>
+        <input type="text" formControlName="subject" placeholder="Subject will auto-populate" required readonly style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; background: #f9fafb;">
+      </div>
+      
+      <!-- Assignment Document Upload -->
+      <div class="form-group">
+        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">📄 Assignment Document</label>
+        <div class="file-drop-zone" 
+             [class.drag-over]="isDraggingAssignment"
+             (dragover)="onDragOver($event, 'assignment')"
+             (dragleave)="onDragLeave($event, 'assignment')"
+             (drop)="onDrop($event, 'assignment')"
+             style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.3s;"
+             [style.border-color]="isDraggingAssignment ? '#3b82f6' : '#cbd5e1'"
+             [style.background]="isDraggingAssignment ? '#eff6ff' : '#f8fafc'">
+          <input type="file" id="assignmentFile" (change)="onAssignmentFileSelected($event)" accept=".pdf,.doc,.docx,.zip,.png,.jpg" style="display: none;" />
+          <div *ngIf="!assignmentFile">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">📁</div>
+            <p style="margin: 0 0 0.5rem 0; color: #64748b; font-weight: 600;">Drag & drop file here or</p>
+            <label for="assignmentFile" style="display: inline-block; padding: 0.5rem 1.5rem; background: #3b82f6; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">Browse Files</label>
+            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">PDF, DOC, DOCX, ZIP, PNG, JPG</p>
+          </div>
+          <div *ngIf="assignmentFile" style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 1rem; border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <span style="font-size: 2rem;">📄</span>
+              <div style="text-align: left;">
+                <p style="margin: 0; font-weight: 600; color: #1e293b;">{{ assignmentFile.name }}</p>
+                <p style="margin: 0; color: #64748b; font-size: 0.85rem;">{{ (assignmentFile.size / 1024).toFixed(2) }} KB</p>
+              </div>
+            </div>
+            <button type="button" (click)="assignmentFile = null; $event.stopPropagation()" style="padding: 0.5rem 1rem; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Remove</button>
+          </div>
+        </div>
+        <small style="display: block; margin-top: 0.5rem; color: #64748b;">Optional — attach assignment document or resources</small>
+      </div>
+
+      <!-- Rubric/Memorandum Upload -->
+      <div class="form-group" style="margin-top: 1.5rem;">
+        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+          <span>🤖</span> Rubric / Memorandum (for AI Grading)
+        </label>
+        <div style="background: #fef3c7; border: 2px solid #fbbf24; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+          <p style="margin: 0; color: #92400e; font-size: 0.9rem; display: flex; align-items: start; gap: 0.5rem;">
+            <span style="font-size: 1.2rem;">⚠️</span>
+            <span><strong>Important:</strong> Upload a rubric or memorandum to help AI provide accurate grading feedback. Without it, AI will give general feedback only.</span>
+          </p>
+        </div>
+        <div class="file-drop-zone" 
+             [class.drag-over]="isDraggingRubric"
+             (dragover)="onDragOver($event, 'rubric')"
+             (dragleave)="onDragLeave($event, 'rubric')"
+             (drop)="onDrop($event, 'rubric')"
+             style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.3s;"
+             [style.border-color]="isDraggingRubric ? '#10b981' : '#cbd5e1'"
+             [style.background]="isDraggingRubric ? '#f0fdf4' : '#f8fafc'">
+          <input type="file" id="rubricFile" (change)="onRubricFileSelected($event)" accept=".pdf,.doc,.docx" style="display: none;" />
+          <div *ngIf="!rubricFile">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">📋</div>
+            <p style="margin: 0 0 0.5rem 0; color: #64748b; font-weight: 600;">Drag & drop rubric here or</p>
+            <label for="rubricFile" style="display: inline-block; padding: 0.5rem 1.5rem; background: #10b981; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">Browse Files</label>
+            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">PDF, DOC, DOCX</p>
+          </div>
+          <div *ngIf="rubricFile" style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 1rem; border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <span style="font-size: 2rem;">📋</span>
+              <div style="text-align: left;">
+                <p style="margin: 0; font-weight: 600; color: #1e293b;">{{ rubricFile.name }}</p>
+                <p style="margin: 0; color: #64748b; font-size: 0.85rem;">{{ (rubricFile.size / 1024).toFixed(2) }} KB</p>
+              </div>
+            </div>
+            <button type="button" (click)="rubricFile = null; $event.stopPropagation()" style="padding: 0.5rem 1rem; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Remove</button>
+          </div>
+        </div>
+        <small style="display: block; margin-top: 0.5rem; color: #64748b;">Optional — helps AI provide accurate grading based on your marking criteria</small>
+      </div>
+
+      <div class="modal-actions" style="display: flex; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #e5e7eb;">
+        <button type="button" class="cancel-btn" (click)="closeAssignmentModal()" style="flex: 1; padding: 0.75rem; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!assignmentForm.valid" style="flex: 2; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; opacity: 1;" [style.opacity]="!assignmentForm.valid ? '0.5' : '1'" [style.cursor]="!assignmentForm.valid ? 'not-allowed' : 'pointer'">Create Assignment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Grade Modal -->
+<div class="modal-overlay" *ngIf="isGradeModalOpen" (click)="closeGradeModal()">
+  <div class="modal-content grade-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>📊 Grade Submissions</h3>
+      <button class="close-btn" (click)="closeGradeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="grade-controls">
+        <div class="assignment-tabs" style="margin-bottom: 1.5rem;">
+          <button class="tab-btn" [class.active]="gradingTab === 'pending'" (click)="setGradingTab('pending')" style="padding: 0.75rem 1.5rem; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-weight: 600; color: #6b7280; transition: all 0.3s;" [style.border-bottom-color]="gradingTab === 'pending' ? '#3b82f6' : 'transparent'" [style.color]="gradingTab === 'pending' ? '#3b82f6' : '#6b7280'">📝 Pending ({{ getPendingCount() }})</button>
+          <button class="tab-btn" [class.active]="gradingTab === 'graded'" (click)="setGradingTab('graded')" style="padding: 0.75rem 1.5rem; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-weight: 600; color: #6b7280; transition: all 0.3s;" [style.border-bottom-color]="gradingTab === 'graded' ? '#10b981' : 'transparent'" [style.color]="gradingTab === 'graded' ? '#10b981' : '#6b7280'">✅ Graded ({{ getGradedCount() }})</button>
+        </div>
+      </div>
+      
+      <div *ngIf="isLoadingSubmissions" style="text-align: center; padding: 2rem;">
+        <div class="spinner"></div>
+        <p>Loading submissions...</p>
+      </div>
+
+      <div class="submissions-grid" *ngIf="!isLoadingSubmissions && filteredSubmissions.length > 0">
+        <div class="submission-card" *ngFor="let submission of paginatedSubmissions">
+          <div class="student-header">
+            <div class="student-avatar">{{ getInitials(submission.studentFullNames) }}</div>
+            <div class="student-info">
+              <h4>{{ submission.studentFullNames }}</h4>
+              <p class="student-email">{{ submission.studentEmail }}</p>
+            </div>
+            <span class="graded-badge" *ngIf="gradedStudents.has(submission.studentId)">✅ Graded</span>
+          </div>
+          <div class="submission-details">
+            <p><strong>Assignment:</strong> {{ submission.assignmentTitle }}</p>
+            <p class="description">{{ submission.assignmentDescription }}</p>
+          </div>
+          <button class="grade-btn" (click)="gradeStudent(submission)" [disabled]="submission.isCompleted || gradedStudents.has(submission.studentId)" [style.opacity]="submission.isCompleted || gradedStudents.has(submission.studentId) ? '0.5' : '1'" [style.cursor]="submission.isCompleted || gradedStudents.has(submission.studentId) ? 'not-allowed' : 'pointer'">
+            {{ gradedStudents.has(submission.studentId) || submission.isCompleted ? '✅ Graded' : 'Grade' }}
+          </button>
+        </div>
+      </div>
+      
+      <div *ngIf="!isLoadingSubmissions && filteredSubmissions.length === 0" class="no-submissions">
+        <p>{{ gradingTab === 'pending' ? 'No pending submissions' : 'No graded submissions yet' }}</p>
+      </div>
+      
+      <div class="pagination" *ngIf="gradingTotalPages > 1">
+        <button (click)="prevGradingPage()" [disabled]="gradingCurrentPage === 1">‹</button>
+        <span>{{ gradingCurrentPage }} / {{ gradingTotalPages }}</span>
+        <button (click)="nextGradingPage()" [disabled]="gradingCurrentPage === gradingTotalPages">›</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="cancel-btn" (click)="closeGradeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Class Modal -->
+<div class="modal-overlay" *ngIf="isAddClassModalOpen" (click)="closeAddClassModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Add Today's Class</h3>
+      <button class="close-btn" (click)="closeAddClassModal()">×</button>
+    </div>
+    <form [formGroup]="classScheduleForm" (ngSubmit)="createClassSchedule()">
+      <div class="form-group">
+        <label>Stream *</label>
+        <select formControlName="gradeStreamId" (change)="onClassStreamSelected($any($event.target).value)" required>
+          <option value="">Select Grade & Subject</option>
+          <ng-container *ngIf="teacherSubjectsWithGrades.length > 0">
+            <option *ngFor="let item of teacherSubjectsWithGrades" [value]="item.gradeStreamId">
+              {{ item.subjectName }} - {{ item.streamGradeName }}
+            </option>
+          </ng-container>
+          <ng-container *ngIf="teacherSubjectsWithGrades.length === 0">
+            <option *ngFor="let stream of streams" [value]="stream.streamId">
+              {{ stream.streamName }}
+            </option>
+          </ng-container>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date *</label>
+          <input type="date" formControlName="date" required>
+        </div>
+        <div class="form-group">
+          <label>Start Time *</label>
+          <input type="time" formControlName="startTime" required>
+        </div>
+        <div class="form-group">
+          <label>End Time *</label>
+          <input type="time" formControlName="endTime" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Classroom Number</label>
+        <input type="text" formControlName="classRoomNumber" placeholder="e.g. Room 201">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeAddClassModal()" [disabled]="isLoadingSchedule">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!classScheduleForm.valid || isLoadingSchedule">
+          <span *ngIf="isLoadingSchedule">Creating...</span>
+          <span *ngIf="!isLoadingSchedule">Create Class</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Create Live Session Modal -->
+<div class="modal-overlay" *ngIf="isLiveSessionModalOpen" (click)="closeLiveSessionModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>🎥 Create Live Session</h3>
+      <button class="close-btn" (click)="closeLiveSessionModal()">×</button>
+    </div>
+    <form [formGroup]="liveSessionForm" (ngSubmit)="createLiveSession()">
+      <div class="form-group">
+        <label>Session Title *</label>
+        <input type="text" formControlName="title" placeholder="e.g. Mathematics - Algebra Review" required>
+      </div>
+      <div class="form-group">
+        <label>Subject *</label>
+        <input type="text" formControlName="subject" placeholder="e.g. Mathematics" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date *</label>
+          <input type="date" formControlName="date" required>
+        </div>
+        <div class="form-group">
+          <label>Time *</label>
+          <input type="time" formControlName="time" required>
+        </div>
+        <div class="form-group">
+          <label>Duration (minutes) *</label>
+          <select formControlName="duration" required>
+            <option value="30">30 minutes</option>
+            <option value="45">45 minutes</option>
+            <option value="60">60 minutes</option>
+            <option value="90">90 minutes</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Stream *</label>
+        <select formControlName="gradeStreamId" (change)="onLiveSessionStreamSelected($event)" required>
+          <option value="">Select Grade & Subject</option>
+          <ng-container *ngIf="teacherSubjectsWithGrades.length > 0">
+            <option *ngFor="let item of teacherSubjectsWithGrades" [value]="item.gradeStreamId">
+              {{ item.subjectName }} - {{ item.streamGradeName }}
+            </option>
+          </ng-container>
+          <ng-container *ngIf="teacherSubjectsWithGrades.length === 0">
+            <option *ngFor="let stream of streams" [value]="stream.streamId">
+              {{ stream.streamName }}
+            </option>
+          </ng-container>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea formControlName="description" placeholder="Optional session description" rows="3"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeLiveSessionModal()">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!liveSessionForm.valid">Create Session</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Join Live Session Modal -->
+<div class="modal-overlay" *ngIf="isJoinSessionModalOpen" (click)="closeJoinSessionModal()">
+  <div class="modal-content live-sessions-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>📹 My Live Sessions</h3>
+      <button class="close-btn" (click)="closeJoinSessionModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="sessions-grid">
+        <div class="session-card" *ngFor="let session of createdSessions" [ngClass]="session.status">
+          <div class="session-header">
+            <div class="session-status">
+              <span class="status-badge" [ngClass]="session.status">{{ getSessionStatusBadge(session.status) }}</span>
+            </div>
+            <div class="session-participants">
+              👥 {{ session.participants }} participants
+            </div>
+          </div>
+          <div class="session-content">
+            <h4>{{ session.title }}</h4>
+            <p class="session-subject">📚 {{ session.subject }}</p>
+            <div class="session-details">
+              <div class="detail-item">
+                <span class="icon">📅</span>
+                <span>{{ session.date }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="icon">⏰</span>
+                <span>{{ session.time }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="icon">⏱️</span>
+                <span>{{ session.duration }}</span>
+              </div>
+            </div>
+            <div class="meeting-id">
+              <strong>Meeting ID:</strong> {{ session.meetingId }}
+            </div>
+          </div>
+          <div class="session-actions">
+            <button class="start-btn" 
+                    *ngIf="session.status === 'upcoming'"
+                    (click)="startLiveSession(session)">
+              🎥 Start Session
+            </button>
+            <button class="join-btn" 
+                    *ngIf="session.status === 'live'"
+                    (click)="joinSession(session)">
+              📹 Join Session
+            </button>
+            <button class="whiteboard-btn" 
+                    (click)="openWhiteboard()">
+              📝 Whiteboard
+            </button>
+            <button class="ended-btn" 
+                    *ngIf="session.status === 'ended'"
+                    disabled>
+              ✅ Session Ended
+            </button>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="createdSessions.length === 0" class="no-sessions">
+        <div class="empty-state">
+          📺
+          <h4>No Live Sessions Created</h4>
+          <p>Create your first live session to get started</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="cancel-btn" (click)="closeJoinSessionModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- My Classes Modal -->
+<div class="modal-overlay" *ngIf="isMyClassesModalOpen" (click)="closeMyClassesModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 800px;">
+    <div class="modal-header">
+      <h2>🏫 My Teaching Classes</h2>
+      <button class="close-btn" (click)="closeMyClassesModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 1.5rem; color: #6b7280;">You are teaching {{ teacherClasses.length }} class(es)</p>
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div *ngFor="let cls of teacherClasses" style="padding: 1.5rem; background: #f9fafb; border-radius: 12px; border-left: 4px solid #6366f1;">
+          <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div style="flex: 1;">
+              <h3 style="margin: 0 0 0.5rem 0; font-size: 1.2rem; color: #1f2937;">{{ cls.subject }}</h3>
+              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">👥 {{ cls.totalStudents }} students enrolled</p>
+              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">📊 Daily Present: {{ cls.dailyPresent }} | Absent: {{ cls.dailyAbsent }}</p>
+              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">⏰ Next Class: {{ cls.nextClassStartTime }} - {{ cls.nextClassEndTime }}</p>
+              <p *ngIf="cls.assignmentTitle" style="margin: 0.5rem 0 0 0; color: #6b7280; font-size: 0.85rem;">📝 Assignment: {{ cls.assignmentTitle }} ({{ cls.assignmentProgress }})</p>
+            </div>
+            <span style="background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">✅ Active</span>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="teacherClasses.length === 0" style="text-align: center; padding: 3rem; color: #6b7280;">
+        <p style="font-size: 3rem; margin: 0 0 1rem 0;">🏫</p>
+        <p style="margin: 0; font-size: 1.1rem;">No classes assigned yet</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" (click)="closeMyClassesModal()" style="width: 100%;">✅ Close</button>
+    </div>
+  </div>
+</div>
+
+
+<app-ai-assistant></app-ai-assistant>
+
+
+<!-- Upcoming Workshops Modal -->
+<div class="modal-overlay" *ngIf="isUpcomingWorkshopsModalOpen" (click)="closeUpcomingWorkshopsModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>📅 Upcoming Workshops</h2>
+      <button class="close-btn" (click)="closeUpcomingWorkshopsModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 1rem; color: #6b7280;">You have {{ upcomingWorkshops.length }} upcoming workshop(s)</p>
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div *ngFor="let workshop of upcomingWorkshops" style="padding: 1.5rem; background: #f0f9ff; border-radius: 12px; border-left: 4px solid #3b82f6;">
+          <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div style="flex: 1;">
+              <h3 style="margin: 0 0 0.5rem 0; font-size: 1.2rem; color: #1f2937;">{{ workshop.workshopName }}</h3>
+              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">{{ workshop.workShopDescription }}</p>
+              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">📅 {{ workshop.scheduledDate | date:'fullDate' }}</p>
+              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">⏰ {{ workshop.scheduleTime }}</p>
+              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">⏱️ Duration: {{ workshop.timeDuration }} minutes</p>
+              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">👥 Max Participants: {{ workshop.maxParticipants }}</p>
+            </div>
+            <button class="btn-primary" (click)="joinWorkshop(workshop.meetingUrl)" style="white-space: nowrap;">🎥 Join Workshop</button>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="upcomingWorkshops.length === 0" style="text-align: center; padding: 3rem; color: #6b7280;">
+        <p style="font-size: 3rem; margin: 0 0 1rem 0;">📅</p>
+        <p style="margin: 0; font-size: 1.1rem;">No upcoming workshops</p>
+        <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Check back later for new workshops</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeUpcomingWorkshopsModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Enhanced Grading Modal with AI Assistance -->
+<div class="modal-overlay" *ngIf="isGradingStudent" (click)="closeGradingModal()">
+  <div class="modal-content grading-modal" (click)="$event.stopPropagation()" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+    <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem;">
+      <div>
+        <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem;">📝 Grade Assignment</h2>
+        <p style="margin: 0; opacity: 0.9; font-size: 0.9rem;">{{ currentGradingSubmission?.assignmentTitle }}</p>
+      </div>
+      <button class="close-btn" (click)="closeGradingModal()" style="color: white; font-size: 2rem;">×</button>
+    </div>
+    
+    <div class="modal-body" style="padding: 2rem;">
+      <!-- Student Info Card -->
+      <div style="background: #f8fafc; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border-left: 4px solid #3b82f6;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: bold;">
+            {{ getInitials(currentGradingSubmission?.studentFullNames || '') }}
+          </div>
+          <div style="flex: 1;">
+            <h3 style="margin: 0 0 0.25rem 0; font-size: 1.2rem; color: #1e293b;">{{ currentGradingSubmission?.studentFullNames }}</h3>
+            <p style="margin: 0; color: #64748b; font-size: 0.9rem;">{{ currentGradingSubmission?.studentEmail }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assignment Details Card -->
+      <div style="background: #eff6ff; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border-left: 4px solid #3b82f6;">
+        <h3 style="margin: 0 0 0.5rem 0; color: #1e40af; font-size: 1.1rem;">📋 Assignment Details</h3>
+        <p style="margin: 0 0 0.5rem 0; color: #1e293b;"><strong>Title:</strong> {{ currentGradingSubmission?.assignmentTitle }}</p>
+        <p style="margin: 0 0 0.5rem 0; color: #1e293b;"><strong>Subject:</strong> {{ currentGradingSubmission?.assignmentSubject }}</p>
+        <div style="background: white; padding: 1rem; border-radius: 8px; margin-top: 0.5rem;">
+          <p style="margin: 0; color: #475569; line-height: 1.6;"><strong>Description:</strong><br>{{ currentGradingSubmission?.assignmentDescription || 'No description provided' }}</p>
+        </div>
+      </div>
+
+      <!-- File Actions -->
+      <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+        <button (click)="viewSubmissionFile()" style="flex: 1; padding: 0.75rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+          <span>👁️</span> View Submission
+        </button>
+        <button (click)="downloadSubmissionFile()" style="flex: 1; padding: 0.75rem 1.5rem; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+          <span>⬇️</span> Download PDF
+        </button>
+      </div>
+
+      <!-- AI Grading Section -->
+      <div style="background: #fef3c7; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border: 2px solid #fbbf24;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.5rem;">🤖</span>
+            <h3 style="margin: 0; color: #92400e; font-size: 1.1rem;">AI Grading Assistant</h3>
+          </div>
+          <button (click)="getAiGradingSuggestion()" [disabled]="isLoadingAiGrade" style="padding: 0.5rem 1rem; background: #f59e0b; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+            {{ isLoadingAiGrade ? '⏳ Analyzing PDF...' : '✨ Analyze with AI' }}
+          </button>
+        </div>
+        
+        <p style="margin: 0 0 1rem 0; color: #92400e; font-size: 0.85rem;">
+          📝 AI will read the PDF submission and analyze it based on the assignment description to provide grading suggestions.
+        </p>
+        
+        <div *ngIf="aiGradingSuggestion" style="background: white; border-radius: 8px; padding: 1.5rem;">
+          <!-- AI Score Card -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="text-align: center; padding: 1rem; background: #f0fdf4; border-radius: 8px; border: 2px solid #10b981;">
+              <div style="font-size: 2rem; font-weight: bold; color: #10b981;">{{ aiGradingSuggestion.suggestedScore }}</div>
+              <div style="color: #6b7280; font-size: 0.85rem;">AI Suggested Score</div>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #eff6ff; border-radius: 8px;">
+              <div style="font-size: 1.5rem; font-weight: bold; color: #3b82f6;">{{ aiGradingSuggestion.breakdown.content }}/100</div>
+              <div style="color: #6b7280; font-size: 0.85rem;">Content</div>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #fef3c7; border-radius: 8px;">
+              <div style="font-size: 1.5rem; font-weight: bold; color: #f59e0b;">{{ aiGradingSuggestion.breakdown.structure }}/100</div>
+              <div style="color: #6b7280; font-size: 0.85rem;">Structure</div>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #fce7f3; border-radius: 8px;">
+              <div style="font-size: 1.5rem; font-weight: bold; color: #ec4899;">{{ aiGradingSuggestion.breakdown.grammar }}/100</div>
+              <div style="color: #6b7280; font-size: 0.85rem;">Grammar</div>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #f3e8ff; border-radius: 8px;">
+              <div style="font-size: 1.5rem; font-weight: bold; color: #a855f7;">{{ aiGradingSuggestion.breakdown.accuracy }}/100</div>
+              <div style="color: #6b7280; font-size: 0.85rem;">Accuracy</div>
+            </div>
+          </div>
+
+          <!-- Strengths -->
+          <div style="margin-bottom: 1rem;">
+            <h4 style="color: #10b981; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
+              <span>✅</span> Strengths
+            </h4>
+            <ul style="margin: 0; padding-left: 1.5rem; color: #374151;">
+              <li *ngFor="let strength of aiGradingSuggestion.strengths" style="margin-bottom: 0.25rem;">{{ strength }}</li>
+            </ul>
+          </div>
+
+          <!-- Areas for Improvement -->
+          <div style="margin-bottom: 1rem;">
+            <h4 style="color: #f59e0b; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
+              <span>💡</span> Areas for Improvement
+            </h4>
+            <ul style="margin: 0; padding-left: 1.5rem; color: #374151;">
+              <li *ngFor="let improvement of aiGradingSuggestion.improvements" style="margin-bottom: 0.25rem;">{{ improvement }}</li>
+            </ul>
+          </div>
+
+          <!-- AI Feedback -->
+          <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; border-left: 3px solid #3b82f6;">
+            <h4 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 0.9rem;">📋 AI Feedback</h4>
+            <p style="margin: 0; color: #475569; line-height: 1.6;">{{ aiGradingSuggestion.feedback }}</p>
+          </div>
+        </div>
+
+        <p *ngIf="!aiGradingSuggestion" style="margin: 0; color: #92400e; text-align: center; font-style: italic;">
+          Click "Get AI Suggestion" to analyze this submission with AI
+        </p>
+      </div>
+
+      <!-- Teacher Final Grade -->
+      <div style="background: white; border-radius: 12px; padding: 1.5rem; border: 2px solid #e5e7eb;">
+        <h3 style="margin: 0 0 1rem 0; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+          <span>👨‍🏫</span> Your Final Grade
+        </h3>
+        
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+          <button (click)="adjustGrade(-5)" style="width: 40px; height: 40px; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 1.2rem; cursor: pointer; font-weight: bold;">-5</button>
+          <button (click)="adjustGrade(-1)" style="width: 40px; height: 40px; background: #f87171; color: white; border: none; border-radius: 8px; font-size: 1.2rem; cursor: pointer; font-weight: bold;">-1</button>
+          
+          <div style="flex: 1; text-align: center;">
+            <input type="number" [(ngModel)]="teacherFinalGrade" min="0" max="100" style="width: 120px; padding: 0.75rem; font-size: 2rem; font-weight: bold; text-align: center; border: 3px solid #3b82f6; border-radius: 12px; color: #1e293b;">
+            <div style="color: #6b7280; font-size: 0.9rem; margin-top: 0.5rem;">out of 100</div>
+          </div>
+          
+          <button (click)="adjustGrade(1)" style="width: 40px; height: 40px; background: #34d399; color: white; border: none; border-radius: 8px; font-size: 1.2rem; cursor: pointer; font-weight: bold;">+1</button>
+          <button (click)="adjustGrade(5)" style="width: 40px; height: 40px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 1.2rem; cursor: pointer; font-weight: bold;">+5</button>
+        </div>
+
+        <div *ngIf="aiGradingSuggestion" style="background: #f0fdf4; padding: 1rem; border-radius: 8px; text-align: center;">
+          <p style="margin: 0; color: #166534; font-size: 0.9rem;">
+            <span *ngIf="teacherFinalGrade === aiGradingSuggestion.suggestedScore">✅ Matches AI suggestion</span>
+            <span *ngIf="teacherFinalGrade > aiGradingSuggestion.suggestedScore">📈 {{ teacherFinalGrade - aiGradingSuggestion.suggestedScore }} points higher than AI</span>
+            <span *ngIf="teacherFinalGrade < aiGradingSuggestion.suggestedScore">📉 {{ aiGradingSuggestion.suggestedScore - teacherFinalGrade }} points lower than AI</span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="padding: 1.5rem; background: #f8fafc; display: flex; gap: 1rem;">
+      <button (click)="closeGradingModal()" style="flex: 1; padding: 0.75rem; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
+      <button (click)="submitFinalGrade()" style="flex: 2; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem;">🎯 Submit Final Grade</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Video Modal -->
+<div class="modal-overlay" *ngIf="isUploadVideoModalOpen" (click)="closeUploadVideoModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 700px;">
+    <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color: white; padding: 1.5rem; border-radius: 12px 12px 0 0;">
+      <h3 style="margin: 0; font-size: 1.5rem;">🎬 Upload Pre-Recorded Video</h3>
+      <button class="close-btn" (click)="closeUploadVideoModal()" style="color: white; font-size: 2rem;">×</button>
+    </div>
+    <div style="padding: 2rem;">
+      <div class="form-group">
+        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Video Title *</label>
+        <input type="text" [(ngModel)]="videoTitle" placeholder="Enter video title" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+      </div>
+      
+      <div class="form-group">
+        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Description</label>
+        <textarea [(ngModel)]="videoDescription" placeholder="Video description" rows="3" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; resize: vertical;"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Stream *</label>
+        <select [(ngModel)]="videoGradeStreamId" (change)="onVideoStreamSelected()" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; background: white;">
+          <option value="">Select Grade & Subject</option>
+          <option *ngFor="let item of teacherSubjectsWithGrades" [value]="item.gradeStreamId">
+            {{ item.subjectName }} - {{ item.streamGradeName }}
+          </option>
+        </select>
+      </div>
+
+      <!-- URL Input -->
+      <div class="form-group">
+        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Video URL *</label>
+        <input type="url" [(ngModel)]="videoUrl" placeholder="https://youtube.com/watch?v=... or any video URL" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+        <small style="display: block; margin-top: 0.5rem; color: #64748b;">Supports YouTube, Vimeo, Google Drive, and direct video links</small>
+      </div>
+
+      <div class="modal-actions" style="display: flex; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #e5e7eb;">
+        <button type="button" (click)="closeUploadVideoModal()" style="flex: 1; padding: 0.75rem; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
+        <button type="button" (click)="uploadVideo()" style="flex: 2; padding: 0.75rem; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">🚀 Upload Video</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Plagiarism Check Modal -->
+<div class="modal-overlay" *ngIf="isPlagiarismModalOpen" (click)="closePlagiarismModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 1000px; max-height: 90vh; overflow-y: auto;">
+    <div class="modal-header" style="background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); color: white; padding: 1.5rem; border-radius: 12px 12px 0 0;">
+      <h3 style="margin: 0; font-size: 1.5rem;">🔍 Plagiarism Check</h3>
+      <button class="close-btn" (click)="closePlagiarismModal()" style="color: white; font-size: 2rem;">×</button>
+    </div>
+    <div style="padding: 2rem;">
+      <!-- Filters -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+          <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Stream</label>
+          <select [(ngModel)]="plagiarismSelectedStream" (change)="onPlagiarismFilterChange()" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; background: white;">
+            <option value="">All Streams</option>
+            <option *ngFor="let stream of getUniqueStreams()" [value]="stream">{{ stream }}</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Subject</label>
+          <select [(ngModel)]="plagiarismSelectedSubject" (change)="onPlagiarismFilterChange()" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; background: white;">
+            <option value="">All Subjects</option>
+            <option *ngFor="let subject of getPlagiarismUniqueSubjects()" [value]="subject">{{ subject }}</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Search Student</label>
+          <input type="text" [(ngModel)]="plagiarismSearchQuery" (ngModelChange)="onPlagiarismFilterChange()" placeholder="Search by student name..." style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="isLoadingPlagiarism && filteredPlagiarismAssignments.length === 0" style="text-align: center; padding: 3rem; color: #6b7280;">
+        <p style="font-size: 3rem; margin: 0 0 1rem 0;">⏳</p>
+        <p style="margin: 0; font-size: 1.1rem;">Loading assignments...</p>
+      </div>
+
+      <!-- Results Table -->
+      <div *ngIf="!isLoadingPlagiarism || filteredPlagiarismAssignments.length > 0" style="background: white; border-radius: 12px; overflow: hidden; border: 2px solid #e5e7eb;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead style="background: #f9fafb;">
+            <tr>
+              <th style="padding: 1rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Student Name</th>
+              <th style="padding: 1rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Assignment</th>
+              <th style="padding: 1rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Subject</th>
+              <th style="padding: 1rem; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Stream</th>
+              <th style="padding: 1rem; text-align: center; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let assignment of filteredPlagiarismAssignments" style="border-bottom: 1px solid #e5e7eb;">
+              <td style="padding: 1rem; color: #1e293b;">{{ assignment.studentFullNames }}</td>
+              <td style="padding: 1rem; color: #1e293b;">{{ assignment.assignmentTitle }}</td>
+              <td style="padding: 1rem; color: #1e293b;">{{ assignment.subject }}</td>
+              <td style="padding: 1rem; color: #1e293b;">{{ assignment.streamName }}</td>
+              <td style="padding: 1rem; text-align: center;">
+                <button (click)="checkPlagiarism(assignment)" [disabled]="isLoadingPlagiarism" style="padding: 0.5rem 1rem; background: #8b5cf6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">{{ isLoadingPlagiarism ? 'Loading...' : 'Check' }}</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div *ngIf="!isLoadingPlagiarism && filteredPlagiarismAssignments.length === 0" style="padding: 3rem; text-align: center; color: #6b7280;">
+          <p style="font-size: 3rem; margin: 0 0 1rem 0;">📝</p>
+          <p style="margin: 0; font-size: 1.1rem;">No submitted assignments found</p>
+          <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Try adjusting your filters or check if students have submitted their work</p>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem; padding: 1rem; background: #fef3c7; border-radius: 8px; border: 2px solid #fbbf24;">
+        <p style="margin: 0; color: #92400e; font-size: 0.9rem; display: flex; align-items: start; gap: 0.5rem;">
+          <span style="font-size: 1.2rem;">💡</span>
+          <span><strong>Tip:</strong> If a student's name doesn't appear, it means they haven't submitted the assignment yet.</span>
+        </p>
+      </div>
+    </div>
+    <div style="padding: 1.5rem; background: #f8fafc; display: flex; gap: 1rem; border-top: 2px solid #e5e7eb;">
+      <button (click)="closePlagiarismModal()" style="flex: 1; padding: 0.75rem; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Plagiarism Result Modal -->
+<div class="modal-overlay" *ngIf="isPlagiarismResultModalOpen" (click)="closePlagiarismResultModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+    <div class="modal-header" style="background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); color: white; padding: 1.5rem; border-radius: 12px 12px 0 0;">
+      <h3 style="margin: 0; font-size: 1.5rem;">🔍 Plagiarism Analysis Results</h3>
+      <button class="close-btn" (click)="closePlagiarismResultModal()" style="color: white; font-size: 2rem;">×</button>
+    </div>
+    <div style="padding: 2rem;" *ngIf="currentPlagiarismResult">
+      <!-- Overall Verdict -->
+      <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border: 3px solid;" [style.border-color]="getVerdictColor(currentPlagiarismResult.overallVerdict)">
+        <div style="text-align: center;">
+          <h2 style="margin: 0 0 0.5rem 0; font-size: 2rem;" [style.color]="getVerdictColor(currentPlagiarismResult.overallVerdict)">{{ currentPlagiarismResult.overallVerdict }}</h2>
+          <p style="margin: 0; color: #6b7280; font-size: 0.9rem;">Detected on {{ currentPlagiarismResult.detectedAt | date:'medium' }}</p>
+        </div>
+      </div>
+
+      <!-- Percentage Cards -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+        <div style="background: #fef3c7; border-radius: 12px; padding: 1.5rem; text-align: center; border: 2px solid #fbbf24;">
+          <div style="font-size: 2.5rem; font-weight: bold; color: #f59e0b;">{{ currentPlagiarismResult.plagiarismPercentage }}%</div>
+          <div style="color: #92400e; font-weight: 600; margin-top: 0.5rem;">Plagiarism</div>
+        </div>
+        <div style="background: #fce7f3; border-radius: 12px; padding: 1.5rem; text-align: center; border: 2px solid #ec4899;">
+          <div style="font-size: 2.5rem; font-weight: bold; color: #ec4899;">{{ currentPlagiarismResult.aiGeneratedPercentage }}%</div>
+          <div style="color: #9f1239; font-weight: 600; margin-top: 0.5rem;">AI Generated</div>
+        </div>
+        <div style="background: #d1fae5; border-radius: 12px; padding: 1.5rem; text-align: center; border: 2px solid #10b981;">
+          <div style="font-size: 2.5rem; font-weight: bold; color: #10b981;">{{ currentPlagiarismResult.originalWorkPercentage }}%</div>
+          <div style="color: #065f46; font-weight: 600; margin-top: 0.5rem;">Original Work</div>
+        </div>
+      </div>
+
+      <!-- Plagiarism Summary -->
+      <div style="background: #fef3c7; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border-left: 4px solid #f59e0b;">
+        <h4 style="margin: 0 0 0.75rem 0; color: #92400e; display: flex; align-items: center; gap: 0.5rem;">
+          <span>⚠️</span> Plagiarism Summary
+        </h4>
+        <p style="margin: 0; color: #78350f; line-height: 1.6;">{{ currentPlagiarismResult.plagiarismSummary }}</p>
+      </div>
+
+      <!-- AI Detection Summary -->
+      <div style="background: #fce7f3; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border-left: 4px solid #ec4899;">
+        <h4 style="margin: 0 0 0.75rem 0; color: #9f1239; display: flex; align-items: center; gap: 0.5rem;">
+          <span>🤖</span> AI Detection Summary
+        </h4>
+        <p style="margin: 0; color: #831843; line-height: 1.6;">{{ currentPlagiarismResult.aiDetectionSummary }}</p>
+      </div>
+
+      <!-- Matched Sources -->
+      <div style="background: white; border-radius: 12px; padding: 1.5rem; border: 2px solid #e5e7eb;">
+        <h4 style="margin: 0 0 1rem 0; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+          <span>📚</span> Matched Sources ({{ currentPlagiarismResult.matchedSources?.length || 0 }})
+        </h4>
+        <div *ngIf="currentPlagiarismResult.matchedSources && currentPlagiarismResult.matchedSources.length > 0" style="display: flex; flex-direction: column; gap: 1rem;">
+          <div *ngFor="let source of currentPlagiarismResult.matchedSources" style="background: #f9fafb; border-radius: 8px; padding: 1rem; border-left: 3px solid #8b5cf6;">
+            <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 0.5rem;">
+              <h5 style="margin: 0; color: #1e293b; flex: 1;">{{ source.sourceTitle }}</h5>
+              <span style="background: #8b5cf6; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600;">{{ source.matchPercentage }}% match</span>
+            </div>
+            <p style="margin: 0.5rem 0; color: #6b7280; font-size: 0.9rem;">
+              <strong>URL:</strong> <a [href]="source.sourceUrl" target="_blank" style="color: #8b5cf6;">{{ source.sourceUrl }}</a>
+            </p>
+            <div style="background: white; padding: 0.75rem; border-radius: 6px; margin-top: 0.5rem;">
+              <p style="margin: 0; color: #475569; font-style: italic;">"{{ source.matchedText }}"</p>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="!currentPlagiarismResult.matchedSources || currentPlagiarismResult.matchedSources.length === 0" style="text-align: center; padding: 2rem; color: #6b7280;">
+          <p style="margin: 0;">No matched sources found</p>
+        </div>
+      </div>
+    </div>
+    <div style="padding: 1.5rem; background: #f8fafc; display: flex; gap: 1rem; border-top: 2px solid #e5e7eb;">
+      <button (click)="closePlagiarismResultModal()" style="flex: 1; padding: 0.75rem; background: #8b5cf6; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- My Videos Modal -->
+<div class="modal-overlay" *ngIf="isMyVideosModalOpen" (click)="closeMyVideosModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 1000px; max-height: 90vh; overflow-y: auto;">
+    <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color: white; padding: 1.5rem; border-radius: 12px 12px 0 0;">
+      <h3 style="margin: 0; font-size: 1.5rem;">🎬 My Uploaded Videos</h3>
+      <button class="close-btn" (click)="closeMyVideosModal()" style="color: white; font-size: 2rem;">×</button>
+    </div>
+    <div style="padding: 2rem;">
+      <div *ngIf="isLoadingVideos" style="text-align: center; padding: 3rem; color: #6b7280;">
+        <p style="font-size: 3rem; margin: 0 0 1rem 0;">⏳</p>
+        <p style="margin: 0; font-size: 1.1rem;">Loading videos...</p>
+      </div>
+
+      <div *ngIf="!isLoadingVideos && uploadedVideos.length > 0" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+        <div *ngFor="let video of uploadedVideos" style="background: white; border-radius: 12px; overflow: hidden; border: 2px solid #e5e7eb; transition: all 0.3s; cursor: pointer;" (click)="playVideo(video)">
+          <div style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); padding: 1rem; text-align: center;">
+            <span style="font-size: 3rem;">🎥</span>
+          </div>
+          <div style="padding: 1.5rem;">
+            <h4 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 1.1rem;">{{ video.videoTitle }}</h4>
+            <p style="margin: 0 0 0.5rem 0; color: #64748b; font-size: 0.9rem;">{{ video.description || 'No description' }}</p>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; color: #6b7280; font-size: 0.85rem;">
+              <span>📚</span>
+              <span>{{ video.streamName }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; color: #6b7280; font-size: 0.85rem;">
+              <span>📅</span>
+              <span>{{ video.uploadedTime | date:'short' }}</span>
+            </div>
+            <button (click)="playVideo(video); $event.stopPropagation()" style="width: 100%; margin-top: 1rem; padding: 0.75rem; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+              ▶️ Play Video
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!isLoadingVideos && uploadedVideos.length === 0" style="text-align: center; padding: 3rem; color: #6b7280;">
+        <p style="font-size: 3rem; margin: 0 0 1rem 0;">🎬</p>
+        <p style="margin: 0; font-size: 1.1rem;">No videos uploaded yet</p>
+        <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Click "Upload Video" to add your first video</p>
+      </div>
+    </div>
+    <div style="padding: 1.5rem; background: #f8fafc; display: flex; gap: 1rem; border-top: 2px solid #e5e7eb;">
+      <button (click)="closeMyVideosModal()" style="flex: 1; padding: 0.75rem; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Close</button>
+    </div>
+  </div>
+</div>

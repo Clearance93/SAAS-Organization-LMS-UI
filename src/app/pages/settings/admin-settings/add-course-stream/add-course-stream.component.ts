@@ -5,6 +5,7 @@ import { CourseStream } from '../../../../interfaces/settings/course-stream';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-add-course-stream',
@@ -63,9 +64,16 @@ export class AddCourseStreamComponent implements OnInit, OnDestroy{
           this.submitSuccess = true;
           this.courseStreamForm.reset();
 
-          this.router.navigate(['/settings/admin-settings'], {
-            queryParams: { organizationId: this.organizationId }
-          })
+          Swal.fire({
+            title: '✅ Course Stream Added!',
+            html: `<strong>Course Stream:</strong> ${courseStreamData.courseStreamName}<br><strong>Description:</strong> ${courseStreamData.description}<br><br>Course stream has been successfully added to your organization.`,
+            icon: 'success',
+            confirmButtonText: 'OK'
+          }).then(() => {
+            this.router.navigate(['/admin-settings'], {
+              queryParams: { organizationId: this.organizationId }
+            });
+          });
         },
         error: (error) => {
           console.error('Error adding course stream:', error);

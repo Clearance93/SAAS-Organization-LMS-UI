@@ -1,0 +1,161 @@
+<div class="parent-settings">
+  <div class="settings-container">
+    <div class="settings-header">
+      <h2>⚙️ Parent Settings</h2>
+      <p class="settings-subtitle">Manage your account preferences and privacy settings</p>
+    </div>
+
+    <div class="settings-tabs">
+      <button class="tab-btn" [class.active]="activeTab === 'profile'" (click)="activeTab = 'profile'">👤 Profile</button>
+      <button class="tab-btn" [class.active]="activeTab === 'notifications'" (click)="activeTab = 'notifications'">🔔 Notifications</button>
+      <button class="tab-btn" [class.active]="activeTab === 'privacy'" (click)="activeTab = 'privacy'">🔒 Privacy</button>
+      <button class="tab-btn" [class.active]="activeTab === 'account'" (click)="activeTab = 'account'">🔧 Account</button>
+    </div>
+
+    <!-- Profile Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'profile'">
+      <div class="settings-card">
+        <h3>👤 Profile Information</h3>
+        <form (ngSubmit)="saveProfile()">
+          <div class="profile-section">
+            <div class="form-group">
+              <label>📝 Full Name</label>
+              <input type="text" [(ngModel)]="parentProfile.name" name="name" required placeholder="Enter your full name">
+            </div>
+            <div class="form-group">
+              <label>📧 Email Address</label>
+              <input type="email" [(ngModel)]="parentProfile.email" name="email" required placeholder="your.email@example.com">
+            </div>
+            <div class="form-group">
+              <label>📱 Phone Number</label>
+              <input type="tel" [(ngModel)]="parentProfile.phone" name="phone" required placeholder="+27 123 456 789">
+            </div>
+            <div class="form-group">
+              <label>🏠 Home Address</label>
+              <textarea [(ngModel)]="parentProfile.address" name="address" rows="3" placeholder="Enter your complete address"></textarea>
+            </div>
+            <div class="form-group">
+              <label>🚨 Emergency Contact</label>
+              <input type="tel" [(ngModel)]="parentProfile.emergencyContact" name="emergencyContact" placeholder="Emergency contact number">
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">💾 Save Profile Changes</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Notifications Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'notifications'">
+      <div class="settings-card">
+        <h3>🔔 Notification Preferences</h3>
+        <form (ngSubmit)="saveNotifications()">
+          <div class="notification-grid">
+            <div class="toggle-group">
+              <label class="toggle-label">
+                <input type="checkbox" [(ngModel)]="notificationSettings.emailNotifications" name="emailNotifications">
+                <span class="toggle-slider"></span>
+                📧 Email Notifications
+              </label>
+              <small>Receive updates via email</small>
+            </div>
+            <div class="toggle-group">
+              <label class="toggle-label">
+                <input type="checkbox" [(ngModel)]="notificationSettings.smsNotifications" name="smsNotifications">
+                <span class="toggle-slider"></span>
+                📱 SMS Notifications
+              </label>
+              <small>Get text message alerts</small>
+            </div>
+            <div class="toggle-group">
+              <label class="toggle-label">
+                <input type="checkbox" [(ngModel)]="notificationSettings.gradeUpdates" name="gradeUpdates">
+                <span class="toggle-slider"></span>
+                📊 Grade Updates
+              </label>
+              <small>Notify when grades are posted</small>
+            </div>
+            <div class="toggle-group">
+              <label class="toggle-label">
+                <input type="checkbox" [(ngModel)]="notificationSettings.attendanceAlerts" name="attendanceAlerts">
+                <span class="toggle-slider"></span>
+                📅 Attendance Alerts
+              </label>
+              <small>Alert for absences or tardiness</small>
+            </div>
+            <div class="toggle-group">
+              <label class="toggle-label">
+                <input type="checkbox" [(ngModel)]="notificationSettings.behaviorReports" name="behaviorReports">
+                <span class="toggle-slider"></span>
+                📋 Behavior Reports
+              </label>
+              <small>Receive behavioral updates</small>
+            </div>
+            <div class="toggle-group">
+              <label class="toggle-label">
+                <input type="checkbox" [(ngModel)]="notificationSettings.eventReminders" name="eventReminders">
+                <span class="toggle-slider"></span>
+                🎉 Event Reminders
+              </label>
+              <small>School events and meetings</small>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">🔔 Save Notification Settings</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Privacy Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'privacy'">
+      <div class="settings-card">
+        <h3>🔒 Privacy Settings</h3>
+        <form (ngSubmit)="savePrivacy()">
+          <div class="privacy-options">
+            <div class="toggle-group">
+              <label class="toggle-label">
+                <input type="checkbox" [(ngModel)]="privacySettings.shareContactInfo" name="shareContactInfo">
+                <span class="toggle-slider"></span>
+                👥 Share Contact Information
+              </label>
+              <small>Allow other parents to see your contact details</small>
+            </div>
+            <div class="toggle-group">
+              <label class="toggle-label">
+                <input type="checkbox" [(ngModel)]="privacySettings.allowDirectMessages" name="allowDirectMessages">
+                <span class="toggle-slider"></span>
+                💬 Allow Direct Messages
+              </label>
+              <small>Teachers can send you direct messages</small>
+            </div>
+            <div class="toggle-group">
+              <label class="toggle-label">
+                <input type="checkbox" [(ngModel)]="privacySettings.showOnlineStatus" name="showOnlineStatus">
+                <span class="toggle-slider"></span>
+                🟢 Show Online Status
+              </label>
+              <small>Display when you're active on the platform</small>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">🔒 Save Privacy Settings</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Account Tab -->
+    <div class="tab-content" *ngIf="activeTab === 'account'">
+      <div class="settings-card">
+        <h3>🔧 Account Management</h3>
+        <div class="account-actions">
+          <button class="btn-secondary" (click)="changePassword()">
+            🔑 Change Password
+          </button>
+          <button class="btn-secondary" (click)="exportData()">
+            📤 Export My Data
+          </button>
+          <button class="btn-danger" (click)="deleteAccount()">
+            🗑️ Delete Account
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

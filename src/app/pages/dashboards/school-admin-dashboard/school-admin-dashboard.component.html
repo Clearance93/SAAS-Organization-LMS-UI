@@ -60,30 +60,23 @@
   </section>
 
   <div class="content-grid">
-    <div class="card attendance-card">
-      <div class="card-header">
-        <h3>Attendance Rate</h3>
-        <select class="period-selector">
-          <option>This Week</option>
-          <option>This Month</option>
-          <option>This Year</option>
-        </select>
-      </div>
-      <div class="attendance-content">
-        <div class="attendance-circle">
-          <svg viewBox="0 0 200 200">
-            <circle cx="100" cy="100" r="85" fill="none" stroke="#e5e7eb" stroke-width="20"/>
-            <circle cx="100" cy="100" r="85" fill="none" stroke="#6366f1" stroke-width="20"
-                    [attr.stroke-dasharray]="534" 
-                    [attr.stroke-dashoffset]="534 - (534 * attendanceRate / 100)"
-                    transform="rotate(-90 100 100)"/>
-          </svg>
-          <div class="attendance-percentage">{{ attendanceRate }}%</div>
-        </div>
-        <div class="attendance-chart">
-          <div class="bar" *ngFor="let data of attendanceData">
-            <div class="bar-fill" [style.height.%]="data.value"></div>
-            <span class="bar-label">{{ data.label }}</span>
+    <!-- Service Showcases -->
+    <div class="services-showcase" *ngIf="serviceShowcases.length > 0">
+      <h2 class="showcase-title">Your Active Services</h2>
+      <div class="services-grid">
+        <div class="service-card" 
+             *ngFor="let service of serviceShowcases" 
+             [style.border-left-color]="service.color">
+          <div class="service-header">
+            <span class="service-icon">{{ service.icon }}</span>
+            <h3 class="service-title">{{ service.title }}</h3>
+          </div>
+          <p class="service-description">{{ service.description }}</p>
+          <div class="service-features">
+            <div class="feature-item" *ngFor="let feature of service.features">
+              <span class="feature-bullet">✓</span>
+              <span class="feature-text">{{ feature }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -92,47 +85,37 @@
     <div class="card events-card">
       <div class="card-header">
         <h3>Upcoming Events</h3>
-        <button class="view-all-btn">View All</button>
+        <button class="add-event-btn" (click)="openEventModal()">+ Add Event</button>
       </div>
       <div class="events-list">
         <div class="event-item" 
              *ngFor="let event of upcomingEvents" 
-             [ngClass]="getEventTypeClass(event.type)">
+             [ngClass]="getEventTypeClass(event.eventType)">
           <div class="event-indicator"></div>
           <div class="event-details">
             <span class="event-title">{{ event.title }}</span>
-            <span class="event-date">{{ event.date }}</span>
+            <span class="event-date">{{ event.startTime | date:'MMM d' }}</span>
           </div>
+          <button class="edit-event-btn" (click)="editEvent(event)">✏️</button>
         </div>
       </div>
     </div>
 
-    <div class="card progress-card">
+    <div class="card activities-card">
       <div class="card-header">
-        <h3>Student Progress</h3>
-        <div class="progress-legend">
-          <span class="legend-item">
-            <span class="legend-dot"></span>
-            Average Score
-          </span>
-        </div>
+        <h3>Recent Activities</h3>
+        <button class="add-activity-btn" (click)="openActivityModal()">+ Add Activity</button>
       </div>
-      <div class="progress-chart">
-        <svg viewBox="0 0 600 200" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="progressGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.3" />
-              <stop offset="100%" style="stop-color:#6366f1;stop-opacity:0" />
-            </linearGradient>
-          </defs>
-          <path [attr.d]="getProgressAreaPath()" fill="url(#progressGradient)" />
-          <path [attr.d]="getProgressLinePath()" fill="none" stroke="#6366f1" stroke-width="3" />
-        </svg>
-        <div class="progress-bars">
-          <div class="progress-bar-item" *ngFor="let data of progressData">
-            <div class="progress-bar-fill" [style.height.%]="data.value"></div>
-            <span class="progress-bar-label">{{ data.label }}</span>
+      <div class="activities-list">
+        <div class="activity-item" *ngFor="let activity of recentActivities">
+          <div class="activity-avatar">{{ activity.avatar }}</div>
+          <div class="activity-content">
+            <div class="activity-text">
+              <strong>{{ activity.user }}</strong> {{ activity.action }}
+            </div>
+            <span class="activity-time">{{ activity.time }}</span>
           </div>
+          <button class="edit-activity-btn" (click)="editActivity(activities[recentActivities.indexOf(activity)])">✏️</button>
         </div>
       </div>
     </div>
@@ -150,24 +133,6 @@
         </button>
       </div>
     </div>
-
-    <div class="card activities-card">
-      <div class="card-header">
-        <h3>Recent Activities</h3>
-        <button class="refresh-btn" (click)="refreshDashboard()">🔄</button>
-      </div>
-      <div class="activities-list">
-        <div class="activity-item" *ngFor="let activity of recentActivities">
-          <div class="activity-avatar">{{ activity.avatar }}</div>
-          <div class="activity-content">
-            <div class="activity-text">
-              <strong>{{ activity.user }}</strong> {{ activity.action }}
-            </div>
-            <span class="activity-time">{{ activity.time }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -179,3 +144,206 @@
   (editProfile)="onEditProfile()"
   (changePhoto)="onChangePhoto()">
 </app-admin-profile-modal>
+
+<!-- Event Modal -->
+<div class="modal-overlay" *ngIf="isEventModalOpen" (click)="closeEventModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ isEditingEvent ? 'Edit Event' : 'Add New Event' }}</h3>
+      <button class="close-btn" (click)="closeEventModal()">×</button>
+    </div>
+    <form [formGroup]="eventForm" (ngSubmit)="saveEvent()">
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" formControlName="title" required>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea formControlName="description" required></textarea>
+      </div>
+      <div class="form-group">
+        <label>Location</label>
+        <input type="text" formControlName="location" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Start Time</label>
+          <input type="datetime-local" formControlName="startTime" required>
+        </div>
+        <div class="form-group">
+          <label>End Time</label>
+          <input type="datetime-local" formControlName="endTime" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Event Type</label>
+        <select formControlName="eventType" required>
+          <option value="workshop">Workshop</option>
+          <option value="meeting">Meeting</option>
+          <option value="break">Break</option>
+          <option value="exam">Exam</option>
+          <option value="holiday">Holiday</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" formControlName="isActive">
+          Active Event
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeEventModal()">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!eventForm.valid">
+          {{ isEditingEvent ? 'Update' : 'Create' }} Event
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Activity Modal -->
+<div class="modal-overlay" *ngIf="isActivityModalOpen" (click)="closeActivityModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ isEditingActivity ? 'Edit Activity' : 'Add New Activity' }}</h3>
+      <button class="close-btn" (click)="closeActivityModal()">×</button>
+    </div>
+    <form [formGroup]="activityForm" (ngSubmit)="saveActivity()">
+      <div class="form-group">
+        <label>Action Description</label>
+        <textarea formControlName="actionDescription" required placeholder="Describe the activity..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Activity Type</label>
+        <input type="text" formControlName="activityType" required placeholder="e.g., enrollment, assignment, meeting">
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" formControlName="isActive">
+          Active Activity
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeActivityModal()">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!activityForm.valid">
+          {{ isEditingActivity ? 'Update' : 'Create' }} Activity
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Workshop Modal -->
+<div class="modal-overlay" *ngIf="isWorkshopModalOpen" (click)="closeWorkshopModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Schedule Workshop</h3>
+      <button class="close-btn" (click)="closeWorkshopModal()">×</button>
+    </div>
+    <form [formGroup]="workshopForm" (ngSubmit)="createWorkshop()">
+      <div class="form-group">
+        <label>Workshop Name</label>
+        <input type="text" formControlName="workshopName" required placeholder="Enter workshop name">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea formControlName="workShopDescription" required placeholder="Workshop description"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" formControlName="scheduledDate" required>
+        </div>
+        <div class="form-group">
+          <label>Time</label>
+          <input type="time" formControlName="scheduleTime" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Duration (minutes)</label>
+          <input type="number" formControlName="timeDuration" min="15" required>
+        </div>
+        <div class="form-group">
+          <label>Max Participants</label>
+          <input type="number" formControlName="maxParticipants" min="1" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Privacy</label>
+        <select formControlName="privacy" required>
+          <option value="Public">Public</option>
+          <option value="Private">Private</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Target Role</label>
+        <select formControlName="targetRole" required>
+          <option value="" disabled>Select role</option>
+          <option *ngFor="let role of userRoles" [value]="role.name">{{ role.name }}</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeWorkshopModal()">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!workshopForm.valid">
+          Schedule Workshop
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Join Workshop Modal -->
+<div class="modal-overlay" *ngIf="isJoinWorkshopModalOpen" (click)="closeJoinWorkshopModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Available Workshops</h3>
+      <button class="close-btn" (click)="closeJoinWorkshopModal()">×</button>
+    </div>
+    <div class="workshops-list">
+      <div class="workshop-item" *ngFor="let workshop of sortedWorkshops" [ngClass]="getWorkshopStatusClass(workshop)">
+        <div class="status-indicator" [ngClass]="getStatusIndicatorClass(workshop)">
+          <span class="status-icon">{{ getStatusIcon(workshop) }}</span>
+          <span class="status-text">{{ getStatusText(workshop) }}</span>
+        </div>
+        
+        <div class="workshop-info">
+          <h4>{{ workshop.workshopName }}</h4>
+          <p>{{ workshop.workShopDescription }}</p>
+          
+          <div class="countdown" *ngIf="getWorkshopCountdown(workshop) && !isWorkshopInProgress(workshop)">
+            <span class="countdown-label">Starts in:</span>
+            <span class="countdown-time">{{ getWorkshopCountdown(workshop) }}</span>
+          </div>
+          
+          <div class="workshop-details">
+            <span class="workshop-date">📅 {{ formatWorkshopDate(workshop.scheduledDate) }}</span>
+            <span class="workshop-time">🕐 {{ workshop.scheduleTime }}</span>
+            <span class="workshop-duration">⏱️ {{ workshop.timeDuration }} min</span>
+            <span class="workshop-participants">👥 Max {{ workshop.maxParticipants }}</span>
+          </div>
+          <div class="workshop-meta">
+            <span class="workshop-privacy" [class.private]="workshop.privacy === 'Private'">{{ workshop.privacy }}</span>
+          </div>
+        </div>
+        <div class="workshop-actions">
+          <button class="join-btn" 
+                  (click)="joinWorkshop(workshop)" 
+                  [disabled]="isWorkshopPast(workshop)"
+                  [ngClass]="getJoinButtonClass(workshop)">
+            {{ getJoinButtonText(workshop) }}
+          </button>
+        </div>
+      </div>
+      <div class="no-workshops" *ngIf="workshops.length === 0">
+        <p>No workshops available at the moment.</p>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="cancel-btn" (click)="closeJoinWorkshopModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+
+<app-ai-assistant></app-ai-assistant>
