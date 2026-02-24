@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { AdminDashboardService } from '../../../../services/schoolDashboards/admin-dashboard.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { UpdateAdminDto } from '../../../../interfaces/schools/admin/update-admin-dto';
+import { MediaCompressionUtil } from '../../../../utils/media-compression.util';
 
 @Component({
   selector: 'app-edit-admin-profile',
@@ -21,7 +22,8 @@ export class EditAdminProfileComponent implements OnInit{
   organizationId = '';
   adminEmail = '';
   previewImage: string | null = null;
-  originalProfilePicture: string | null = null
+  originalProfilePicture: string | null = null;
+  selectedFile: File | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -71,39 +73,44 @@ export class EditAdminProfileComponent implements OnInit{
   }
 
   fetchAdminProfile(adminId: string) {
-  this.adminDashboardService.getAdminById(adminId).subscribe({
-    next: (admin) => {
-      this.organizationId = admin.organizationSetupId;
-      this.adminEmail = admin.adminBusinessEmail;
-      
-      if (admin.adminProfilePicture && !admin.adminProfilePicture.startsWith('data:')) {
-        this.originalProfilePicture = `data:image/jpeg;base64,${admin.adminProfilePicture}`;
-        this.previewImage = `data:image/jpeg;base64,${admin.adminProfilePicture}`;
-      } else {
-        this.originalProfilePicture = admin.adminProfilePicture;
-        this.previewImage = admin.adminProfilePicture;
+    this.adminDashboardService.getAdminById(adminId).subscribe({
+      next: (admin) => {
+        this.organizationId = admin.organizationSetupId;
+        this.adminEmail = admin.adminBusinessEmail;
+        
+        // Format profile picture with proper base64 prefix
+        let formattedPicture = admin.adminProfilePicture;
+        if (formattedPicture && !formattedPicture.startsWith('data:')) {
+          formattedPicture = `data:image/jpeg;base64,${formattedPicture}`;
+        }
+        
+        this.originalProfilePicture = formattedPicture;
+        this.previewImage = formattedPicture;
+        
+        this.adminForm.patchValue({
+          firstName: admin.firstName,
+          lastName: admin.lastName,
+          adminBusinessEmail: admin.adminBusinessEmail,
+          organizationId: admin.organizationSetupId,
+          adminProfilePicture: formattedPicture
+        });
+      },
+      error: (error) => {
+        this.errorMessage = 'Failed to load admin profile. please try again.';
+        console.error('Error loading admin:', error);
       }
-      
-      this.adminForm.patchValue({
-        firstName: admin.firstName,
-        lastName: admin.lastName,
-        adminBusinessEmail: admin.adminBusinessEmail,
-        organizationId: admin.organizationSetupId,
-        adminProfilePicture: this.originalProfilePicture  
-      });
-    },
-    error: (error) => {
-      this.errorMessage = 'Failed to load admin profile. please try again.';
-      console.error('Error loading admin:', error);
-    }
-  })
-}
+    });
+  }
 
   onSubmit(): void {
     if (this.adminForm.invalid) {
       this.markFormGroupTouched(this.adminForm);
+      this.errorMessage = 'Please fill in all required fields correctly.';
+      return;
+    }
 
-      this.errorMessage = 'Admin Id notfound. Cannot update profile.';
+    if (!this.adminId) {
+      this.errorMessage = 'Admin ID not found. Cannot update profile.';
       return;
     }
 
@@ -114,18 +121,31 @@ export class EditAdminProfileComponent implements OnInit{
     const formValue = this.adminForm.getRawValue();
     const now = new Date();
 
+    // Get the profile picture - strip the data URI prefix for API
+    let profilePictureForApi = formValue.adminProfilePicture || this.originalProfilePicture || '';
+    if (profilePictureForApi && profilePictureForApi.startsWith('data:')) {
+      // Extract only the base64 string without the prefix
+      const base64Match = profilePictureForApi.match(/,(.+)$/);
+      if (base64Match) {
+        profilePictureForApi = base64Match[1];
+      }
+    }
+
     const updateDto: UpdateAdminDto = {
       firstName: formValue.firstName.trim(),
       lastName: formValue.lastName.trim(),
-      adminProfilePicture: formValue.adminProfilePicture || this.originalProfilePicture || '',
+      adminProfilePicture: profilePictureForApi,
       updatedAt: now
     };
 
+    console.log('Updating admin profile with:', { ...updateDto, adminProfilePicture: 'base64...' });
+
     this.adminDashboardService.updateAdmin(this.adminId, updateDto).subscribe({
       next: (response) => {
-        this.successMessage = 'Profile updated successfully!'
+        this.successMessage = 'Profile updated successfully!';
         this.isSubmitting = false;
 
+        // Update localStorage with the full data URI format
         if (isPlatformBrowser(this.platformId)) {
           const storedProfile = localStorage.getItem('adminProfile');
 
@@ -134,12 +154,12 @@ export class EditAdminProfileComponent implements OnInit{
               const profile = JSON.parse(storedProfile);
               profile.firstName = updateDto.firstName;
               profile.lastName = updateDto.lastName;
-              profile.adminProfilePicture = updateDto.adminProfilePicture;
+              // Store with data URI prefix for display
+              profile.adminProfilePicture = formValue.adminProfilePicture;
               profile.name = `${updateDto.firstName} ${updateDto.lastName}`;
               localStorage.setItem('adminProfile', JSON.stringify(profile));
-            }
-            catch (error) {
-              console.error('Error updating localStorage:', error)
+            } catch (error) {
+              console.error('Error updating localStorage:', error);
             }
           }
         }
@@ -160,7 +180,7 @@ export class EditAdminProfileComponent implements OnInit{
     });
   }
 
-  onImageSelect(event: Event): void {
+  async onImageSelect(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
 
     if (input.files && input.files[0]) {
@@ -176,21 +196,35 @@ export class EditAdminProfileComponent implements OnInit{
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => {
-        this.previewImage = e.target?.result as string;
+      try {
+        // Compress image to reduce base64 size by ~75%
+        const compressed = await MediaCompressionUtil.compressImage(file, 300, 0.6);
+        this.previewImage = `data:image/jpeg;base64,${compressed}`;
         this.adminForm.patchValue({
           adminProfilePicture: this.previewImage
         });
+        this.selectedFile = file;
         this.errorMessage = '';
-      };
-
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.warn('Image compression failed, using original:', error);
+        // Fallback to original if compression fails
+        this.selectedFile = file;
+        const reader = new FileReader();
+        reader.onload = (e: ProgressEvent<FileReader>) => {
+          this.previewImage = e.target?.result as string;
+          this.adminForm.patchValue({
+            adminProfilePicture: this.previewImage
+          });
+          this.errorMessage = '';
+        };
+        reader.readAsDataURL(file);
+      }
     }
   }
 
   removeImage(): void {
     this.previewImage = this.originalProfilePicture;
+    this.selectedFile = null;
     this.adminForm.patchValue({
       adminProfilePicture: this.originalProfilePicture || ''
     });

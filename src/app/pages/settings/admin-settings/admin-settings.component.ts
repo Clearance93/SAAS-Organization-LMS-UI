@@ -84,13 +84,6 @@ export class AdminSettingsComponent implements OnInit, OnDestroy {
       description: 'School profile and basic configuration'
     },
     {
-      id: 'academic',
-      icon: 'school',
-      label: 'Academic Structure',
-      color: 'text-green-600 bg-green-100',
-      description: 'Grades, classes, and departments'
-    },
-    {
       id: 'courses',
       icon: 'menu_book',
       label: 'Courses & Curriculum',
@@ -111,13 +104,6 @@ export class AdminSettingsComponent implements OnInit, OnDestroy {
       color: 'text-red-600 bg-red-100',
       description: 'Digital library resources'
     },
-    // {
-    //   id: 'services',
-    //   icon: 'layers',
-    //   label: 'Services & Modules',
-    //   color: 'text-indigo-600 bg-indigo-100',
-    //   description: 'Platform features and services'
-    // },
     {
       id: 'users',
       icon: 'people',
@@ -344,7 +330,13 @@ export class AdminSettingsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(params => {
         this.organizationId = params['organizationId'] || '';
-        console.log('Organization ID from URL:', this.organizationId);
+        const requestedSection = params['section'] || '';
+        console.log('Organization ID from URL:', this.organizationId, 'Requested section:', requestedSection);
+
+        if (requestedSection) {
+          // set the active section based on query param (e.g., 'library')
+          this.setActiveSection(requestedSection);
+        }
 
         if (this.organizationId) {
           this.loadSchoolSettings();
@@ -361,9 +353,11 @@ export class AdminSettingsComponent implements OnInit, OnDestroy {
     this.subscribeToDataChanges();
     
     // Load API URL from localStorage
-    const savedApiUrl = localStorage.getItem('apiBaseUrl');
-    if (savedApiUrl) {
-      this.apiUrl = savedApiUrl;
+    if (typeof localStorage !== 'undefined') {
+      const savedApiUrl = localStorage.getItem('apiBaseUrl');
+      if (savedApiUrl) {
+        this.apiUrl = savedApiUrl;
+      }
     }
 
     // Subscribe to link usage notifications
@@ -559,15 +553,19 @@ export class AdminSettingsComponent implements OnInit, OnDestroy {
         next: (settings) => {
           console.log('Loaded settings:', settings);
 
-          this.generalForm.patchValue({
-            name: settings.schoolName,
-            motto: settings.schoolMotto,
-            type: settings.schoolType,
-            timeZone: settings.timeZone,
-            locale: settings.locale,
-            contactEmail: settings.contactEmail,
-            contactPhoneNumber: settings.contactPhoneNumber
-          });
+          if (settings) {
+            this.generalForm.patchValue({
+              name: settings.schoolName || '',
+              motto: settings.schoolMotto || '',
+              type: settings.schoolType || 'Combined',
+              timeZone: settings.timeZone || 'Africa/Johannesburg',
+              locale: settings.locale || 'en-ZA',
+              contactEmail: settings.contactEmail || '',
+              contactPhoneNumber: settings.contactPhoneNumber || ''
+            });
+          } else {
+            console.log('No settings data received, using defaults');
+          }
 
           this.isLoading = false;
         },
@@ -575,7 +573,19 @@ export class AdminSettingsComponent implements OnInit, OnDestroy {
         error: (error) => {
           console.error('Error loading settings:', error);
           this.isLoading = false;
-          this.showErrorMessage('Failed to load settings. Creating new settings...');
+          
+          // Set default values when API fails
+          this.generalForm.patchValue({
+            name: '',
+            motto: '',
+            type: 'Combined',
+            timeZone: 'Africa/Johannesburg',
+            locale: 'en-ZA',
+            contactEmail: '',
+            contactPhone: ''
+          });
+          
+          console.log('Using default settings due to API error');
         }
       });
   }
@@ -933,6 +943,13 @@ export class AdminSettingsComponent implements OnInit, OnDestroy {
 
   addCourse(): void {
     this.router.navigate(['../add-course-stream'], {
+      relativeTo: this.route,
+      queryParams: { organizationId: this.organizationId }
+    });
+  }
+
+  addSubject(): void {
+    this.router.navigate(['../add-school-subject'], {
       relativeTo: this.route,
       queryParams: { organizationId: this.organizationId }
     });
@@ -1298,7 +1315,9 @@ export class AdminSettingsComponent implements OnInit, OnDestroy {
 
   saveApiConfig(): void {
     if (this.apiUrl.trim()) {
-      localStorage.setItem('apiBaseUrl', this.apiUrl);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('apiBaseUrl', this.apiUrl);
+      }
       this.displayToast('API configuration saved! ✅', true);
       this.closeApiConfig();
     } else {
@@ -1339,9 +1358,11 @@ export class AdminSettingsComponent implements OnInit, OnDestroy {
           };
           
           // Store in localStorage for display
-          const existingLinks = JSON.parse(localStorage.getItem('registrationLinks') || '[]');
-          existingLinks.push(linkData);
-          localStorage.setItem('registrationLinks', JSON.stringify(existingLinks));
+          if (typeof localStorage !== 'undefined') {
+            const existingLinks = JSON.parse(localStorage.getItem('registrationLinks') || '[]');
+            existingLinks.push(linkData);
+            localStorage.setItem('registrationLinks', JSON.stringify(existingLinks));
+          }
           
           this.showSuccessMessage('Link generated successfully! ✨');
           this.loadLinks();
@@ -1371,8 +1392,12 @@ export class AdminSettingsComponent implements OnInit, OnDestroy {
         this.registrationLinks = await response.json();
       } catch (apiError) {
         // Fallback to localStorage
-        const storedLinks = JSON.parse(localStorage.getItem('registrationLinks') || '[]');
-        this.registrationLinks = storedLinks.filter((link: any) => link.organizationId === this.organizationId);
+        if (typeof localStorage !== 'undefined') {
+          const storedLinks = JSON.parse(localStorage.getItem('registrationLinks') || '[]');
+          this.registrationLinks = storedLinks.filter((link: any) => link.organizationId === this.organizationId);
+        } else {
+          this.registrationLinks = [];
+        }
       }
 
     } catch (error: any) {
@@ -1396,9 +1421,11 @@ export class AdminSettingsComponent implements OnInit, OnDestroy {
     }).then((result) => {
       if (result.isConfirmed) {
         // Remove from localStorage (since we're storing locally for now)
-        const storedLinks = JSON.parse(localStorage.getItem('registrationLinks') || '[]');
-        const updatedLinks = storedLinks.filter((link: any) => link.id !== linkId);
-        localStorage.setItem('registrationLinks', JSON.stringify(updatedLinks));
+        if (typeof localStorage !== 'undefined') {
+          const storedLinks = JSON.parse(localStorage.getItem('registrationLinks') || '[]');
+          const updatedLinks = storedLinks.filter((link: any) => link.id !== linkId);
+          localStorage.setItem('registrationLinks', JSON.stringify(updatedLinks));
+        }
         
         this.showSuccessMessage('Registration link deleted successfully');
         this.loadLinks();
@@ -1453,14 +1480,16 @@ export class AdminSettingsComponent implements OnInit, OnDestroy {
   }
 
   updateLinkUsageCount(linkId: string, newCount: number): void {
-    const storedLinks = JSON.parse(localStorage.getItem('registrationLinks') || '[]');
-    const updatedLinks = storedLinks.map((link: any) => {
-      if (link.id === linkId) {
-        return { ...link, usedCount: newCount };
-      }
-      return link;
-    });
-    localStorage.setItem('registrationLinks', JSON.stringify(updatedLinks));
+    if (typeof localStorage !== 'undefined') {
+      const storedLinks = JSON.parse(localStorage.getItem('registrationLinks') || '[]');
+      const updatedLinks = storedLinks.map((link: any) => {
+        if (link.id === linkId) {
+          return { ...link, usedCount: newCount };
+        }
+        return link;
+      });
+      localStorage.setItem('registrationLinks', JSON.stringify(updatedLinks));
+    }
     this.loadLinks();
   }
 

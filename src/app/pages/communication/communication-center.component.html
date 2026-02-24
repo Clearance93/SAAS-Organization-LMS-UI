@@ -10,17 +10,63 @@
   <div class="communication-layout">
     <!-- Messages List -->
     <div class="messages-sidebar">
+      <!-- Folder Navigation -->
+      <div class="folder-navigation">
+        <button 
+          class="folder-btn" 
+          [class.active]="currentFolder === 'sent'"
+          (click)="switchFolder('sent')">
+          📤 Sent <span *ngIf="sentMessages.length > 0" class="count-badge">({{ sentMessages.length }})</span>
+        </button>
+        <button 
+          class="folder-btn" 
+          [class.active]="currentFolder === 'received'"
+          (click)="switchFolder('received')">
+          📥 Received
+          <span *ngIf="getUnreadCount('received') > 0" class="unread-badge">{{ getUnreadCount('received') }}</span>
+        </button>
+      </div>
+      
+      <!-- Sub-folder Navigation for Received (hide broadcast for students) -->
+      <div class="subfolder-navigation" *ngIf="currentFolder === 'received' && currentUserRole !== 'student'">
+        <button 
+          class="subfolder-btn" 
+          [class.active]="receivedSubFolder === 'all'"
+          (click)="switchReceivedSubFolder('all')">
+          📬 All
+          <span *ngIf="getSubFolderUnreadCount('all') > 0" class="unread-badge">{{ getSubFolderUnreadCount('all') }}</span>
+        </button>
+        <button 
+          class="subfolder-btn" 
+          [class.active]="receivedSubFolder === 'private'"
+          (click)="switchReceivedSubFolder('private')">
+          🔒 Private
+          <span *ngIf="getSubFolderUnreadCount('private') > 0" class="unread-badge">{{ getSubFolderUnreadCount('private') }}</span>
+        </button>
+        <button 
+          class="subfolder-btn" 
+          [class.active]="receivedSubFolder === 'broadcast'"
+          (click)="switchReceivedSubFolder('broadcast')">
+          📢 Broadcast
+          <span *ngIf="getSubFolderUnreadCount('broadcast') > 0" class="unread-badge">{{ getSubFolderUnreadCount('broadcast') }}</span>
+        </button>
+      </div>
+      
       <div class="messages-header">
-        <h3>Messages</h3>
-        <button class="refresh-btn" (click)="loadMessages()">🔄</button>
+        <h3>
+          {{ currentFolder === 'sent' ? 'Sent Messages' : 
+             receivedSubFolder === 'private' ? 'Private Messages' :
+             receivedSubFolder === 'broadcast' ? 'Broadcast Messages' : 'All Received' }}
+        </h3>
+        <button class="refresh-btn" (click)="loadAllMessages()" title="Refresh">🔄</button>
       </div>
       
       <div class="messages-list">
         <div 
-          *ngFor="let message of messages" 
+          *ngFor="let message of getCurrentMessages()" 
           class="message-item"
-          [class.unread]="!message.isRead"
-          [class.selected]="selectedMessage?.id === message.id"
+          [class.unread]="!isMessageRead(message)"
+          [class.selected]="selectedMessage?.messageId === message.messageId"
           (click)="selectMessage(message)">
           
           <div class="message-avatar">
@@ -28,14 +74,25 @@
           </div>
           
           <div class="message-preview">
-            <div class="message-sender">{{ message.senderName }}</div>
+            <div class="message-sender">
+              <span class="message-type-icon">{{ getMessageTypeIcon(message) }}</span>
+              {{ currentFolder === 'sent' ? (message.recipientName || 'Broadcast') : message.senderName }}
+            </div>
             <div class="message-subject">{{ message.subject }}</div>
-            <div class="message-time">{{ formatDate(message.timestamp) }}</div>
+            <div class="message-time">{{ formatDate(message.timeStamp) }}</div>
           </div>
           
           <div class="message-status">
-            <span *ngIf="!message.isRead" class="unread-dot"></span>
+            <span *ngIf="!isMessageRead(message)" class="unread-dot"></span>
+            <span *ngIf="isMessageRead(message)" class="read-icon">✓</span>
+            <span *ngIf="getMessageNotificationCount(message.messageId || '') > 0" class="notification-badge">
+              {{ getMessageNotificationCount(message.messageId || '') }}
+            </span>
           </div>
+        </div>
+        
+        <div *ngIf="getCurrentMessages().length === 0" class="no-messages">
+          <p>No {{ currentFolder }} messages</p>
         </div>
       </div>
     </div>
@@ -53,15 +110,13 @@
           <div class="form-group">
             <label>Recipient Type:</label>
             <select [(ngModel)]="newMessage.recipientRole" name="recipientRole" (change)="onRoleChange()">
-              <option value="student">Students</option>
-              <option value="learner">Learners</option>
-              <option value="teacher">Teachers</option>
-              <option value="staff">Staff Members</option>
-              <option value="guest">Guests</option>
+              <option *ngFor="let role of getAvailableRecipientRoles()" [value]="role">
+                {{ role === 'student' ? 'Students' : role === 'teacher' ? 'Teachers' : role === 'admin' ? 'Admins' : role === 'learner' ? 'Learners' : role === 'staff' ? 'Staff Members' : 'Guests' }}
+              </option>
             </select>
           </div>
           
-          <div class="form-group">
+          <div class="form-group" *ngIf="canSendBroadcast()">
             <label class="broadcast-toggle">
               <input 
                 type="checkbox" 
@@ -82,7 +137,7 @@
             </select>
           </div>
           
-          <div class="broadcast-info" *ngIf="newMessage.isBroadcast">
+          <div class="broadcast-info" *ngIf="newMessage.isBroadcast && canSendBroadcast()">
             <div class="broadcast-card">
               <span class="broadcast-icon">📢</span>
               <div class="broadcast-details">
@@ -132,13 +187,116 @@
             <h3>{{ selectedMessage.subject }}</h3>
             <div class="message-meta">
               <span class="sender">From: {{ selectedMessage.senderName }} ({{ selectedMessage.senderRole }})</span>
-              <span class="timestamp">{{ formatDate(selectedMessage.timestamp) }}</span>
+              <span class="timestamp">{{ formatDate(selectedMessage.timeStamp) }}</span>
             </div>
           </div>
         </div>
         
         <div class="message-body">
           <p>{{ selectedMessage.content }}</p>
+
+          <!-- File Attachments -->
+          <div class="message-attachments" *ngIf="getMessageAttachments(selectedMessage).length > 0">
+            <div class="attachments-header">
+              <span>📎 Attachments ({{ getMessageAttachments(selectedMessage).length }})</span>
+            </div>
+            <div class="attachment-list">
+              <div *ngFor="let file of getMessageAttachments(selectedMessage)" 
+                   class="attachment-item-display"
+                   (click)="viewAttachment(file)">
+                <span class="file-icon">{{ getFileIcon(file.name) }}</span>
+                <span class="file-name">{{ file.name }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat History (WhatsApp Style) -->
+          <div class="chat-history" *ngIf="getGroupedMessages().length > 0">
+            <div class="chat-divider">
+              <span>💬 Conversation</span>
+            </div>
+            <div class="chat-messages" #chatContainer>
+              <div *ngFor="let group of getGroupedMessages()" class="message-group" [class.sent-group]="group.isSent" [class.received-group]="!group.isSent">
+                <div class="time-separator" *ngIf="group.showTime">
+                  <span>{{ group.messages[0].timeStamp }}</span>
+                </div>
+                <div *ngFor="let chat of group.messages; let isLast = last" 
+                     class="chat-bubble"
+                     [class.sent]="group.isSent"
+                     [class.received]="!group.isSent"
+                     [class.last-in-group]="isLast">
+                  <div class="chat-content">
+                    <p *ngIf="chat.text">{{ chat.text }}</p>
+                    <div *ngIf="chat.file" class="chat-file" (click)="openChatFile(chat.file)">
+                      <span class="file-icon">📎</span>
+                      <span>{{ chat.file }}</span>
+                    </div>
+                    <div *ngIf="chat.voiceNote" class="chat-voice">
+                      <button class="play-voice-btn" (click)="playChatVoiceNote(chat.backToBackCommunicationId)">🎤 Play Voice Note</button>
+                    </div>
+                  </div>
+                  <div class="chat-meta" *ngIf="isLast">
+                    <span *ngIf="group.isSent" class="read-status">
+                      {{ chat.isRead ? '✓✓' : '✓' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="isLoadingChat" class="loading-chat">
+            <p>Loading conversation...</p>
+          </div>
+        </div>
+
+        <!-- Reply Input Section -->
+        <div class="reply-section">
+          <div class="reply-attachments" *ngIf="attachedFiles.length > 0 || recordedAudio">
+            <div class="attachment-item" *ngFor="let file of attachedFiles; let i = index">
+              <span>📎 {{ file.name }}</span>
+              <button class="remove-btn" (click)="removeAttachment(i)">✕</button>
+            </div>
+            <div class="attachment-item" *ngIf="recordedAudio">
+              <span>🎤 Voice note</span>
+              <button class="remove-btn" (click)="removeVoiceNote()">✕</button>
+            </div>
+          </div>
+
+          <div class="file-limit-info" *ngIf="attachedFiles.length > 0">
+            {{ attachedFiles.length }}/{{ maxFiles }} files attached
+          </div>
+
+          <div class="emoji-picker" *ngIf="showEmojiPicker">
+            <button *ngFor="let emoji of emojis" class="emoji-btn" (click)="addEmoji(emoji)">{{ emoji }}</button>
+          </div>
+
+          <div class="reply-input-container">
+            <button class="reply-action-btn" (click)="toggleEmojiPicker()" title="Add emoji">😊</button>
+            
+            <input type="file" #fileInput style="display: none" multiple (change)="onFileAttach($event)">
+            <button class="reply-action-btn" (click)="fileInput.click()" title="Attach files (max 10)">📎</button>
+            
+            <button class="reply-action-btn" 
+                    [class.recording]="isRecording"
+                    (click)="isRecording ? stopRecording() : startRecording()" 
+                    title="{{ isRecording ? 'Stop recording' : 'Record voice note' }}">
+              {{ isRecording ? '⏹️' : '🎤' }}
+            </button>
+            
+            <input type="text" 
+                   class="reply-input" 
+                   [(ngModel)]="replyText" 
+                   placeholder="Type a reply..."
+                   (keyup.enter)="sendReply()"
+                   (keydown.enter)="$event.preventDefault()">
+            
+            <button class="reply-send-btn" 
+                    (click)="sendReply()"
+                    [disabled]="!replyText.trim() && attachedFiles.length === 0 && !recordedAudio">
+              ➤
+            </button>
+          </div>
         </div>
       </div>
 
@@ -148,6 +306,46 @@
         <h3>Select a message to read</h3>
         <p>Choose a message from the list to view its content</p>
         <button class="compose-btn" (click)="startComposing()">✏️ Compose New Message</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Document Viewer Modal -->
+  <div class="document-viewer-modal" *ngIf="showDocumentViewer" (click)="closeDocumentViewer()">
+    <div class="document-viewer-content" (click)="$event.stopPropagation()">
+      <div class="document-viewer-header">
+        <h3>{{ currentDocumentName }}</h3>
+        <div class="document-viewer-actions">
+          <button class="download-btn" (click)="downloadDocument()">
+            ⬇️ Download
+          </button>
+          <button class="close-viewer-btn" (click)="closeDocumentViewer()">✕</button>
+        </div>
+      </div>
+      <div class="document-viewer-body">
+        <audio *ngIf="currentDocumentType === 'audio'" controls autoplay>
+          <source [src]="currentDocumentUrl" type="audio/webm">
+          <source [src]="currentDocumentUrl" type="audio/mpeg">
+          Your browser does not support audio playback.
+        </audio>
+        <video *ngIf="currentDocumentType === 'video'" controls autoplay>
+          <source [src]="currentDocumentUrl" type="video/mp4">
+          <source [src]="currentDocumentUrl" type="video/webm">
+          Your browser does not support video playback.
+        </video>
+        <iframe *ngIf="currentDocumentType === 'application/pdf'" 
+                [src]="currentDocumentUrl | safe: 'resourceUrl'" 
+                frameborder="0"></iframe>
+        <img *ngIf="currentDocumentType.startsWith('image/')" 
+             [src]="currentDocumentUrl" 
+             alt="Document">
+        <div *ngIf="!currentDocumentType.startsWith('image/') && currentDocumentType !== 'application/pdf' && currentDocumentType !== 'audio' && currentDocumentType !== 'video'" 
+             class="unsupported-preview">
+          <p>📄 Preview not available for this file type</p>
+          <button class="download-btn-large" (click)="downloadDocument()">
+            ⬇️ Download {{ currentDocumentName }}
+          </button>
+        </div>
       </div>
     </div>
   </div>

@@ -13,19 +13,15 @@ import { ForgotPasswordRequest } from '../../../interfaces/forgot-password/forgo
   styleUrls: ['./forgot-password.component.css']
 })
 export class ForgotPasswordComponent {
-  
-navigateToLogin() {
-  this.router.navigate(['/login']);
-}
   form: FormGroup;
-
   isLoading = false;
   successMessage: string | null = null;
   errorMessage: string | null = null;
 
-  constructor(private fb: FormBuilder,
-              private authService: AuthService,
-              private router: Router
+  constructor(
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private router: Router
   ) {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]]
@@ -34,6 +30,10 @@ navigateToLogin() {
 
   get email() {
     return this.form.get('email');
+  }
+
+  navigateToLogin() {
+    this.router.navigate(['/login']);
   }
 
   onSubmit() {

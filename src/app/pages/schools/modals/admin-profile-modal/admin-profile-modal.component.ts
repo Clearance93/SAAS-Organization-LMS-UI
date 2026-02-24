@@ -34,6 +34,10 @@ export class AdminProfileModalComponent implements OnChanges {
     if (isPlatformBrowser(this.platfromId)) {
       if (changes['isOpen'] && this.isOpen) {
         document.body.style.overflow = 'hidden';
+        // Format profile picture when modal opens
+        if (this.adminData?.adminProfilePicture && !this.adminData.adminProfilePicture.startsWith('data:')) {
+          this.adminData.adminProfilePicture = `data:image/jpeg;base64,${this.adminData.adminProfilePicture}`;
+        }
       } else if (changes['isOpen'] && !this.isOpen) {
         document.body.style.overflow = 'auto';
       }
@@ -53,13 +57,19 @@ export class AdminProfileModalComponent implements OnChanges {
       next: (adminDetails: AdminProfileModel) => {
         this.detailedAdminData = adminDetails;
 
+        // Format profile picture with proper base64 prefix if missing
+        let formattedProfilePicture: string | null = adminDetails.adminProfilePicture || this.adminData?.adminProfilePicture || null;
+        if (formattedProfilePicture && !formattedProfilePicture.startsWith('data:')) {
+          formattedProfilePicture = `data:image/jpeg;base64,${formattedProfilePicture}`;
+        }
+
         if (this.adminData) {
           this.adminData = {
             ...this.adminData,
             firstName: adminDetails.firstName,
             lastName: adminDetails.lastName,
             adminBusinessEmail: adminDetails.adminBusinessEmail || this.adminData.adminBusinessEmail,
-            adminProfilePicture: adminDetails.adminProfilePicture || this.adminData.adminProfilePicture,
+            adminProfilePicture: formattedProfilePicture,
             isSuperAdmin: adminDetails.isSuperAdmin,
             organizationName: adminDetails.organizationName || this.adminData.organizationName,
             typeOfService: adminDetails.typeOfService || this.adminData.typeOfService

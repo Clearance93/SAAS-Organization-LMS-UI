@@ -1,0 +1,936 @@
+<div class="teacher-settings">
+  <!-- Header -->
+  <header class="settings-header">
+    <div class="header-content">
+      <button class="back-btn" (click)="backToDashboard()">
+        <span class="back-icon">←</span>
+        Back to Dashboard
+      </button>
+      <div class="header-title">
+        <h1>My Teaching Preferences</h1>
+        <p>Customize your teaching experience</p>
+      </div>
+      <button class="logout-btn" (click)="logout()">
+        <span class="logout-icon">⏻</span>
+        Logout
+      </button>
+    </div>
+  </header>
+
+  <div class="settings-tabs">
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'personal'"
+      (click)="setActiveTab('personal')">
+      👤 Personal
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'classroom'"
+      (click)="setActiveTab('classroom')">
+      🏫 Classroom
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'security'"
+      (click)="setActiveTab('security')">
+      🔒 Security
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'communication'"
+      (click)="setActiveTab('communication')">
+      💬 Communication
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'preferences'"
+      (click)="setActiveTab('preferences')">
+      🎓 Teaching grades
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'library'"
+      (click)="setActiveTab('library')">
+      📚 Library
+    </button>
+  </div>
+
+  <div class="tab-content">
+    
+    <div class="tab-panel" *ngIf="activeTab === 'personal'">
+      <div class="panel-header">
+        <h2>Personal Information</h2>
+        <p>Manage your profile and contact details</p>
+      </div>
+      
+      <div class="settings-section">
+        <div class="profile-card">
+          <div class="profile-avatar">
+            <div class="avatar-circle" *ngIf="!hasProfilePicture()">{{ getTeacherInitials() }}</div>
+            <img *ngIf="hasProfilePicture()" [src]="getProfilePictureUrl()" alt="Profile Picture" class="profile-picture">
+            <button class="change-photo-btn">📷 Change Photo</button>
+          </div>
+          <div class="profile-info">
+            <h3>{{ getTeacherFullName() }}</h3>
+            <p class="role">{{ getTeacherSubject() }} Teacher</p>
+            <p class="qualification">{{ profileForm.get('qualification')?.value }}</p>
+          </div>
+          <button class="edit-profile-btn" (click)="openProfileModal()">✏️ Edit Profile</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Contact Information</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">📧 Email:</span>
+            <span class="value">{{ profileForm.get('email')?.value }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">📱 Phone:</span>
+            <span class="value">{{ profileForm.get('phone')?.value }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">🏢 Department:</span>
+            <span class="value">Mathematics Department</span>
+          </div>
+          <div class="info-item">
+            <span class="label">📅 Joined:</span>
+            <span class="value">{{ teacherJoinedDate | date:'mediumDate' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Classroom Tab -->
+    <div class="tab-panel" *ngIf="activeTab === 'classroom'">
+      <div class="panel-header">
+        <h2>Classroom Management</h2>
+        <p>Configure your classes and teaching schedule</p>
+      </div>
+
+      <div class="settings-section">
+        <div class="section-header">
+          <h3>My Teaching Classes</h3>
+          <button class="add-class-btn" (click)="openClassModal()">+ Add Teaching Class</button>
+        </div>
+        
+        <div class="loading-state" *ngIf="isLoadingClasses">
+          <div class="spinner"></div>
+          <p>Loading your teaching classes...</p>
+        </div>
+        
+        <div class="empty-state" *ngIf="!isLoadingClasses && teachingClasses.length === 0">
+          <div class="empty-icon">🏫</div>
+          <h4>No Teaching Classes Yet</h4>
+          <p>Click the "Add Teaching Class" button above to create your first class</p>
+        </div>
+        
+        <div class="classes-grid" *ngIf="!isLoadingClasses && teachingClasses.length > 0">
+          <div class="class-card" *ngFor="let class of teachingClasses">
+            <div class="class-header">
+              <h4>{{ class.subject }}</h4>
+              <button class="class-menu-btn" (click)="showClassMenu(class)">⋮</button>
+            </div>
+            <div class="class-details">
+              <p><span class="icon">👥</span> {{ class.totalStudents }} students</p>
+              <p><span class="icon">🏠</span> {{ class.classRoomNumber }}</p>
+              <p><span class="icon">📚</span> {{ getStreamName(class.gradeStreamId) }}</p>
+            </div>
+            <div class="class-actions">
+              <button class="action-btn" (click)="viewClassStats(class)">📊 View Stats</button>
+              <button class="action-btn" (click)="editClass(class)">✏️ Edit</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Teaching Schedule</h3>
+        <div class="schedule-preferences">
+          <div class="pref-item">
+            <label>Preferred Start Time:</label>
+            <select [(ngModel)]="schedulePreferences.preferredStartTime">
+              <option value="07:00">7:00 AM</option>
+              <option value="08:00">8:00 AM</option>
+              <option value="09:00">9:00 AM</option>
+            </select>
+          </div>
+          <div class="pref-item">
+            <label>Preferred End Time:</label>
+            <select [(ngModel)]="schedulePreferences.preferredEndTime">
+              <option value="14:00">2:00 PM</option>
+              <option value="15:00">3:00 PM</option>
+              <option value="16:00">4:00 PM</option>
+            </select>
+          </div>
+          <div class="pref-item">
+            <label>Max Consecutive Classes:</label>
+            <input type="number" [(ngModel)]="schedulePreferences.maxConsecutiveClasses" min="1" max="5">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security Tab -->
+    <div class="tab-panel" *ngIf="activeTab === 'security'">
+      <div class="panel-header">
+        <h2>Security Settings</h2>
+        <p>Manage your password and account security</p>
+      </div>
+
+      <div class="settings-section">
+        <div class="security-card">
+          <div class="security-header">
+            <div class="security-icon">🔐</div>
+            <div>
+              <h3>Change Password</h3>
+              <p>Keep your account secure by updating your password regularly</p>
+            </div>
+          </div>
+          
+          <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="password-form">
+            <div class="form-group">
+              <label>🔑 Current Password</label>
+              <div class="password-input-wrapper">
+                <input 
+                  [type]="showCurrentPassword ? 'text' : 'password'" 
+                  formControlName="currentPassword" 
+                  placeholder="Enter your current password">
+                <button 
+                  type="button" 
+                  class="toggle-password" 
+                  (click)="showCurrentPassword = !showCurrentPassword">
+                  {{ showCurrentPassword ? '👁️' : '👁️‍🗨️' }}
+                </button>
+              </div>
+              <div class="error-message" *ngIf="passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched">
+                Current password is required
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>🆕 New Password</label>
+              <div class="password-input-wrapper">
+                <input 
+                  [type]="showNewPassword ? 'text' : 'password'" 
+                  formControlName="newPassword" 
+                  placeholder="Enter your new password">
+                <button 
+                  type="button" 
+                  class="toggle-password" 
+                  (click)="showNewPassword = !showNewPassword">
+                  {{ showNewPassword ? '👁️' : '👁️‍🗨️' }}
+                </button>
+              </div>
+              <div class="password-strength" *ngIf="passwordForm.get('newPassword')?.value">
+                <div class="strength-bar" [class]="getPasswordStrength()">
+                  <div class="strength-fill"></div>
+                </div>
+                <span class="strength-text">{{ getPasswordStrengthText() }}</span>
+              </div>
+              <div class="error-message" *ngIf="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched">
+                Password must be at least 8 characters
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>✔️ Confirm New Password</label>
+              <div class="password-input-wrapper">
+                <input 
+                  [type]="showConfirmPassword ? 'text' : 'password'" 
+                  formControlName="confirmPassword" 
+                  placeholder="Confirm your new password">
+                <button 
+                  type="button" 
+                  class="toggle-password" 
+                  (click)="showConfirmPassword = !showConfirmPassword">
+                  {{ showConfirmPassword ? '👁️' : '👁️‍🗨️' }}
+                </button>
+              </div>
+              <div class="error-message" *ngIf="passwordForm.hasError('passwordMismatch') && passwordForm.get('confirmPassword')?.touched">
+                Passwords do not match
+              </div>
+            </div>
+
+            <div class="password-requirements">
+              <h4>Password Requirements:</h4>
+              <ul>
+                <li [class.met]="hasMinLength()">✓ At least 8 characters</li>
+                <li [class.met]="hasUpperCase()">✓ One uppercase letter</li>
+                <li [class.met]="hasLowerCase()">✓ One lowercase letter</li>
+                <li [class.met]="hasNumber()">✓ One number</li>
+                <li [class.met]="hasSpecialChar()">✓ One special character</li>
+              </ul>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" (click)="resetPasswordForm()">Cancel</button>
+              <button type="submit" class="btn-primary" [disabled]="!passwordForm.valid || isChangingPassword">
+                <span *ngIf="!isChangingPassword">🔒 Update Password</span>
+                <span *ngIf="isChangingPassword">🔄 Updating...</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Security Information</h3>
+        <div class="security-info-grid">
+          <div class="info-card">
+            <div class="info-icon">📅</div>
+            <div class="info-content">
+              <h4>Last Password Change</h4>
+              <p>{{ lastPasswordChange | date:'medium' }}</p>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="info-icon">📱</div>
+            <div class="info-content">
+              <h4>Last Login</h4>
+              <p>{{ lastLogin | date:'medium' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Communication Tab -->
+    <div class="tab-panel" *ngIf="activeTab === 'communication'">
+      <div class="panel-header">
+        <h2>Communication Settings</h2>
+        <p>Manage how you communicate with students and parents</p>
+      </div>
+
+      <div class="settings-section">
+        <h3>Notification Preferences</h3>
+        <div class="notification-grid">
+          <div class="notification-card">
+            <div class="notification-header">
+              <span class="icon">📧</span>
+              <h4>Email Notifications</h4>
+              <label class="toggle-switch">
+                <input type="checkbox" [(ngModel)]="notificationSettings.emailNotifications">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <p>Receive email updates for important events</p>
+          </div>
+          
+          <div class="notification-card">
+            <div class="notification-header">
+              <span class="icon">📱</span>
+              <h4>SMS Alerts</h4>
+              <label class="toggle-switch">
+                <input type="checkbox" [(ngModel)]="notificationSettings.smsNotifications">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <p>Get text messages for urgent matters</p>
+          </div>
+
+          <div class="notification-card">
+            <div class="notification-header">
+              <span class="icon">👨‍👩‍👧‍👦</span>
+              <h4>Parent Messages</h4>
+              <label class="toggle-switch">
+                <input type="checkbox" [(ngModel)]="notificationSettings.parentMessages">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <p>Allow direct messages from parents</p>
+          </div>
+
+          <div class="notification-card">
+            <div class="notification-header">
+              <span class="icon">📊</span>
+              <h4>Weekly Reports</h4>
+              <label class="toggle-switch">
+                <input type="checkbox" [(ngModel)]="notificationSettings.weeklyReports">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <p>Receive weekly class performance summaries</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Communication Hours</h3>
+        <div class="hours-settings">
+          <div class="time-range">
+            <label>Available for messages:</label>
+            <div class="time-inputs">
+              <input type="time" [(ngModel)]="communicationHours.startTime" class="time-input">
+              <span>to</span>
+              <input type="time" [(ngModel)]="communicationHours.endTime" class="time-input">
+            </div>
+          </div>
+          <div class="days-selection">
+            <label>Available days:</label>
+            <div class="days-grid">
+              <label class="day-checkbox" *ngFor="let day of weekDays">
+                <input type="checkbox" [(ngModel)]="day.selected">
+                <span>{{ day.name }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preferences Tab -->
+    <div class="tab-panel" *ngIf="activeTab === 'preferences'">
+      <div class="panel-header">
+        <h2>My Grades & Streams</h2>
+        <p>Manage the grades and streams you facilitate at school</p>
+      </div>
+
+      <div class="settings-section">
+        <div class="section-header">
+          <h3>Grades & Streams I Facilitate</h3>
+          <button class="btn-primary" (click)="openAddGradeModal()">
+            <span>➕</span> Add Grade & Stream
+          </button>
+        </div>
+
+        <div class="loading-state" *ngIf="isLoadingGrades">
+          <div class="spinner"></div>
+          <p>Loading your grades...</p>
+        </div>
+
+        <div class="empty-state" *ngIf="!isLoadingGrades && teacherStreams.length === 0">
+          <div class="empty-icon">📚</div>
+          <h4>No Grade Streams Added Yet</h4>
+          <p>Click the "Add Grade & Stream" button above to add grades you want to facilitate</p>
+        </div>
+
+        <div class="grades-grid" *ngIf="!isLoadingGrades && teacherStreams.length > 0">
+          <div class="grade-card" *ngFor="let stream of teacherStreams">
+            <div class="grade-card-header">
+              <div class="grade-info">
+                <h4>{{ stream.streamName }}</h4>
+                <span class="grade-badge">Active</span>
+              </div>
+              <button class="btn-remove" (click)="removeGradeStream(stream.streamId)" title="Remove">
+                <span>🗑️</span>
+              </button>
+            </div>
+            <div class="grade-card-body">
+              <div class="info-row">
+                <span class="label">Created At:</span>
+                <span class="value">{{ stream.createdAt | date:'medium' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Privacy Settings</h3>
+        <div class="privacy-options">
+          <div class="privacy-item">
+            <div class="privacy-info">
+              <h4>Show email to students</h4>
+              <p>Allow students to see your email address</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" [(ngModel)]="privacySettings.showEmailToStudents">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="privacy-item">
+            <div class="privacy-info">
+              <h4>Share grades with parents</h4>
+              <p>Automatically share student grades with parents</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" [(ngModel)]="privacySettings.shareGradesWithParents">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="privacy-item">
+            <div class="privacy-info">
+              <h4>Show attendance to parents</h4>
+              <p>Allow parents to view their child's attendance</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" [(ngModel)]="privacySettings.showAttendanceToParents">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Data & Storage</h3>
+        <div class="data-options">
+          <button class="data-btn export-btn" (click)="exportMyData()">📤 Export My Data</button>
+          <button class="data-btn backup-btn" (click)="backupSettings()">💾 Backup Settings</button>
+          <button class="data-btn reset-btn" (click)="resetToDefaults()">🔄 Reset to Defaults</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Library Tab -->
+    <div class="tab-panel" *ngIf="activeTab === 'library'">
+      <div class="panel-header">
+        <h2>Library Management</h2>
+        <p>Browse and access books and resources</p>
+      </div>
+
+      <div class="settings-section">
+        <div class="section-header">
+          <h3>Available Books</h3>
+          <button class="btn-primary" (click)="openBookModal()">
+            <span>➕</span> Add New Book
+          </button>
+        </div>
+        
+        <!-- Search Bar -->
+        <div class="search-bar" *ngIf="!isLoadingBooks && libraryBooks.length > 0">
+          <input 
+            type="text" 
+            [(ngModel)]="searchQuery" 
+            (ngModelChange)="onSearchChange()"
+            placeholder="🔍 Search by title, author, or genre..."
+            class="search-input">
+        </div>
+        
+        <!-- Genre Filter -->
+        <div class="genre-filter" *ngIf="!isLoadingBooks && libraryBooks.length > 0">
+          <button 
+            *ngFor="let genre of uniqueGenres" 
+            class="genre-btn"
+            [class.active]="selectedGenre === genre"
+            (click)="selectGenre(genre)">
+            <span class="genre-icon">{{ getGenreIcon(genre) }}</span>
+            <span>{{ genre }}</span>
+          </button>
+        </div>
+        
+        <div class="loading-state" *ngIf="isLoadingBooks">
+          <div class="spinner"></div>
+          <p>Loading library books...</p>
+        </div>
+        
+        <div class="empty-state" *ngIf="!isLoadingBooks && libraryBooks.length === 0">
+          <div class="empty-icon">📚</div>
+          <h4>No Books Available</h4>
+          <p>The library is currently empty</p>
+        </div>
+
+        <div class="books-grid" *ngIf="!isLoadingBooks && paginatedBooks.length > 0">
+          <div class="book-card" *ngFor="let book of paginatedBooks">
+            <div class="book-header">
+              <div class="book-icon">📖</div>
+            </div>
+            <div class="book-info">
+              <h4>{{ book.title }}</h4>
+              <p class="author">by {{ book.author }}</p>
+              <p class="category">📚 {{ book.genre }}</p>
+              <p class="description">{{ book.description }}</p>
+            </div>
+            <div class="book-actions">
+              <button class="action-btn view-btn" (click)="viewBook(book)">👁️ View Book</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="pagination" *ngIf="!isLoadingBooks && filteredBooks.length > booksPerPage">
+          <button class="pagination-btn" (click)="prevPage()" [disabled]="currentPage === 1">← Previous</button>
+          <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }}</span>
+          <button class="pagination-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">Next →</button>
+        </div>
+        
+        <div class="empty-state" *ngIf="!isLoadingBooks && libraryBooks.length > 0 && filteredBooks.length === 0">
+          <div class="empty-icon">🔍</div>
+          <h4>No Books in {{ selectedGenre }}</h4>
+          <p>Try selecting a different genre</p>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Library Statistics</h3>
+        <div class="library-stats">
+          <div class="stat-card">
+            <div class="stat-icon">📚</div>
+            <div class="stat-info">
+              <h4>{{ libraryBooks.length }}</h4>
+              <p>Total Books</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+</div>
+
+<!-- Book Modal -->
+<div class="modal-overlay" *ngIf="isBookModalOpen" (click)="closeBookModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Add New Book</h3>
+      <button class="close-btn" (click)="closeBookModal()">×</button>
+    </div>
+    <form [formGroup]="bookForm" (ngSubmit)="addBook()">
+      <div class="form-group">
+        <label>Book Title</label>
+        <input type="text" formControlName="title" placeholder="Enter book title">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Author</label>
+          <input type="text" formControlName="author" placeholder="Author name">
+        </div>
+        <div class="form-group">
+          <label>ISBN</label>
+          <input type="text" formControlName="isbn" placeholder="978-0123456789">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Category</label>
+          <select formControlName="category">
+            <option value="">Select Category</option>
+            <option *ngFor="let category of bookCategories" [value]="category">{{ category }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Number of Copies</label>
+          <input type="number" formControlName="copies" min="1">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Publisher</label>
+          <input type="text" formControlName="publisher" placeholder="Publisher name">
+        </div>
+        <div class="form-group">
+          <label>Publish Year</label>
+          <input type="number" formControlName="publishYear" min="1900" [max]="currentYear">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea formControlName="description" rows="3" placeholder="Brief description of the book"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeBookModal()">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!bookForm.valid">Add Book</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Profile Modal -->
+<div class="modal-overlay" *ngIf="isProfileModalOpen" (click)="closeProfileModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Edit Profile</h3>
+      <button class="close-btn" (click)="closeProfileModal()">×</button>
+    </div>
+    <form [formGroup]="profileForm" (ngSubmit)="updateProfile()">
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name *</label>
+          <input type="text" formControlName="firstName">
+        </div>
+        <div class="form-group">
+          <label>Last Name *</label>
+          <input type="text" formControlName="lastName">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Email *</label>
+        <input type="email" formControlName="email" readonly>
+      </div>
+      <div class="form-group">
+        <label>Phone Number *</label>
+        <input type="tel" formControlName="phone">
+      </div>
+      <div class="form-group">
+        <label>Department</label>
+        <input type="text" formControlName="department">
+      </div>
+      <div class="form-group">
+        <label>Qualification *</label>
+        <input type="text" formControlName="qualification">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeProfileModal()">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!profileForm.valid">Update Profile</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Class Modal -->
+<div class="modal-overlay" *ngIf="isClassModalOpen" (click)="closeClassModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Add New Teaching Class</h3>
+      <button class="close-btn" (click)="closeClassModal()">×</button>
+    </div>
+    <form [formGroup]="classForm" (ngSubmit)="addClass()">
+      <div class="form-group">
+        <label>Grade Stream *</label>
+        <select formControlName="gradeStreamId">
+          <option value="">Select Grade Stream</option>
+          <option *ngFor="let stream of teacherStreams" [value]="stream.streamId">
+            {{ stream.streamName }}
+          </option>
+        </select>
+        <div class="error-message" *ngIf="classForm.get('gradeStreamId')?.invalid && classForm.get('gradeStreamId')?.touched">
+          Please select a grade stream
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>Subject *</label>
+        <input type="text" formControlName="subject" placeholder="e.g., Mathematics">
+        <div class="error-message" *ngIf="classForm.get('subject')?.invalid && classForm.get('subject')?.touched">
+          Subject is required
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Classroom Number *</label>
+          <input type="text" formControlName="classRoomNumber" placeholder="e.g., Room 201">
+          <div class="error-message" *ngIf="classForm.get('classRoomNumber')?.invalid && classForm.get('classRoomNumber')?.touched">
+            Classroom number is required
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Total Students</label>
+          <input type="number" formControlName="totalStudents" min="0" placeholder="0">
+          <div class="error-message" *ngIf="classForm.get('totalStudents')?.invalid && classForm.get('totalStudents')?.touched">
+            Please enter a valid number
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeClassModal()" [disabled]="isLoadingClasses">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!classForm.valid || isLoadingClasses">
+          <span *ngIf="isLoadingClasses">Creating...</span>
+          <span *ngIf="!isLoadingClasses">Create Class</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Grade Template Modal -->
+<div class="modal-overlay" *ngIf="isGradeTemplateModalOpen" (click)="closeGradeTemplateModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Add Grade Template</h3>
+      <button class="close-btn" (click)="closeGradeTemplateModal()">×</button>
+    </div>
+    <form [formGroup]="gradeTemplateForm" (ngSubmit)="addGradeTemplate()">
+      <div class="form-group">
+        <label>Template Name</label>
+        <input type="text" formControlName="name" placeholder="e.g., Quiz Template">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Max Points</label>
+          <input type="number" formControlName="maxPoints" min="1">
+        </div>
+        <div class="form-group">
+          <label>Passing Grade (%)</label>
+          <input type="number" formControlName="passingGrade" min="0" max="100">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeGradeTemplateModal()">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!gradeTemplateForm.valid">Add Template</button>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- Edit Class Modal -->
+<div class="modal-overlay" *ngIf="isEditClassModalOpen" (click)="closeEditClassModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Edit Teaching Class</h3>
+      <button class="close-btn" (click)="closeEditClassModal()">×</button>
+    </div>
+    <form [formGroup]="classForm" (ngSubmit)="updateClass()">
+      <div class="form-group">
+        <label>Grade Stream *</label>
+        <select formControlName="gradeStreamId">
+          <option value="">Select Grade Stream</option>
+          <option *ngFor="let stream of teacherStreams" [value]="stream.streamId">
+            {{ stream.streamName }}
+          </option>
+        </select>
+        <div class="error-message" *ngIf="classForm.get('gradeStreamId')?.invalid && classForm.get('gradeStreamId')?.touched">
+          Please select a grade stream
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>Subject *</label>
+        <input type="text" formControlName="subject" placeholder="e.g., Mathematics">
+        <div class="error-message" *ngIf="classForm.get('subject')?.invalid && classForm.get('subject')?.touched">
+          Subject is required
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Classroom Number *</label>
+          <input type="text" formControlName="classRoomNumber" placeholder="e.g., Room 201">
+          <div class="error-message" *ngIf="classForm.get('classRoomNumber')?.invalid && classForm.get('classRoomNumber')?.touched">
+            Classroom number is required
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Total Students</label>
+          <input type="number" formControlName="totalStudents" min="0" placeholder="0">
+          <div class="error-message" *ngIf="classForm.get('totalStudents')?.invalid && classForm.get('totalStudents')?.touched">
+            Please enter a valid number
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeEditClassModal()" [disabled]="isLoadingClasses">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!classForm.valid || isLoadingClasses">
+          <span *ngIf="isLoadingClasses">Updating...</span>
+          <span *ngIf="!isLoadingClasses">Update Class</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- Book Viewer Modal -->
+<div class="modal-overlay" *ngIf="isBookViewerOpen" (click)="closeBookViewer()">
+  <div class="modal-content book-viewer-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ selectedBookTitle }}</h3>
+      <div class="viewer-controls">
+        <button class="fullscreen-btn" (click)="toggleFullscreen()" title="Toggle Fullscreen">
+          {{ isFullscreen ? '⛶' : '⛶' }}
+        </button>
+        <button class="close-btn" (click)="closeBookViewer()">×</button>
+      </div>
+    </div>
+    <div class="book-viewer-body">
+      <embed 
+        *ngIf="selectedBookPdf" 
+        [src]="selectedBookPdf | safe:'resourceUrl'" 
+        type="application/pdf"
+        class="pdf-viewer"
+        #pdfFrame />
+      <p *ngIf="!selectedBookPdf" class="no-book">No book available to display</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- Add Book Modal -->
+<div class="modal-overlay" *ngIf="isBookModalOpen" (click)="closeBookModal()">
+  <div class="modal-content add-book-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Add New Book</h3>
+      <button class="close-btn" (click)="closeBookModal()">×</button>
+    </div>
+    <form [formGroup]="bookForm" class="book-form">
+      <div class="form-group">
+        <label>Title *</label>
+        <input type="text" formControlName="title" class="form-control" placeholder="Enter book title">
+      </div>
+      <div class="form-group">
+        <label>Author *</label>
+        <input type="text" formControlName="author" class="form-control" placeholder="Enter author name">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Genre *</label>
+          <select formControlName="genre" class="form-control">
+            <option value="">Select Genre</option>
+            <option value="Fiction">Fiction</option>
+            <option value="Non-Fiction">Non-Fiction</option>
+            <option value="Science">Science</option>
+            <option value="Mathematics">Mathematics</option>
+            <option value="History">History</option>
+            <option value="Geography">Geography</option>
+            <option value="Literature">Literature</option>
+            <option value="Biography">Biography</option>
+            <option value="Fantasy">Fantasy</option>
+            <option value="Mystery">Mystery</option>
+            <option value="Romance">Romance</option>
+            <option value="Thriller">Thriller</option>
+            <option value="Horror">Horror</option>
+            <option value="Adventure">Adventure</option>
+            <option value="Poetry">Poetry</option>
+            <option value="Drama">Drama</option>
+            <option value="Comedy">Comedy</option>
+            <option value="Self-Help">Self-Help</option>
+            <option value="Business">Business</option>
+            <option value="Technology">Technology</option>
+            <option value="Art">Art</option>
+            <option value="Music">Music</option>
+            <option value="Sports">Sports</option>
+            <option value="Cooking">Cooking</option>
+            <option value="Travel">Travel</option>
+            <option value="Religion">Religion</option>
+            <option value="Philosophy">Philosophy</option>
+            <option value="Psychology">Psychology</option>
+            <option value="Education">Education</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Year *</label>
+          <input type="number" formControlName="year" class="form-control" placeholder="2024" min="1900" [max]="currentYear">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description *</label>
+        <textarea formControlName="description" class="form-control" rows="3" placeholder="Brief description of the book"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Book Cover Image</label>
+        <div class="file-upload-container">
+          <input type="file" #imageInput (change)="onBookImageSelected($event)" accept="image/*" class="file-input" id="bookCoverImage">
+          <label for="bookCoverImage" class="file-upload-btn">
+            <span *ngIf="!selectedBookImage">📁 Choose Image</span>
+            <span *ngIf="selectedBookImage">🔄 Change Image</span>
+          </label>
+          <button type="button" *ngIf="selectedBookImage" (click)="removeBookImage()" class="remove-file-btn">❌ Remove</button>
+        </div>
+        <div *ngIf="selectedBookImage" class="image-preview">
+          <img [src]="selectedBookImage" alt="Book cover preview" class="preview-image">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Book PDF File *</label>
+        <div class="file-upload-container">
+          <input type="file" #pdfInput (change)="onBookPdfSelected($event)" accept=".pdf" class="file-input" id="bookPdfFile">
+          <label for="bookPdfFile" class="file-upload-btn">
+            <span *ngIf="!selectedPdfFile">📄 Choose PDF</span>
+            <span *ngIf="selectedPdfFile">🔄 Change PDF</span>
+          </label>
+          <button type="button" *ngIf="selectedPdfFile" (click)="removeBookPdf()" class="remove-file-btn">❌ Remove</button>
+        </div>
+        <div *ngIf="selectedPdfFile" class="pdf-preview">
+          <p>✅ PDF file selected</p>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeBookModal()">Cancel</button>
+        <button type="button" class="save-btn" (click)="addBook()" [disabled]="!bookForm.valid || !selectedPdfFile">Add Book</button>
+      </div>
+    </form>
+  </div>
+</div>

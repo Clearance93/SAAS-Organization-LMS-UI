@@ -3,8 +3,12 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { TeacherService } from '../../../../services/teacherServices/teacher.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CreateTeacherDto } from '../../../../interfaces/schools/teachers/create-teacher-dto';
+import { MatDialog } from '@angular/material/dialog';
+import { AddGradeModalComponent } from '../../../modals/add-grade-modal/add-grade-modal.component';
+import Swal from 'sweetalert2';
 import { CommonModule } from '@angular/common';
 import { query } from 'express';
+import { MediaCompressionUtil } from '../../../../utils/media-compression.util';
 
 @Component({
   selector: 'app-add-teacher',
@@ -24,7 +28,8 @@ export class AddTeacherComponent implements OnInit{
    private fb: FormBuilder,
    private teacherService: TeacherService,
    private router: Router,
-   private route: ActivatedRoute
+   private route: ActivatedRoute,
+   public dialog: MatDialog
  ) {}
 
 ngOnInit(): void {
@@ -108,6 +113,27 @@ ngOnInit(): void {
         this.successMessage = 'Teacher added successfully!';
         this.isSubmitting = false;
 
+        // Show a confirmation modal instructing the user to check email
+        Swal.fire({
+          icon: 'success',
+          title: 'Registration Successful',
+          html: 'Teacher registered successfully. A confirmation email with login instructions and the initial password has been sent to the teacher\'s email address — please check the inbox and confirm the account to access the platform.',
+          confirmButtonText: 'OK',
+          allowOutsideClick: false
+        }).then(() => {
+          // After user acknowledges, open Add Grade modal and preselect the created teacher's email
+          try {
+            this.dialog.open(AddGradeModalComponent, {
+              width: '500px',
+              disableClose: true,
+              panelClass: 'custom-dialog-container',
+              data: { organizationId: this.organizationId, selectedTeacherEmail: teacherDto.teacherEmail }
+            });
+          } catch (dialogErr) {
+            console.error('Failed to open Add Grade modal:', dialogErr);
+          }
+        });
+
         setTimeout(() => {
           this.teacherForm.reset({
             isActive: true
@@ -122,7 +148,7 @@ ngOnInit(): void {
     });
   }
 
-  onImageSelect(event: Event): void {
+  async onImageSelect(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
       const file = input.files[0];
@@ -137,15 +163,26 @@ ngOnInit(): void {
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload =(e: ProgressEvent<FileReader>) => {
-        this.previewImage = e.target?.result as string;
-        this.teacherForm.patchValue ({
-          teacherProfilePicture: this.previewImage
+      try {
+        // Compress image to reduce base64 size by ~75%
+        const compressed = await MediaCompressionUtil.compressImage(file, 300, 0.6);
+        this.previewImage = `data:image/jpeg;base64,${compressed}`;
+        this.teacherForm.patchValue({
+          teacherProfilePicture: compressed // Store only compressed data
         });
-      };
-
-      reader.readAsDataURL(file)
+      } catch (error) {
+        console.warn('Image compression failed, using original:', error);
+        // Fallback to original if compression fails
+        const reader = new FileReader();
+        reader.onload = (e: ProgressEvent<FileReader>) => {
+          const result = e.target?.result as string;
+          this.previewImage = result;
+          this.teacherForm.patchValue({
+            teacherProfilePicture: result.split(',')[1] // Remove data:image prefix
+          });
+        };
+        reader.readAsDataURL(file);
+      }
     }
   }
 

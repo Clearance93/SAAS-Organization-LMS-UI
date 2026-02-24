@@ -3,6 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SettingsService } from '../../../../services/settings/settings.service';
+import { HttpClient } from '@angular/common/http';
+
+interface Grade {
+  gradeId: string;
+  gradeName: string;
+  gradeLevel: string;
+}
 
 @Component({
   selector: 'app-add-school-subject',
@@ -13,51 +20,74 @@ import { SettingsService } from '../../../../services/settings/settings.service'
 })
 export class AddSchoolSubjectComponent implements OnInit {
   subjectForm!: FormGroup;
-  courseStreamId: string = '';
   isSubmitting: boolean = false;
   submitSuccess: boolean = false;
   submitError: string = '';
-  organizationId: string = '';
+  organizationId: string = 'AB3B79E8-100B-448B-8258-F330B36A0937';
+  grades: Grade[] = [];
+  loadingGrades: boolean = false;
 
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
-    private settingsService: SettingsService
+    private settingsService: SettingsService,
+    private http: HttpClient
   ) {
     this.initializeForm();
   }
 
   ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
-      this.courseStreamId = params['courseStreamId'] || '';
-      this.organizationId = params['organizationId'] || this.getOrganizationId();
-      
-      console.log('Course Stream ID:', this.courseStreamId);
-      console.log('Organization ID:', this.organizationId);
-      
-      if (!this.courseStreamId) {
-        this.submitError = 'No course stream specified. Please select a course stream first.';
-      }
-    });
+    this.organizationId = this.getOrganizationId();
+    this.loadGrades();
   }
 
   initializeForm(): void {
     this.subjectForm = this.fb.group({
       subjectName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
-      gradeLevel: ['', [Validators.required]]
+      gradeId: ['', [Validators.required]]
     });
   }
 
   getOrganizationId(): string {
-    if (typeof window !== 'undefined' && localStorage) {
-      return localStorage.getItem('organizationId') || '';
+    // First try to get from route params
+    const routeOrgId = this.route.snapshot.queryParams['organizationId'];
+    if (routeOrgId) {
+      return routeOrgId;
     }
-    return this.route.snapshot.queryParams['organizationId'] || '';
+
+    // Then try localStorage
+    if (typeof window !== 'undefined' && localStorage) {
+      const storedOrgId = localStorage.getItem('organizationId');
+      if (storedOrgId) {
+        return storedOrgId;
+      }
+    }
+
+    // Use fallback ID if none found
+    console.warn('No organization ID found, using fallback');
+    return this.organizationId;
+  }
+
+  loadGrades(): void {
+    this.loadingGrades = true;
+    const url = `https://localhost:7270/api/Settings/getAllGrades/${this.organizationId}`;
+    
+    this.http.get<any>(url).subscribe({
+      next: (response) => {
+        this.grades = response || [];
+        this.loadingGrades = false;
+      },
+      error: (error) => {
+        console.error('Error loading grades:', error);
+        this.loadingGrades = false;
+        this.submitError = 'Failed to load grades. Please try again.';
+      }
+    });
   }
 
   onSubmit(): void {
-    if (this.subjectForm.invalid || !this.courseStreamId) {
+    if (this.subjectForm.invalid) {
       this.markFormGroupTouched(this.subjectForm);
       return;
     }
@@ -66,41 +96,39 @@ export class AddSchoolSubjectComponent implements OnInit {
     this.submitError = '';
     this.submitSuccess = false;
 
+    const selectedGrade = this.grades.find(g => g.gradeId === this.subjectForm.value.gradeId);
+    
     const subjectPayload = {
-      courseStreamId: this.courseStreamId,
-      organizationId: this.organizationId,
       subjectName: this.subjectForm.value.subjectName.trim(),
-      gradeLevel: this.subjectForm.value.gradeLevel.trim()
+      gradeLevel: selectedGrade?.gradeLevel || '',
+      gradeId: this.subjectForm.value.gradeId,
+      organizationId: this.organizationId
     };
 
     console.log('Submitting subject:', subjectPayload);
 
-    this.settingsService.addSchoolSubject(subjectPayload).subscribe({
+    const url = 'https://localhost:7270/api/Settings/addSchoolSubject';
+    this.http.post(url, subjectPayload).subscribe({
       next: (response) => {
         console.log('Subject added successfully:', response);
         this.submitSuccess = true;
         this.isSubmitting = false;
-        
         this.subjectForm.reset();
         
         setTimeout(() => {
-          this.router.navigate(['/settings/admin-settings/details'], { 
-            queryParams: { courseStreamId: this.courseStreamId } 
-          }); 
+          this.router.navigate(['/admin-settings']);
         }, 2000);
       },
       error: (error) => {
         console.error('Error adding subject:', error);
-        this.submitError = error.message || 'Failed to add subject. Please try again.';
+        this.submitError = error.error?.message || 'Failed to add subject. Please try again.';
         this.isSubmitting = false;
       }
     });
   }
 
   onCancel(): void {
-    this.router.navigate(['/details'], { 
-      queryParams: { courseStreamId: this.courseStreamId } 
-    }); 
+    this.router.navigate(['/admin-settings']);
   }
 
   private markFormGroupTouched(formGroup: FormGroup): void {

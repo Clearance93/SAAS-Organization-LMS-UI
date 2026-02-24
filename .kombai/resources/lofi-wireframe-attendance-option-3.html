@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance Management - Option 3: Real-time Dashboard with Analytics</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Comic Sans MS', cursive;
+      background: #f5f5f5;
+      padding: 20px;
+      color: #333;
+    }
+    
+    .wireframe-container {
+      max-width: 1600px;
+      margin: 0 auto;
+      background: white;
+      border: 2px solid #333;
+    }
+    
+    .wireframe-header {
+      background: #fff;
+      border-bottom: 3px solid #333;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .wireframe-header h1 {
+      font-size: 24px;
+      color: #000;
+      margin-bottom: 10px;
+    }
+    
+    .wireframe-header p {
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .page-container {
+      padding: 20px;
+    }
+    
+    /* Top Bar */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      border: 2px solid #333;
+      background: #f9f9f9;
+      margin-bottom: 20px;
+    }
+    
+    .page-title {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+    
+    .live-dot {
+      width: 10px;
+      height: 10px;
+      background: #333;
+      border-radius: 50%;
+      border: 2px solid #333;
+    }
+    
+    /* Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 20px;
+    }
+    
+    /* Card Styles */
+    .card {
+      border: 3px solid #333;
+      background: white;
+      padding: 0;
+    }
+    
+    .card-header {
+      padding: 12px 15px;
+      border-bottom: 2px solid #ccc;
+      font-size: 16px;
+      font-weight: bold;
+      background: #f0f0f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .card-body {
+      padding: 15px;
+    }
+    
+    /* Stats Row */
+    .stats-row {
+      grid-column: span 12;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 15px;
+    }
+    
+    .stat-card {
+      border: 3px solid #333;
+      padding: 15px;
+      background: white;
+      position: relative;
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 5px;
+      background: #666;
+    }
+    
+    .stat-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+      display: block;
+    }
+    
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 5px;
+    }
+    
+    .stat-value {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 3px;
+    }
+    
+    .stat-change {
+      font-size: 11px;
+      color: #666;
+    }
+    
+    /* Class Grid */
+    .class-grid {
+      grid-column: span 4;
+    }
+    
+    .class-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      cursor: pointer;
+    }
+    
+    .class-item:hover {
+      background: #f9f9f9;
+    }
+    
+    .class-item.active {
+      background: #e0e0e0;
+      font-weight: bold;
+    }
+    
+    .class-name {
+      font-size: 14px;
+    }
+    
+    .class-count {
+      font-size: 12px;
+      color: #666;
+    }
+    
+    .attendance-rate {
+      font-size: 13px;
+      font-weight: bold;
+    }
+    
+    /* Live Attendance Feed */
+    .live-feed {
+      grid-column: span 8;
+    }
+    
+    .feed-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .timestamp {
+      font-size: 11px;
+      color: #666;
+      min-width: 60px;
+    }
+    
+    .avatar {
+      width: 35px;
+      height: 35px;
+      border: 2px solid #333;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f0f0f0;
+      font-size: 11px;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    
+    .feed-content {
+      flex: 1;
+      font-size: 13px;
+    }
+    
+    .status-icon {
+      font-size: 18px;
+    }
+    
+    /* Analytics Chart */
+    .analytics-chart {
+      grid-column: span 8;
+    }
+    
+    .chart-placeholder {
+      height: 250px;
+      border: 2px dashed #999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 10px;
+      color: #666;
+    }
+    
+    .chart-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      height: 200px;
+      padding: 10px 0;
+    }
+    
+    .chart-bar {
+      flex: 1;
+      background: #ccc;
+      border: 2px solid #333;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding-bottom: 5px;
+    }
+    
+    .bar-value {
+      font-size: 11px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .bar-label {
+      position: absolute;
+      bottom: -25px;
+      font-size: 10px;
+      text-align: center;
+    }
+    
+    /* Alerts Panel */
+    .alerts-panel {
+      grid-column: span 4;
+    }
+    
+    .alert-item {
+      padding: 12px;
+      border-left: 4px solid #333;
+      background: #f9f9f9;
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+    
+    .alert-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+      font-size: 13px;
+    }
+    
+    .alert-time {
+      color: #666;
+      font-size: 11px;
+    }
+    
+    /* Quick Actions Panel */
+    .quick-actions {
+      grid-column: span 4;
+    }
+    
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    
+    .action-btn {
+      padding: 20px 10px;
+      border: 2px solid #333;
+      background: white;
+      font-family: 'Comic Sans MS', cursive;
+      cursor: pointer;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .action-btn:hover {
+      background: #f0f0f0;
+    }
+    
+    .action-icon {
+      font-size: 32px;
+    }
+    
+    .action-label {
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    /* Student Grid */
+    .student-grid-panel {
+      grid-column: span 8;
+    }
+    
+    .student-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .student-card {
+      border: 2px solid #333;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+    }
+    
+    .student-card:hover {
+      background: #f9f9f9;
+    }
+    
+    .student-avatar {
+      width: 50px;
+      height: 50px;
+      border: 2px solid #333;
+      border-radius: 50%;
+      margin: 0 auto 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f0f0f0;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    
+    .student-name {
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    
+    .student-roll {
+      font-size: 10px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border: 2px solid #333;
+      border-radius: 50%;
+      background: #ccc;
+      position: absolute;
+      top: 8px;
+      right: 8px;
+    }
+    
+    .status-indicator.present {
+      background: #999;
+    }
+    
+    /* Buttons */
+    .btn {
+      padding: 8px 16px;
+      border: 2px solid #333;
+      background: white;
+      font-family: 'Comic Sans MS', cursive;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .btn-primary {
+      background: #ccc;
+    }
+    
+    .btn-small {
+      padding: 5px 10px;
+      font-size: 11px;
+    }
+    
+    /* Component Tags */
+    .component-tag {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: #4CAF50;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      z-index: 10;
+    }
+    
+    .component-tag.new {
+      background: #FF9800;
+    }
+  </style>
+</head>
+<body>
+  <div class="wireframe-container">
+    <!-- Wireframe Header -->
+    <div class="wireframe-header">
+      <h1>Attendance Management - Option 3: Real-time Dashboard with Analytics</h1>
+      <p>Innovative approach with live feed, analytics charts, and interactive student grid</p>
+    </div>
+    
+    <!-- Page Content -->
+    <div class="page-container">
+      <!-- Top Bar -->
+      <!-- REUSABLE: Header pattern from dashboard -->
+      <div style="position: relative;">
+        <span class="component-tag" title="Reusable header pattern">[REUSE] Header</span>
+        <div class="top-bar">
+          <div>
+            <div class="page-title">Real-time Attendance Dashboard</div>
+            <div style="font-size: 12px; color: #666; margin-top: 4px;">Grade 10 - Science Stream | Feb 11, 2026</div>
+          </div>
+          <div style="display: flex; gap: 15px; align-items: center;">
+            <div class="live-indicator">
+              <div class="live-dot"></div>
+              <span>Live Updates Enabled</span>
+            </div>
+            <button class="btn">Change Class</button>
+            <button class="btn btn-primary">Export Report</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Dashboard Grid -->
+      <div class="dashboard-grid">
+        <!-- Stats Row -->
+        <!-- REUSABLE: Stat cards from dashboard -->
+        <div style="position: relative; grid-column: span 12;">
+          <span class="component-tag" title="Reusable stat cards">[REUSE] StatCards</span>
+          <div class="stats-row">
+            <div class="stat-card">
+              <span class="stat-icon">👥</span>
+              <div class="stat-label">Total Students</div>
+              <div class="stat-value">45</div>
+              <div class="stat-change">In this class</div>
+            </div>
+            
+            <div class="stat-card">
+              <span class="stat-icon">✓</span>
+              <div class="stat-label">Present Now</div>
+              <div class="stat-value">38</div>
+              <div class="stat-change">84.4% attendance</div>
+            </div>
+            
+            <div class="stat-card">
+              <span class="stat-icon">✗</span>
+              <div class="stat-label">Absent</div>
+              <div class="stat-value">5</div>
+              <div class="stat-change">11.1% of class</div>
+            </div>
+            
+            <div class="stat-card">
+              <span class="stat-icon">⏰</span>
+              <div class="stat-label">Late Arrivals</div>
+              <div class="stat-value">2</div>
+              <div class="stat-change">4.4% of class</div>
+            </div>
+            
+            <div class="stat-card">
+              <span class="stat-icon">📊</span>
+              <div class="stat-label">Week Average</div>
+              <div class="stat-value">89%</div>
+              <div class="stat-change">+3% from last week</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Class Selector -->
+        <div style="position: relative; grid-column: span 4;">
+          <span class="component-tag new" title="New class selector component">[NEW] ClassSelector</span>
+          <div class="card class-grid">
+            <div class="card-header">
+              <span>All Classes</span>
+              <button class="btn btn-small">View All</button>
+            </div>
+            <div class="card-body" style="padding: 0; max-height: 350px; overflow-y: auto;">
+              <div class="class-item active">
+                <div>
+                  <div class="class-name">Grade 10 - Science</div>
+                  <div class="class-count">45 students</div>
+                </div>
+                <div class="attendance-rate">84%</div>
+              </div>
+              <div class="class-item">
+                <div>
+                  <div class="class-name">Grade 11 - Arts</div>
+                  <div class="class-count">38 students</div>
+                </div>
+                <div class="attendance-rate">92%</div>
+              </div>
+              <div class="class-item">
+                <div>
+                  <div class="class-name">Grade 12 - Commerce</div>
+                  <div class="class-count">42 students</div>
+                </div>
+                <div class="attendance-rate">88%</div>
+              </div>
+              <div class="class-item">
+                <div>
+                  <div class="class-name">Grade 9 - General</div>
+                  <div class="class-count">50 students</div>
+                </div>
+                <div class="attendance-rate">95%</div>
+              </div>
+              <div class="class-item">
+                <div>
+                  <div class="class-name">Grade 10 - Arts</div>
+                  <div class="class-count">40 students</div>
+                </div>
+                <div class="attendance-rate">87%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Live Attendance Feed -->
+        <div style="position: relative; grid-column: span 8;">
+          <span class="component-tag new" title="New live feed component">[NEW] LiveFeed</span>
+          <div class="card live-feed">
+            <div class="card-header">
+              <span>Live Attendance Feed</span>
+              <div style="font-size: 11px; color: #666;">Last updated: 2 seconds ago</div>
+            </div>
+            <div class="card-body" style="max-height: 350px; overflow-y: auto;">
+              <div class="feed-item">
+                <div class="timestamp">09:32 AM</div>
+                <div class="avatar">MJ</div>
+                <div class="feed-content">
+                  <strong>Michael Johnson</strong> marked absent
+                  <div style="font-size: 11px; color: #666;">Reason: Sick leave approved</div>
+                </div>
+                <div class="status-icon">✗</div>
+              </div>
+              
+              <div class="feed-item">
+                <div class="timestamp">09:30 AM</div>
+                <div class="avatar">EB</div>
+                <div class="feed-content">
+                  <strong>Emily Brown</strong> checked in (late)
+                  <div style="font-size: 11px; color: #666;">Note: Doctor appointment</div>
+                </div>
+                <div class="status-icon">⏰</div>
+              </div>
+              
+              <div class="feed-item">
+                <div class="timestamp">08:20 AM</div>
+                <div class="avatar">LT</div>
+                <div class="feed-content">
+                  <strong>Lisa Taylor</strong> checked in
+                </div>
+                <div class="status-icon">✓</div>
+              </div>
+              
+              <div class="feed-item">
+                <div class="timestamp">08:15 AM</div>
+                <div class="avatar">JD</div>
+                <div class="feed-content">
+                  <strong>John Doe</strong> checked in
+                </div>
+                <div class="status-icon">✓</div>
+              </div>
+              
+              <div class="feed-item">
+                <div class="timestamp">08:12 AM</div>
+                <div class="avatar">SM</div>
+                <div class="feed-content">
+                  <strong>Sarah Martinez</strong> checked in
+                </div>
+                <div class="status-icon">✓</div>
+              </div>
+              
+              <div class="feed-item">
+                <div class="timestamp">08:10 AM</div>
+                <div class="avatar">JS</div>
+                <div class="feed-content">
+                  <strong>Jane Smith</strong> checked in
+                </div>
+                <div class="status-icon">✓</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Analytics Chart -->
+        <div style="position: relative; grid-column: span 8;">
+          <span class="component-tag new" title="New analytics chart component">[NEW] AnalyticsChart</span>
+          <div class="card analytics-chart">
+            <div class="card-header">
+              <span>7-Day Attendance Trend</span>
+              <button class="btn btn-small">View Details</button>
+            </div>
+            <div class="card-body">
+              <div class="chart-bars">
+                <div class="chart-bar" style="height: 93%;">
+                  <div class="bar-value">93%</div>
+                  <div class="bar-label">Mon<br>Feb 9</div>
+                </div>
+                <div class="chart-bar" style="height: 89%;">
+                  <div class="bar-value">89%</div>
+                  <div class="bar-label">Tue<br>Feb 10</div>
+                </div>
+                <div class="chart-bar" style="height: 84%; background: #999;">
+                  <div class="bar-value">84%</div>
+                  <div class="bar-label"><strong>Today</strong><br>Feb 11</div>
+                </div>
+                <div class="chart-bar" style="height: 50%; background: #f0f0f0;">
+                  <div class="bar-value" style="color: #999;">—</div>
+                  <div class="bar-label">Thu<br>Feb 12</div>
+                </div>
+                <div class="chart-bar" style="height: 50%; background: #f0f0f0;">
+                  <div class="bar-value" style="color: #999;">—</div>
+                  <div class="bar-label">Fri<br>Feb 13</div>
+                </div>
+                <div class="chart-bar" style="height: 50%; background: #f0f0f0;">
+                  <div class="bar-value" style="color: #999;">—</div>
+                  <div class="bar-label">Sat<br>Feb 14</div>
+                </div>
+                <div class="chart-bar" style="height: 50%; background: #f0f0f0;">
+                  <div class="bar-value" style="color: #999;">—</div>
+                  <div class="bar-label">Sun<br>Feb 15</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div style="position: relative; grid-column: span 4;">
+          <span class="component-tag new" title="New quick actions panel">[NEW] QuickActions</span>
+          <div class="card quick-actions">
+            <div class="card-header">Quick Actions</div>
+            <div class="card-body">
+              <div class="action-grid">
+                <button class="action-btn">
+                  <div class="action-icon">📧</div>
+                  <div class="action-label">Send Notifications</div>
+                </button>
+                <button class="action-btn">
+                  <div class="action-icon">📊</div>
+                  <div class="action-label">Generate Report</div>
+                </button>
+                <button class="action-btn">
+                  <div class="action-icon">📅</div>
+                  <div class="action-label">View Calendar</div>
+                </button>
+                <button class="action-btn">
+                  <div class="action-icon">⚙️</div>
+                  <div class="action-label">Settings</div>
+                </button>
+              </div>
+              
+              <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #ccc;">
+                <div class="alert-item">
+                  <div class="alert-title">⚠️ High Absence Rate</div>
+                  <div>Grade 12-A has 15% absence today</div>
+                  <div class="alert-time">30 minutes ago</div>
+                </div>
+                
+                <div class="alert-item">
+                  <div class="alert-title">📢 Reminder</div>
+                  <div>Submit attendance by 10:00 AM</div>
+                  <div class="alert-time">1 hour ago</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Student Grid -->
+        <div style="position: relative; grid-column: span 12;">
+          <span class="component-tag new" title="New interactive student grid">[NEW] StudentGrid</span>
+          <div class="card student-grid-panel">
+            <div class="card-header">
+              <span>Quick Student View - Click to Toggle Status</span>
+              <div style="display: flex; gap: 10px;">
+                <button class="btn btn-small">Mark All Present</button>
+                <button class="btn btn-small btn-primary">Save Changes</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="student-grid">
+                <div class="student-card">
+                  <div class="status-indicator present"></div>
+                  <div class="student-avatar">JD</div>
+                  <div class="student-name">John Doe</div>
+                  <div class="student-roll">Roll: 001</div>
+                  <div style="font-size: 11px; color: #666;">Present</div>
+                </div>
+                
+                <div class="student-card">
+                  <div class="status-indicator present"></div>
+                  <div class="student-avatar">JS</div>
+                  <div class="student-name">Jane Smith</div>
+                  <div class="student-roll">Roll: 002</div>
+                  <div style="font-size: 11px; color: #666;">Present</div>
+                </div>
+                
+                <div class="student-card">
+                  <div class="status-indicator"></div>
+                  <div class="student-avatar">MJ</div>
+                  <div class="student-name">Michael Johnson</div>
+                  <div class="student-roll">Roll: 003</div>
+                  <div style="font-size: 11px; color: #666;">Absent</div>
+                </div>
+                
+                <div class="student-card">
+                  <div class="status-indicator present"></div>
+                  <div class="student-avatar">EB</div>
+                  <div class="student-name">Emily Brown</div>
+                  <div class="student-roll">Roll: 004</div>
+                  <div style="font-size: 11px; color: #666;">Late</div>
+                </div>
+                
+                <div class="student-card">
+                  <div class="status-indicator present"></div>
+                  <div class="student-avatar">DW</div>
+                  <div class="student-name">David Wilson</div>
+                  <div class="student-roll">Roll: 005</div>
+                  <div style="font-size: 11px; color: #666;">Present</div>
+                </div>
+                
+                <div class="student-card">
+                  <div class="status-indicator present"></div>
+                  <div class="student-avatar">SM</div>
+                  <div class="student-name">Sarah Martinez</div>
+                  <div class="student-roll">Roll: 006</div>
+                  <div style="font-size: 11px; color: #666;">Present</div>
+                </div>
+                
+                <div class="student-card">
+                  <div class="status-indicator"></div>
+                  <div class="student-avatar">CA</div>
+                  <div class="student-name">Chris Anderson</div>
+                  <div class="student-roll">Roll: 007</div>
+                  <div style="font-size: 11px; color: #666;">Absent</div>
+                </div>
+                
+                <div class="student-card">
+                  <div class="status-indicator present"></div>
+                  <div class="student-avatar">LT</div>
+                  <div class="student-name">Lisa Taylor</div>
+                  <div class="student-roll">Roll: 008</div>
+                  <div style="font-size: 11px; color: #666;">Present</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

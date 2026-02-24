@@ -10,74 +10,124 @@
 
 .confirm-card {
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-width: 500px;
+  border-radius: 20px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15);
+  max-width: 550px;
   width: 100%;
-  padding: 40px;
-  animation: slideIn 0.5s ease-out;
+  padding: 50px 40px;
+  animation: slideIn 0.6s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.confirm-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea, #764ba2, #11998e, #38ef7d);
+  background-size: 300% 100%;
+  animation: gradientShift 3s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateY(-30px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
 .header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 35px;
 }
 
 .icon-wrapper {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   animation: pulse 2s infinite;
+  position: relative;
 }
 
 .icon-wrapper svg {
   color: white;
+  z-index: 2;
 }
 
 .icon-wrapper.success {
   background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  animation: scaleIn 0.5s ease-out;
+  animation: successPulse 0.6s ease-out;
+}
+
+.icon-wrapper.error {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  animation: shake 0.5s ease-in-out;
+}
+
+.icon-wrapper.warning {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  animation: bounce 0.6s ease-out;
+}
+
+.spinner-icon {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
 }
 
 @keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
-@keyframes scaleIn {
-  from {
-    transform: scale(0);
-  }
-  to {
-    transform: scale(1);
-  }
+@keyframes successPulse {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 h1 {
-  font-size: 28px;
-  color: #333;
+  font-size: 32px;
+  color: #2c3e50;
   margin: 0;
   font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
 .success-title {
@@ -88,113 +138,199 @@ h1 {
   color: #e74c3c;
 }
 
+.warning-title {
+  color: #f39c12;
+}
+
+.loading-title {
+  color: #667eea;
+}
+
 .content {
-  margin-bottom: 30px;
+  margin-bottom: 35px;
 }
 
 .description {
-  font-size: 16px;
-  color: #666;
+  font-size: 18px;
+  color: #5a6c7d;
   line-height: 1.6;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   text-align: center;
+}
+
+.info-box {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
 }
 
 .info-text {
-  font-size: 14px;
-  color: #888;
-  text-align: center;
-  margin-bottom: 10px;
+  font-size: 15px;
+  color: #6c757d;
+  margin: 8px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .info-text strong {
-  color: #667eea;
-  word-break: break-all;
+  color: #495057;
+  font-weight: 600;
 }
 
 .loading-state {
   text-align: center;
-  padding: 20px 0;
-}
-
-.spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #667eea;
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  padding: 30px 0;
 }
 
 .loading-state p {
-  font-size: 16px;
-  color: #666;
+  font-size: 18px;
+  color: #5a6c7d;
+  margin-top: 20px;
 }
 
 .success-message {
-  background: #d4edda;
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
   border: 1px solid #c3e6cb;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 15px;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
 }
 
 .success-message p {
   color: #155724;
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   text-align: center;
+  font-weight: 500;
 }
 
 .error-message {
-  background: #f8d7da;
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
   border: 1px solid #f5c6cb;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 15px;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
 }
 
 .error-message p {
   color: #721c24;
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   text-align: center;
+  font-weight: 500;
 }
 
-.redirect-text,
-.help-text {
-  font-size: 14px;
-  color: #888;
+.warning-message {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border: 1px solid #ffeaa7;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.warning-message p {
+  color: #856404;
+  margin: 0;
+  font-size: 16px;
   text-align: center;
-  margin-top: 10px;
+  font-weight: 500;
+}
+
+.help-section {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.help-text {
+  font-size: 15px;
+  color: #495057;
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.help-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.help-list li {
+  padding: 8px 0;
+  color: #6c757d;
+  font-size: 14px;
+  position: relative;
+  padding-left: 25px;
+}
+
+.help-list li::before {
+  content: '•';
+  color: #667eea;
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+  font-size: 18px;
+}
+
+.redirect-text {
+  font-size: 16px;
+  color: #11998e;
+  text-align: center;
+  margin-top: 15px;
+  font-weight: 500;
 }
 
 .actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 15px;
+}
+
+.error-actions,
+.invalid-actions {
+  display: flex;
+  gap: 15px;
 }
 
 .btn {
-  padding: 14px 28px;
+  padding: 16px 32px;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn:hover::before {
+  left: 100%;
 }
 
 .btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
 .btn:active {
@@ -205,6 +341,10 @@ h1 {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+.btn-icon {
+  font-size: 18px;
 }
 
 .btn-primary {
@@ -226,30 +366,59 @@ h1 {
 }
 
 .btn-secondary {
-  background: #6c757d;
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
   color: white;
+  flex: 1;
 }
 
 .btn-secondary:hover {
-  background: #5a6268;
+  background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid #667eea;
+  color: #667eea;
+  flex: 1;
+}
+
+.btn-outline:hover {
+  background: #667eea;
+  color: white;
 }
 
 @media (max-width: 576px) {
   .confirm-card {
-    padding: 30px 20px;
+    padding: 40px 25px;
+    margin: 10px;
   }
 
   h1 {
-    font-size: 24px;
+    font-size: 26px;
   }
 
   .icon-wrapper {
-    width: 80px;
-    height: 80px;
+    width: 100px;
+    height: 100px;
   }
 
   .icon-wrapper svg {
     width: 50px;
     height: 50px;
+  }
+
+  .spinner-icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .error-actions,
+  .invalid-actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    padding: 14px 24px;
+    font-size: 15px;
   }
 }

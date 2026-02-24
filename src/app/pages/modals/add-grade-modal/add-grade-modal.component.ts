@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { SettingsService } from '../../../services/settings/settings.service';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
@@ -11,9 +11,11 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { Teacher } from './teacher.model';
+import { Subject, takeUntil, finalize } from 'rxjs';
 
 export interface AddGradeDialogData {
   organizationId: string;
+  selectedTeacherEmail?: string;
 }
 
 @Component({
@@ -21,18 +23,21 @@ export interface AddGradeDialogData {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatProgressSpinnerModule, MatIconModule],
   templateUrl: './add-grade-modal.component.html',
-  styleUrl: './add-grade-modal.component.css'
+  styleUrl: './add-grade-modal.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AddGradeModalComponent implements OnInit{
+export class AddGradeModalComponent implements OnInit, OnDestroy {
   gradeForm!: FormGroup;
   isSubmitting = false;
   isLoadingTeachers = false;
   teachers: Teacher[] = [];
   organizationId: string;
+  private destroy$ = new Subject<void>();
 
   constructor(private fb: FormBuilder,
               private dialogRef: MatDialogRef<AddGradeModalComponent>,
               private settingsService: SettingsService,
+              private cdr: ChangeDetectorRef,
               @Inject(MAT_DIALOG_DATA) public data: AddGradeDialogData
   ) {
     this.organizationId = data.organizationId;
@@ -41,6 +46,11 @@ export class AddGradeModalComponent implements OnInit{
   ngOnInit(): void {
     this.initializeForm();
     this.loadTeachers();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   initializeForm(): void {
@@ -52,24 +62,37 @@ export class AddGradeModalComponent implements OnInit{
   }
 
   loadTeachers(): void {
-    if (this.organizationId) {
-      this.isLoadingTeachers = true;
-      this.settingsService.getTeachersByOrganization(this.organizationId).subscribe({
+    if (!this.organizationId) {
+      console.error('Organization ID could not be determined.');
+      return;
+    }
+
+    this.isLoadingTeachers = true;
+    this.cdr.detectChanges();
+    
+    this.settingsService.getTeachersByOrganization(this.organizationId)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isLoadingTeachers = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
         next: (teachers: Teacher[]) => {
           this.teachers = teachers;
-          this.isLoadingTeachers = false;
-          console.log('Teachers loaded:', this.teachers); 
+          console.log('Teachers loaded:', this.teachers);
+          
+          // Pre-select teacher if provided
+          if (this.data?.selectedTeacherEmail && this.gradeForm) {
+            this.gradeForm.patchValue({ teacherId: this.data.selectedTeacherEmail });
+          }
         },
         error: (err) => {
           console.error('Failed to load teachers:', err);
-          this.isLoadingTeachers = false;
-          
+          this.teachers = [];
         }
       });
-    } else {
-      console.error('Organization ID could not be determined.');
-     
-    }
   } 
 
   onSubmit(): void {

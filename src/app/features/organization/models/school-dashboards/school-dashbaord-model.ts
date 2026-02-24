@@ -6,6 +6,7 @@ export class SchoolDashbaordModel {
     totalStudents: number;
     totalStaff: number;
     totalGuests: number;
+    totalCourseStreams: number;
     typeOfService: string;
     firstName: string;
     lastName: string;
@@ -21,7 +22,8 @@ export class SchoolDashbaordModel {
         this.totalTeachers = data.totalTeachers || 0;
         this.totalStudents = data.totalStudents || 0;
         this.totalStaff = data.totalStaff || 0;
-        this.totalGuests = data.totalGuests || 0
+        this.totalGuests = data.totalGuests || 0;
+        this.totalCourseStreams = data.totalCourseStreams || 0;
         this.adminBusinessEmail = data.adminBusinessEmail || '';
         this.adminProfilePicture = data.adminProfilePicture || '';
         this.typeOfService = data.typeOfService || '';

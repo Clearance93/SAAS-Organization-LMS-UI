@@ -1,47 +1,426 @@
-<div class="student-dashboard">
-  <div class="sidebar">
-    <!-- Sidebar navigation -->
-    <nav>
-      <ul>
-        <li>Dashboard</li>
-        <li>Courses</li>
-        <li>Assignments</li>
-        <li>Grades</li>
-        <li>Profile</li>
-      </ul>
-    </nav>
-  </div>
-
-  <div class="main-content">
-    <h1>Student Dashboard</h1>
-
-    <div class="dashboard-grid">
-      <div class="card assignments">
-        <h2>Assignments</h2>
-        <ul>
-          <li *ngFor="let assignment of assignments">
-            {{ assignment.title }} - Due: {{ assignment.dueDate }}
-          </li>
-        </ul>
+<div class="student-dashboard" *ngIf="!isLoading">
+  <header class="dashboard-header">
+    <div class="header-left">
+      <h1>Welcome back, {{ studentName }}</h1>
+      <p class="subtitle">{{ getHeaderSubtitle() }}</p>
+    </div>
+    <div class="header-right">
+      <button class="icon-button" (click)="openMessages()" title="Messages">
+        📧
+        <span class="badge" *ngIf="messagesCount > 0">{{ messagesCount }}</span>
+      </button>
+      <button class="icon-button" (click)="settings()" title="Settings">⚙️</button>
+      <button class="icon-button logout-btn" (click)="logout()" title="Logout">⏻</button>
+      <div class="student-profile">
+        <img *ngIf="studentProfilePicture" [src]="studentProfilePicture" alt="Profile" class="profile-img" (error)="onImageError()">
+        <div class="avatar" *ngIf="!studentProfilePicture || imageError">{{ getStudentInitials() }}</div>
       </div>
+    </div>
+  </header>
 
-      <div class="card grades">
-        <h2>Grades</h2>
-        <ul>
-          <li *ngFor="let grade of grades">
-            {{ grade.subject }}: {{ grade.grade }} ({{ grade.percentage }}%)
-          </li>
-        </ul>
+  <div class="content-grid">
+    <div class="card quick-actions-card">
+      <div class="card-header">
+        <h3>⚡ Quick Actions</h3>
       </div>
+      <div class="quick-actions">
+        <button class="quick-action-btn" *ngFor="let action of quickActions" (click)="handleQuickAction(action.action)">
+          <span class="action-icon">{{ action.icon }}</span>
+          <span class="action-label">{{ action.label }}</span>
+        </button>
+      </div>
+    </div>
 
-      <div class="card announcements">
-        <h2>Announcements</h2>
-        <ul>
-          <li *ngFor="let announcement of announcements">
-            {{ announcement.title }} - {{ announcement.date }}
-          </li>
-        </ul>
+    <div class="card schedule-card">
+      <div class="card-header">
+        <h3>📅 Today's Schedule</h3>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button class="refresh-btn" (click)="refreshSchedule()" title="Refresh Schedule" style="padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1.2rem;">🔄</button>
+          <span class="date">{{ getCurrentDate() }}</span>
+        </div>
+      </div>
+      <div class="schedule-list">
+        <div class="schedule-item" *ngFor="let item of todaySchedule">
+          <div class="schedule-time">{{ item.time }}</div>
+          <div class="schedule-details">
+            <div class="schedule-subject">{{ item.subject }}</div>
+            <div class="schedule-teacher">{{ item.teacher }}</div>
+            <div class="schedule-room">{{ item.room }}</div>
+          </div>
+        </div>
+        <div *ngIf="todaySchedule.length === 0" class="no-schedule">
+          <p>No classes scheduled for today</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card progress-card">
+      <div class="card-header">
+        <h3>📊 Academic Progress</h3>
+        <select class="term-selector" [(ngModel)]="selectedTerm" (change)="onTermChange()">
+          <option value="current">Current Term</option>
+          <ng-container *ngFor="let term of availableTerms">
+            <option *ngIf="term !== 'current'" [value]="term">{{ term }}</option>
+          </ng-container>
+        </select>
+      </div>
+      <div class="progress-overview">
+        <div class="overall-grade">
+          <div class="grade-circle">
+            <span class="grade-value">{{ overallGrade }}</span>
+            <span class="grade-label">Overall</span>
+          </div>
+        </div>
+        <div class="subject-grades">
+          <div class="subject-grade" *ngFor="let subject of subjectGrades">
+            <div class="subject-name">{{ subject.subject }}</div>
+            <div class="grade-bar">
+              <div class="grade-fill" [style.width.%]="subject.percentage" [style.background-color]="subject.color"></div>
+            </div>
+            <div class="grade-text">{{ subject.percentage }}%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card assignments-card">
+      <div class="card-header">
+        <h3>📝 Assignments & Tasks</h3>
+        <div class="assignment-tabs">
+          <button class="tab-btn" [class.active]="assignmentTab === 'pending'" (click)="setAssignmentTab('pending')">Pending</button>
+          <button class="tab-btn" [class.active]="assignmentTab === 'submitted'" (click)="setAssignmentTab('submitted')">Submitted</button>
+          <button class="tab-btn" [class.active]="assignmentTab === 'graded'" (click)="setAssignmentTab('graded')">Graded</button>
+        </div>
+      </div>
+      <div class="assignments-list">
+        <div class="assignment-item" *ngFor="let assignment of filteredAssignments">
+          <div class="assignment-info">
+            <div class="assignment-title">{{ assignment.title }}</div>
+            <div class="assignment-subject">{{ assignment.subject }}</div>
+            <div class="assignment-due">Due: {{ assignment.dueDate }}</div>
+          </div>
+          <div class="assignment-actions">
+            <span class="assignment-status" [class]="assignment.status">{{ assignment.status }}</span>
+            <button class="action-btn" *ngIf="assignment.status === 'pending'" (click)="openAssignmentModal(assignment)">📄 View & Submit</button>
+            <span *ngIf="assignment.grade" class="grade-badge">{{ assignment.grade }}</span>
+          </div>
+        </div>
+        <div *ngIf="filteredAssignments.length === 0" class="no-assignments">
+          <p>No {{ assignmentTab }} assignments</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card attendance-card">
+      <div class="card-header">
+        <h3>📊 Attendance</h3>
+      </div>
+      <div class="attendance-stats">
+        <div class="attendance-circle">
+          <span class="attendance-value">{{ attendancePercentage }}%</span>
+          <span class="attendance-label">This Term</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card announcements-card">
+      <div class="card-header">
+        <h3>📢 Announcements <span *ngIf="announcementsCount > 0" class="count-badge">({{ announcementsCount }})</span></h3>
+        <button class="refresh-btn" (click)="refreshAnnouncements()" title="Refresh">🔄</button>
+      </div>
+      <div class="announcements-list">
+        <div class="announcement-item" *ngFor="let announcement of paginatedAnnouncements">
+          <div class="announcement-content">
+            <div class="announcement-title">{{ announcement.title }}</div>
+            <div class="announcement-message">{{ announcement.message }}</div>
+            <div class="announcement-date">{{ announcement.date | date:'medium' }}</div>
+          </div>
+        </div>
+        <div *ngIf="announcements.length === 0" class="no-announcements">
+          <p>No announcements</p>
+        </div>
+      </div>
+      <div *ngIf="totalAnnouncementsPages > 1" class="pagination-controls" style="margin-top: 1rem; padding: 0 1rem 1rem;">
+        <button class="pagination-btn" (click)="prevAnnouncementsPage()" [disabled]="announcementsPage === 1">← Previous</button>
+        <span class="pagination-info">Page {{ announcementsPage }} of {{ totalAnnouncementsPages }}</span>
+        <button class="pagination-btn" (click)="nextAnnouncementsPage()" [disabled]="announcementsPage === totalAnnouncementsPages">Next →</button>
+      </div>
+    </div>
+
+    <div class="card events-card">
+      <div class="card-header">
+        <h3>🗓️ Upcoming Events</h3>
+      </div>
+      <div class="events-list">
+        <div class="event-item" *ngFor="let event of upcomingEvents">
+          <div class="event-date">{{ event.date }}</div>
+          <div class="event-details">
+            <div class="event-title">{{ event.title }}</div>
+            <div class="event-time">{{ event.time }}</div>
+            <div class="event-location">{{ event.location }}</div>
+          </div>
+        </div>
+        <div *ngIf="upcomingEvents.length === 0" class="no-events">
+          <p>No upcoming events</p>
+        </div>
       </div>
     </div>
   </div>
 </div>
+
+<div class="loading-container" *ngIf="isLoading">
+  <div class="spinner"></div>
+  <p>Loading dashboard...</p>
+</div>
+
+<div class="modal-overlay" *ngIf="showAssignmentModal" (click)="closeAssignmentModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ selectedAssignment?.title }}</h2>
+      <button class="close-btn" (click)="closeAssignmentModal()">×</button>
+    </div>
+    <div class="modal-body" *ngIf="selectedAssignment">
+      <p><strong>Subject:</strong> {{ selectedAssignment.subject }}</p>
+      <p><strong>Due Date:</strong> {{ selectedAssignment.dueDate }}</p>
+      <p><strong>Status:</strong> {{ selectedAssignment.status }}</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeAssignmentModal()">Close</button>
+      <button class="btn-primary" (click)="submitAssignment()" *ngIf="selectedAssignment?.status === 'pending'">Submit Assignment</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showSubmissionModal" (click)="closeSubmissionModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>📤 Submit Assignment</h2>
+      <button class="close-btn" (click)="closeSubmissionModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="assignment-info" *ngIf="selectedAssignment">
+        <p><strong>📝 Assignment:</strong> {{ selectedAssignment.title }}</p>
+        <p><strong>📚 Subject:</strong> {{ selectedAssignment.subject }}</p>
+        <p><strong>📅 Due Date:</strong> {{ selectedAssignment.dueDate }}</p>
+      </div>
+      <div class="file-upload">
+        <label for="file-input">📎 Upload Your Work (PDF Only)</label>
+        <label 
+          for="file-input" 
+          class="file-upload-area" 
+          [class.has-file]="selectedFile"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event)"
+        >
+          <div class="upload-icon">{{ selectedFile ? '✅' : '📄' }}</div>
+          <div class="upload-text">{{ selectedFile ? selectedFile.name : 'Click to browse or drag and drop' }}</div>
+          <div class="upload-hint" *ngIf="!selectedFile">Maximum file size: 10MB</div>
+        </label>
+        <input type="file" id="file-input" accept=".pdf" (change)="onFileSelected($event)" style="display: none;">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeSubmissionModal()" [disabled]="isSubmitting">Cancel</button>
+      <button class="btn-primary" (click)="confirmSubmission()" [disabled]="!selectedFile || isSubmitting">
+        {{ isSubmitting ? '⏳ Submitting...' : '🚀 Submit Assignment' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showSubjectEnrollmentModal" (click)="closeSubjectEnrollmentModal()">
+  <div class="modal-content stream-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>📚 Enroll in Subjects</h2>
+      <button class="close-btn" (click)="closeSubjectEnrollmentModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom: 1.5rem;">
+        <input 
+          type="text" 
+          [(ngModel)]="searchQuery" 
+          (ngModelChange)="onSearchChange()" 
+          placeholder="🔍 Search by subject, grade, or room..." 
+          style="width: 100%; padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.95rem;"
+        >
+      </div>
+      <p style="margin-bottom: 1rem; color: #6b7280; font-size: 0.9rem;">{{ filteredSubjects.length }} subjects available - Click to enroll instantly</p>
+      <div class="streams-grid">
+        <div 
+          class="stream-card" 
+          *ngFor="let subject of paginatedSubjects"
+          [class.enrolled]="isSubjectSelected(subject.teachingClassId)"
+          (click)="!isSubjectSelected(subject.teachingClassId) && toggleSubjectSelection(subject)"
+          [style.cursor]="isSubjectSelected(subject.teachingClassId) ? 'not-allowed' : 'pointer'"
+          [style.opacity]="isSubjectSelected(subject.teachingClassId) ? '0.6' : '1'"
+        >
+          <div class="stream-content">
+            <div class="subject-info">
+              <h3>{{ subject.subject }}</h3>
+              <p class="stream-name">{{ subject.gradeStreamName }}</p>
+              <p class="classroom">📍 {{ subject.classRoomNumber }}</p>
+              <p class="students">👥 {{ subject.totalStudents }} students enrolled</p>
+              <span *ngIf="isSubjectSelected(subject.teachingClassId)" style="color: #10b981; font-weight: 600; font-size: 0.9rem;">✅ Enrolled</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="paginatedSubjects.length === 0" class="no-streams">
+        <p>No subjects found matching your criteria</p>
+      </div>
+      <div *ngIf="totalSubjectPages > 1" class="pagination-controls" style="margin-top: 1.5rem;">
+        <button class="pagination-btn" (click)="prevSubjectPage()" [disabled]="subjectPage === 1">← Previous</button>
+        <span class="pagination-info">Page {{ subjectPage }} of {{ totalSubjectPages }}</span>
+        <button class="pagination-btn" (click)="nextSubjectPage()" [disabled]="subjectPage === totalSubjectPages">Next →</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" (click)="closeSubjectEnrollmentModal()" style="width: 100%;">✅ Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showJoinClassModal" (click)="closeJoinClassModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>🎥 Join Live Class</h2>
+      <button class="close-btn" (click)="closeJoinClassModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 1rem;"><strong>Upcoming Class Sessions:</strong></p>
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div *ngFor="let session of upcomingSessions" style="padding: 1rem; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h4 style="margin: 0 0 0.5rem 0;">{{ session.workshopName }}</h4>
+              <p style="margin: 0; color: #6b7280; font-size: 0.9rem;">{{ session.workShopDescription }}</p>
+              <p style="margin: 0.25rem 0 0 0; color: #6b7280; font-size: 0.85rem;">📅 {{ session.scheduledDate | date:'short' }} at {{ session.scheduleTime }}</p>
+              <p style="margin: 0.25rem 0 0 0; color: #6b7280; font-size: 0.85rem;">⏱️ Duration: {{ session.timeDuration }} minutes</p>
+              <p style="margin: 0.25rem 0 0 0; color: #6b7280; font-size: 0.85rem;">👥 Max Participants: {{ session.maxParticipants }}</p>
+            </div>
+            <button class="btn-primary" (click)="joinClass(session.meetingUrl)" style="white-space: nowrap;">▶️ Join Now</button>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="upcomingSessions.length === 0" style="text-align: center; padding: 2rem; color: #6b7280;">
+        <p>No upcoming class sessions at the moment</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeJoinClassModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showGradesModal" (click)="closeGradesModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>📊 My Grades</h2>
+      <button class="close-btn" (click)="closeGradesModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div *ngFor="let subject of subjectGrades" style="padding: 1rem; background: #f9fafb; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="margin: 0;">{{ subject.subject }}</h4>
+            <span style="font-size: 1.5rem; font-weight: 700;" [style.color]="subject.color">{{ subject.grade }}</span>
+          </div>
+          <p style="margin: 0.5rem 0 0 0; color: #6b7280;">{{ subject.percentage }}%</p>
+        </div>
+        <div *ngIf="subjectGrades.length === 0" style="text-align: center; padding: 2rem; color: #6b7280;">
+          <p>No grades available yet</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeGradesModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="showMySubjectsModal" (click)="closeMySubjectsModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>📝 My Registered Subjects</h2>
+      <button class="close-btn" (click)="closeMySubjectsModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom: 1rem; color: #6b7280;">You are enrolled in {{ mySubjects.length }} subject(s)</p>
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div *ngFor="let subject of mySubjects" style="padding: 1.5rem; background: #f9fafb; border-radius: 12px; border-left: 4px solid #6366f1;">
+          <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div style="flex: 1;">
+              <h3 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; color: #1f2937;">{{ subject.subject }}</h3>
+              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">🏫 {{ subject.streamName }}</p>
+              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">👨🏫 Teacher: {{ subject.teacherFirstNames }} {{ subject.teacherLastName }}</p>
+            </div>
+            <span style="background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">✅ Enrolled</span>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="mySubjects.length === 0" style="text-align: center; padding: 3rem; color: #6b7280;">
+        <p style="font-size: 3rem; margin: 0 0 1rem 0;">📚</p>
+        <p style="margin: 0; font-size: 1.1rem;">You haven't enrolled in any subjects yet</p>
+        <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Click "Enroll Subject" to get started</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" (click)="closeMySubjectsModal()" style="width: 100%;">✅ Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- My Videos Modal -->
+<div class="modal-overlay" *ngIf="showMyVideosModal" (click)="closeMyVideosModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 1000px; max-height: 90vh; overflow-y: auto;">
+    <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color: white; padding: 1.5rem; border-radius: 12px 12px 0 0;">
+      <h2 style="margin: 0; font-size: 1.5rem;">🎬 My Learning Videos</h2>
+      <button class="close-btn" (click)="closeMyVideosModal()" style="color: white; font-size: 2rem;">×</button>
+    </div>
+    <div style="padding: 2rem;">
+      <div *ngIf="isLoadingVideos" style="text-align: center; padding: 3rem; color: #6b7280;">
+        <p style="font-size: 3rem; margin: 0 0 1rem 0;">⏳</p>
+        <p style="margin: 0; font-size: 1.1rem;">Loading videos...</p>
+      </div>
+
+      <div *ngIf="!isLoadingVideos && studentVideos.length > 0" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+        <div *ngFor="let video of studentVideos" style="background: white; border-radius: 12px; overflow: hidden; border: 2px solid #e5e7eb; transition: all 0.3s; cursor: pointer;" (click)="playStudentVideo(video)">
+          <div style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); padding: 1rem; text-align: center;">
+            <span style="font-size: 3rem;">🎥</span>
+          </div>
+          <div style="padding: 1.5rem;">
+            <h4 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 1.1rem;">{{ video.videoTitle }}</h4>
+            <p style="margin: 0 0 0.5rem 0; color: #64748b; font-size: 0.9rem;">{{ video.description || 'No description' }}</p>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; color: #6b7280; font-size: 0.85rem;">
+              <span>📚</span>
+              <span>{{ video.streamName }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; color: #6b7280; font-size: 0.85rem;">
+              <span>👨🏫</span>
+              <span>{{ video.teacherFullNames }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; color: #6b7280; font-size: 0.85rem;">
+              <span>📅</span>
+              <span>{{ video.uploadedTime | date:'short' }}</span>
+            </div>
+            <button (click)="playStudentVideo(video); $event.stopPropagation()" style="width: 100%; margin-top: 1rem; padding: 0.75rem; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+              ▶️ Watch Video
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!isLoadingVideos && studentVideos.length === 0" style="text-align: center; padding: 3rem; color: #6b7280;">
+        <p style="font-size: 3rem; margin: 0 0 1rem 0;">🎬</p>
+        <p style="margin: 0; font-size: 1.1rem;">No videos available yet</p>
+        <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Your teachers will upload learning videos here</p>
+      </div>
+    </div>
+    <div style="padding: 1.5rem; background: #f8fafc; display: flex; gap: 1rem; border-top: 2px solid #e5e7eb;">
+      <button class="btn-primary" (click)="closeMyVideosModal()" style="flex: 1;">✅ Close</button>
+    </div>
+  </div>
+</div>
+
+<app-ai-assistant></app-ai-assistant>

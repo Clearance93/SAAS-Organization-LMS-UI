@@ -1,0 +1,209 @@
+<div class="church-dashboard">
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="header-left">
+      <h1>⛪ {{ churchName }}</h1>
+      <p class="subtitle">Welcome, {{ adminName }}</p>
+    </div>
+    <div class="header-right">
+      <button class="icon-button" (click)="settings()" title="Settings">⚙️</button>
+      <button class="icon-button logout-btn" (click)="logout()" title="Logout">⏻</button>
+    </div>
+  </header>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div class="stat-content">
+        <h3>{{ totalMembers }}</h3>
+        <p>Total Members</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">✅</div>
+      <div class="stat-content">
+        <h3>{{ activeMembers }}</h3>
+        <p>Active Members</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⛪</div>
+      <div class="stat-content">
+        <h3>{{ upcomingServices }}</h3>
+        <p>Upcoming Services</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">💰</div>
+      <div class="stat-content">
+        <h3>R{{ monthlyDonations | number }}</h3>
+        <p>Monthly Donations</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="content-grid">
+    <!-- Quick Actions -->
+    <div class="card quick-actions-card">
+      <div class="card-header">
+        <h3>⚡ Quick Actions</h3>
+      </div>
+      <div class="quick-actions-grid">
+        <button class="quick-action-btn" 
+                *ngFor="let action of quickActions"
+                (click)="handleQuickAction(action.action)">
+          <span class="action-icon">{{ action.icon }}</span>
+          <span class="action-title">{{ action.title }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Upcoming Services -->
+    <div class="card services-card">
+      <div class="card-header">
+        <h3>⛪ Upcoming Services</h3>
+        <button class="add-btn" (click)="openServiceModal()">+ Add Service</button>
+      </div>
+      <div class="services-list">
+        <div class="service-item" *ngFor="let service of services">
+          <div class="service-info">
+            <h4>{{ service.serviceName }}</h4>
+            <p>{{ service.serviceType }} • {{ service.pastor }}</p>
+            <div class="service-details">
+              <span>📅 {{ service.date | date:'mediumDate' }}</span>
+              <span>🕐 {{ service.time }}</span>
+              <span>📍 {{ service.location }}</span>
+            </div>
+          </div>
+          <div class="service-attendance">
+            <span class="attendance-count">{{ service.attendance }}</span>
+            <span class="attendance-label">Attendees</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Sermons -->
+    <div class="card sermons-card">
+      <div class="card-header">
+        <h3>📖 Recent Sermons</h3>
+        <button class="add-btn" (click)="openSermonModal()">+ Add Sermon</button>
+      </div>
+      <div class="sermons-list">
+        <div class="sermon-item" *ngFor="let sermon of sermons">
+          <div class="sermon-info">
+            <h4>{{ sermon.title }}</h4>
+            <p class="scripture">{{ sermon.scripture }}</p>
+            <div class="sermon-meta">
+              <span>👤 {{ sermon.speaker }}</span>
+              <span>📅 {{ sermon.date | date:'mediumDate' }}</span>
+              <span *ngIf="sermon.series">📚 {{ sermon.series }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Service Modal -->
+<div class="modal-overlay" *ngIf="isServiceModalOpen" (click)="closeServiceModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Schedule Service</h3>
+      <button class="close-btn" (click)="closeServiceModal()">×</button>
+    </div>
+    <form [formGroup]="serviceForm" (ngSubmit)="createService()">
+      <div class="form-group">
+        <label>Service Name</label>
+        <input type="text" formControlName="serviceName" placeholder="e.g., Sunday Morning Worship">
+      </div>
+      <div class="form-group">
+        <label>Service Type</label>
+        <select formControlName="serviceType">
+          <option value="Sunday Service">Sunday Service</option>
+          <option value="Bible Study">Bible Study</option>
+          <option value="Prayer Meeting">Prayer Meeting</option>
+          <option value="Youth Service">Youth Service</option>
+          <option value="Special Event">Special Event</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" formControlName="date">
+        </div>
+        <div class="form-group">
+          <label>Time</label>
+          <input type="time" formControlName="time">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Duration (minutes)</label>
+          <input type="number" formControlName="duration" min="30">
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" formControlName="location">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Pastor/Leader</label>
+        <input type="text" formControlName="pastor">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea formControlName="description" rows="3"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeServiceModal()">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!serviceForm.valid">Schedule Service</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Sermon Modal -->
+<div class="modal-overlay" *ngIf="isSermonModalOpen" (click)="closeSermonModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Add Sermon</h3>
+      <button class="close-btn" (click)="closeSermonModal()">×</button>
+    </div>
+    <form [formGroup]="sermonForm" (ngSubmit)="createSermon()">
+      <div class="form-group">
+        <label>Sermon Title</label>
+        <input type="text" formControlName="title" placeholder="e.g., Walking in Faith">
+      </div>
+      <div class="form-group">
+        <label>Scripture Reference</label>
+        <input type="text" formControlName="scripture" placeholder="e.g., John 3:16">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Speaker</label>
+          <input type="text" formControlName="speaker">
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" formControlName="date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Series (Optional)</label>
+        <input type="text" formControlName="series" placeholder="e.g., Faith Series">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea formControlName="notes" rows="4" placeholder="Sermon notes or key points"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeSermonModal()">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!sermonForm.valid">Add Sermon</button>
+      </div>
+    </form>
+  </div>
+</div>

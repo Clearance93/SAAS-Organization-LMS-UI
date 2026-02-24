@@ -1,0 +1,300 @@
+<div class="student-settings">
+  <!-- Header -->
+  <div class="settings-header">
+    <button class="back-btn" (click)="goBack()">← Back to Dashboard</button>
+    <h1>Student Settings</h1>
+  </div>
+
+  <!-- Settings Navigation -->
+  <div class="settings-nav">
+    <button class="nav-tab" [class.active]="activeTab === 'profile'" (click)="setActiveTab('profile')">
+      👤 Profile
+    </button>
+    <button class="nav-tab" [class.active]="activeTab === 'password'" (click)="setActiveTab('password')">
+      🔒 Password
+    </button>
+    <button class="nav-tab" [class.active]="activeTab === 'notifications'" (click)="setActiveTab('notifications')">
+      🔔 Notifications
+    </button>
+    <button class="nav-tab" [class.active]="activeTab === 'privacy'" (click)="setActiveTab('privacy')">
+      🛡️ Privacy
+    </button>
+  </div>
+
+  <!-- Settings Content -->
+  <div class="settings-content">
+    
+    <!-- Profile Settings -->
+    <div class="settings-section" *ngIf="activeTab === 'profile'">
+      <div class="section-header">
+        <h2>Profile Information</h2>
+        <p>Update your personal information and profile picture</p>
+      </div>
+      
+      <form [formGroup]="profileForm" (ngSubmit)="updateProfile()">
+        <!-- Profile Picture -->
+        <div class="profile-picture-section">
+          <div class="current-picture">
+            <div class="avatar-large" *ngIf="!studentProfile.profilePicture">
+              {{ getStudentInitials() }}
+            </div>
+            <img *ngIf="studentProfile.profilePicture" [src]="studentProfile.profilePicture" alt="Profile Picture" class="profile-img">
+          </div>
+          <div class="picture-actions">
+            <input type="file" #fileInput (change)="onFileSelected($event)" accept="image/*" style="display: none;">
+            <button type="button" class="btn-secondary" (click)="fileInput.click()">Change Picture</button>
+            <button type="button" class="btn-outline" *ngIf="studentProfile.profilePicture" (click)="studentProfile.profilePicture = ''">Remove</button>
+          </div>
+        </div>
+
+        <!-- Student Info (Read-only) -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>Student ID</label>
+            <input type="text" [value]="studentProfile.studentId" readonly class="form-control readonly">
+          </div>
+          <div class="form-group">
+            <label>Grade & Stream</label>
+            <input type="text" [value]="studentProfile.grade + ' - ' + studentProfile.stream" readonly class="form-control readonly">
+          </div>
+        </div>
+
+        <!-- Personal Information -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">First Name *</label>
+            <input type="text" id="firstName" formControlName="firstName" class="form-control">
+            <div class="error-message" *ngIf="profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched">
+              First name is required
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name *</label>
+            <input type="text" id="lastName" formControlName="lastName" class="form-control">
+            <div class="error-message" *ngIf="profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched">
+              Last name is required
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" [value]="studentProfile.email" readonly class="form-control readonly">
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" formControlName="phone" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="dateOfBirth">Date of Birth</label>
+            <input type="date" id="dateOfBirth" [value]="studentProfile.dateOfBirth" readonly class="form-control readonly">
+          </div>
+          <div class="form-group">
+            <label>Enrollment Date</label>
+            <input type="text" [value]="studentProfile.enrollmentDate | date:'MMM d, yyyy'" readonly class="form-control readonly">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="address">Address</label>
+          <textarea id="address" formControlName="address" class="form-control" rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="emergencyContact">Emergency Contact</label>
+          <input type="text" id="emergencyContact" formControlName="emergencyContact" class="form-control" 
+                 placeholder="Name - Phone Number">
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" [disabled]="profileForm.invalid || isLoading">
+            <span *ngIf="isLoading">Updating...</span>
+            <span *ngIf="!isLoading">Update Profile</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Password Settings -->
+    <div class="settings-section" *ngIf="activeTab === 'password'">
+      <div class="section-header">
+        <h2>Change Password</h2>
+        <p>Update your account password for better security</p>
+      </div>
+      
+      <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+        <div class="form-group">
+          <label for="currentPassword">Current Password *</label>
+          <input type="password" id="currentPassword" formControlName="currentPassword" class="form-control">
+          <div class="error-message" *ngIf="passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched">
+            Current password is required
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="newPassword">New Password *</label>
+          <input type="password" id="newPassword" formControlName="newPassword" class="form-control">
+          <div class="error-message" *ngIf="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched">
+            Password must be at least 8 characters long
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">Confirm New Password *</label>
+          <input type="password" id="confirmPassword" formControlName="confirmPassword" class="form-control">
+          <div class="error-message" *ngIf="passwordForm.get('confirmPassword')?.invalid && passwordForm.get('confirmPassword')?.touched">
+            Passwords do not match
+          </div>
+        </div>
+
+        <div class="password-requirements">
+          <h4>Password Requirements:</h4>
+          <ul>
+            <li>At least 8 characters long</li>
+            <li>Include uppercase and lowercase letters</li>
+            <li>Include at least one number</li>
+            <li>Include at least one special character</li>
+          </ul>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" [disabled]="passwordForm.invalid || isLoading">
+            <span *ngIf="isLoading">Changing...</span>
+            <span *ngIf="!isLoading">Change Password</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Notification Settings -->
+    <div class="settings-section" *ngIf="activeTab === 'notifications'">
+      <div class="section-header">
+        <h2>Notification Preferences</h2>
+        <p>Choose what notifications you want to receive</p>
+      </div>
+      
+      <form [formGroup]="notificationForm" (ngSubmit)="updateNotifications()">
+        <div class="notification-group">
+          <h3>Email Notifications</h3>
+          <div class="notification-item">
+            <label class="switch">
+              <input type="checkbox" formControlName="emailNotifications">
+              <span class="slider"></span>
+            </label>
+            <div class="notification-info">
+              <div class="notification-title">Email Notifications</div>
+              <div class="notification-desc">Receive general notifications via email</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="notification-group">
+          <h3>Academic Notifications</h3>
+          <div class="notification-item">
+            <label class="switch">
+              <input type="checkbox" formControlName="assignmentReminders">
+              <span class="slider"></span>
+            </label>
+            <div class="notification-info">
+              <div class="notification-title">Assignment Reminders</div>
+              <div class="notification-desc">Get reminded about upcoming assignment deadlines</div>
+            </div>
+          </div>
+
+          <div class="notification-item">
+            <label class="switch">
+              <input type="checkbox" formControlName="gradeUpdates">
+              <span class="slider"></span>
+            </label>
+            <div class="notification-info">
+              <div class="notification-title">Grade Updates</div>
+              <div class="notification-desc">Receive notifications when grades are posted</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="notification-group">
+          <h3>School Notifications</h3>
+          <div class="notification-item">
+            <label class="switch">
+              <input type="checkbox" formControlName="announcements">
+              <span class="slider"></span>
+            </label>
+            <div class="notification-info">
+              <div class="notification-title">School Announcements</div>
+              <div class="notification-desc">Receive important school announcements</div>
+            </div>
+          </div>
+
+          <div class="notification-item">
+            <label class="switch">
+              <input type="checkbox" formControlName="eventReminders">
+              <span class="slider"></span>
+            </label>
+            <div class="notification-info">
+              <div class="notification-title">Event Reminders</div>
+              <div class="notification-desc">Get notified about upcoming school events</div>
+            </div>
+          </div>
+
+          <div class="notification-item">
+            <label class="switch">
+              <input type="checkbox" formControlName="libraryDueReminders">
+              <span class="slider"></span>
+            </label>
+            <div class="notification-info">
+              <div class="notification-title">Library Due Reminders</div>
+              <div class="notification-desc">Receive reminders for library book due dates</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" [disabled]="isLoading">
+            <span *ngIf="isLoading">Updating...</span>
+            <span *ngIf="!isLoading">Update Notifications</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Privacy Settings -->
+    <div class="settings-section" *ngIf="activeTab === 'privacy'">
+      <div class="section-header">
+        <h2>Privacy & Data</h2>
+        <p>Manage your privacy settings and data</p>
+      </div>
+      
+      <div class="privacy-options">
+        <div class="privacy-item">
+          <div class="privacy-info">
+            <h3>Export My Data</h3>
+            <p>Download a copy of your academic records and personal data</p>
+          </div>
+          <button class="btn-secondary" (click)="exportData()">Export Data</button>
+        </div>
+
+        <div class="privacy-item">
+          <div class="privacy-info">
+            <h3>Data Usage</h3>
+            <p>View how your data is being used by the school system</p>
+          </div>
+          <button class="btn-outline" (click)="viewUsage()">View Usage</button>
+        </div>
+
+        <div class="privacy-item danger">
+          <div class="privacy-info">
+            <h3>Delete Account</h3>
+            <p>Permanently delete your account and all associated data</p>
+          </div>
+          <button class="btn-danger" (click)="deleteAccount()">Delete Account</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

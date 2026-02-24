@@ -127,7 +127,11 @@ export class DetailsComponent implements OnInit, OnDestroy{
 
   addSchoolSubject(): void {
     console.log('Navigating to add-school-subject with courseStreamId=', this.courseStreamId);
-    const url = `/add-school-subject?courseStreamId=${encodeURIComponent(this.courseStreamId)}`;
-    window.location.href = url;
+    this.router.navigate(['/add-school-subject'], {
+      queryParams: { 
+        courseStreamId: this.courseStreamId,
+        organizationId: this.route.snapshot.queryParams['organizationId']
+      }
+    });
   }
 }

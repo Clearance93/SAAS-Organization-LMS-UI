@@ -1,16 +1,19 @@
 export interface Message {
-  id: string;
+  messageId: string;
+  organizationId: string;
   senderId: string;
   senderName: string;
-  senderRole: 'admin' | 'teacher' | 'student' | 'staff' | 'guest';
-  recipientId: string;
-  recipientName: string;
-  recipientRole: 'admin' | 'teacher' | 'student' | 'staff' | 'guest';
+  senderRole: string | null;
+  recipientId: string | null;
+  recipientName: string | null;
+  recipientRole: string | null;
   subject: string;
   content: string;
-  timestamp: Date;
+  timeStamp: string;
+  isDeleted: boolean;
+  isModified: boolean;
   isRead: boolean;
-  organizationId: string;
+  isArchived?: boolean;
 }
 
 export interface CreateMessageDto {
@@ -25,7 +28,7 @@ export interface CreateMessageDto {
 }
 
 export interface BroadcastMessageDto {
-  broadcastId: string;
+  content: string;
   senderEmail: string;
   role: string;
   subject: string;

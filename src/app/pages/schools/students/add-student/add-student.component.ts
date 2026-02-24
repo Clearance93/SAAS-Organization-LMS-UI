@@ -5,6 +5,7 @@ import { SchoolsService } from '../../../../services/schoolServices/schools.serv
 import { Router, ActivatedRoute } from '@angular/router';
 import { CreateStudentDto } from '../../../../interfaces/schools/students/create-student-dto';
 import { AdminDashboardService } from '../../../../services/schoolDashboards/admin-dashboard.service';
+import { MediaCompressionUtil } from '../../../../utils/media-compression.util';
 
 @Component({
   selector: 'app-add-student',
@@ -13,13 +14,13 @@ import { AdminDashboardService } from '../../../../services/schoolDashboards/adm
   styleUrl: './add-student.component.css'
 })
 export class AddStudentComponent implements OnInit {
-  studentForm!: FormGroup
+  studentForm!: FormGroup;
   isSubmitting = false;
   errorMessage = '';
   successMessage = '';
   organizationId = '';
   linkId = '';
-  previewImage: string | null = null
+  previewImage: string | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -48,45 +49,32 @@ export class AddStudentComponent implements OnInit {
 
   loadOrganizationId(): void {
     this.route.queryParams.subscribe(params => {
-      console.log('All URL params:', params);
-      
       if (params['organizationId']) {
         let orgId = params['organizationId'];
-        
-        // Fix malformed URL - extract the first organizationId before any '?' character
         if (orgId.includes('?')) {
           orgId = orgId.split('?')[0];
         }
-        
         this.organizationId = orgId;
-        console.log('Organization ID from URL:', this.organizationId);
       } else {
-        console.log('organizationId not found in URL params, checking localStorage');
         const storeProfile = localStorage.getItem('adminProfile');
         if (storeProfile) {
           try {
             const profile = JSON.parse(storeProfile);
             this.organizationId = profile.organizationId || '';
-            console.log('Organization ID from localStorage:', this.organizationId);
           } catch (error) {
             console.error('Error loading organization Id:', error);
           }
         }
       }
 
-      // Extract linkId from URL params
       if (params['linkId']) {
         this.linkId = params['linkId'];
-        console.log('Link ID from URL:', this.linkId);
       }
 
       if (!this.organizationId) {
         this.errorMessage = 'Organization ID not found. Please ensure you accessed this page correctly.';
-        console.error('No organization ID found in URL or localStorage');
       } else {
-        console.log('Final Organization ID:', this.organizationId);
-        console.log('Final Link ID:', this.linkId);
-        this.errorMessage = ''; 
+        this.errorMessage = '';
       }
     });
   }
@@ -113,27 +101,21 @@ export class AddStudentComponent implements OnInit {
       firstName: formValue.firstName.trim(),
       lastName: formValue.lastName.trim(),
       studentEmail: formValue.studentEmail.trim().toLowerCase(),
+      password: '', // Empty string - API will auto-generate
       studentProfilePicture: formValue.studentProfilePicture || '',
       dateOfBirth: new Date(formValue.dateOfBirth),
       gender: formValue.gender,
       isDeleted: false,
       isActive: formValue.isActive,
       createdAt: now,
-      updateAt: now,
+      updatedAt: now,
       organizationSetupId: this.organizationId,
-      registrationLinkId: this.linkId || null
+      registrationLinkId: this.isValidGuid(this.linkId) ? this.linkId : '00000000-0000-0000-0000-000000000000'
     };
-
-    console.log('Submitting student DTO:', JSON.stringify(studentDto, null, 2));
 
     this.schoolService.createStudent(studentDto).subscribe({
       next: (response) => {
-        console.log('Student creation response:', response);
-        
-        // If response contains count (when linkId was provided), it means API returned link usage count
         if (this.linkId && typeof response === 'number') {
-          console.log('Registration link used, new count:', response);
-          // Notify that link was used with new count
           this.adminDashboardService.notifyLinkUsed(this.linkId, response);
         }
         
@@ -148,19 +130,23 @@ export class AddStudentComponent implements OnInit {
         }, 2000);
       },
       error: (error) => {
-        // Handle specific error for link limit exceeded
         if (error.message && error.message.includes('max limit')) {
           this.errorMessage = error.message;
         } else {
           this.errorMessage = error.message || 'Failed to add student. Please try again.';
         }
         this.isSubmitting = false;
-        console.error('Error creating student:', error);
       }
     });
   }
 
-  onImageSelect(event: Event): void {
+  private isValidGuid(value: string): boolean {
+    if (!value || value.trim() === '') return false;
+    const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return guidRegex.test(value.trim());
+  }
+
+  async onImageSelect(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
 
     if (input.files && input.files[0]) {
@@ -171,15 +157,26 @@ export class AddStudentComponent implements OnInit {
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => {
-        this.previewImage = e.target?.result as string;
+      try {
+        // Compress image to reduce base64 size by ~75%
+        const compressed = await MediaCompressionUtil.compressImage(file, 300, 0.6);
+        this.previewImage = `data:image/jpeg;base64,${compressed}`;
         this.studentForm.patchValue({
-          studentProfilePicture: this.previewImage
+          studentProfilePicture: compressed // Store only compressed data
         });
-      };
-
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.warn('Image compression failed, using original:', error);
+        // Fallback to original if compression fails
+        const reader = new FileReader();
+        reader.onload = (e: ProgressEvent<FileReader>) => {
+          const result = e.target?.result as string;
+          this.previewImage = result;
+          this.studentForm.patchValue({
+            studentProfilePicture: result.split(',')[1] // Remove data:image prefix
+          });
+        };
+        reader.readAsDataURL(file);
+      }
     }
   }
 

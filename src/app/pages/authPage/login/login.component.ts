@@ -3,6 +3,9 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { AuthService } from '../../../services/authServices/auth.service';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { RoleNavigationService } from '../../../services/role-navigation.service';
+import { TeacherDashboardService } from '../../../services/schoolDashboards/teacher-dashboard.service';
+import { StudentService } from '../../../services/student.service';
 
 @Component({
   selector: 'app-login',
@@ -20,7 +23,10 @@ export class LoginComponent implements OnInit {
   constructor(
     private formBuilder: FormBuilder,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private roleNavigation: RoleNavigationService
+    , private teacherDashboardService: TeacherDashboardService,
+    private studentService: StudentService
   ) {}
 
   ngOnInit(): void {
@@ -56,8 +62,46 @@ export class LoginComponent implements OnInit {
     .subscribe({
       next: (response) => {
         console.log('Login successful', response);
-        localStorage.setItem('adminEmail', this.loginForm.value.email)
-        this.router.navigate(['/school-admin-dashboard']);
+        localStorage.setItem('adminEmail', this.loginForm.value.email);
+
+        const role = (localStorage.getItem('userRole') || '').toLowerCase();
+
+        if (role === 'teacher') {
+          const orgId = localStorage.getItem('organizationId');
+          const teacherId = localStorage.getItem('userId') || localStorage.getItem('teacherId');
+
+          if (orgId && teacherId) {
+            this.teacherDashboardService.getTeacherDashboard(orgId, teacherId).subscribe({
+              next: (stats) => {
+                localStorage.setItem('teacherDashboard', JSON.stringify(stats));
+                this.router.navigate(['/teacher-dashboard']);
+              },
+              error: (err) => {
+                console.error('Failed to load teacher dashboard', err);
+                this.router.navigate(['/teacher-dashboard']);
+              }
+            });
+            return;
+          }
+        }
+
+        if (role === 'student') {
+          const email = this.loginForm.value.email;
+          this.studentService.getStudentByEmail(email).subscribe({
+            next: (studentProfile) => {
+              localStorage.setItem('studentProfile', JSON.stringify(studentProfile));
+              this.router.navigate(['/student-dashboard']);
+            },
+            error: (err) => {
+              console.error('Failed to load student profile', err);
+              this.router.navigate(['/student-dashboard']);
+            }
+          });
+          return;
+        }
+
+        // default navigation for other roles
+        this.roleNavigation.navigateToDashboard();
       },
       error: (error) => {
         console.error('Login error', error);

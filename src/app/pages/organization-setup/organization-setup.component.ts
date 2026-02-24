@@ -6,11 +6,13 @@ import { CreateOrganizationDto } from '../../features/organization/models/organi
 import { OrganizationService } from '../../services/organization.service';
 import { finalize } from 'rxjs';
 import { Router, NavigationExtras } from '@angular/router';
+import { JoinWorkshopModalComponent } from '../workshops/join-workshop-modal.component';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-organization-setup',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, JoinWorkshopModalComponent],
   templateUrl: './organization-setup.component.html',
   styleUrls: ['./organization-setup.component.css']
 })
@@ -20,6 +22,7 @@ export class OrganizationSetupComponent implements OnInit {
   loading= false;
   errorMessage = '';
   userEmail: string = ''
+  showJoinWorkshopModal = false;
 
   organizationTypes = Object.values(OrganizationType);
   serviceTypes = Object.values(ServiceType);
@@ -128,6 +131,7 @@ export class OrganizationSetupComponent implements OnInit {
           }
         })
   }
+
   handleOrganizationError(error: any, formData: CreateOrganizationDto) {
     var email = formData.adminEmail;
 
@@ -157,5 +161,64 @@ export class OrganizationSetupComponent implements OnInit {
 
   onCancel(): void {
     console.log('Cancel clicked');
+  }
+
+  onAddSubject(): void {
+    if (this.organizationForm.invalid) {
+      return;
+    }
+
+    const orgId = localStorage.getItem('organizationId') || localStorage.getItem('userOrganizationId');
+    
+    if (orgId) {
+      this.router.navigate(['/add-school-subject'], {
+        queryParams: { organizationId: orgId }
+      });
+    } else {
+      this.router.navigate(['/login']);
+    }
+  }
+
+  openJoinWorkshopModal(): void {
+    this.showJoinWorkshopModal = true;
+  }
+
+  closeJoinWorkshopModal(): void {
+    this.showJoinWorkshopModal = false;
+  }
+
+  onWorkshopJoined(workshop: any): void {
+    Swal.fire({
+      title: '✅ Successfully Registered!',
+      html: `<strong>Workshop:</strong> ${workshop.title}<br><strong>Date:</strong> ${this.formatDate(workshop.date)}<br><strong>Time:</strong> ${workshop.time}<br><br>You will receive notifications before the workshop starts.`,
+      icon: 'success',
+      confirmButtonText: 'OK'
+    });
+    this.closeJoinWorkshopModal();
+  }
+
+  private formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  }
+
+  get organizationData() {
+    if (!this.organizationForm.value) return null;
+    
+    const formValue = this.organizationForm.value;
+    return {
+      organizationName: formValue.organizationName || '',
+      organizationType: formValue.organizationType || '',
+      organizationAddress: formValue.organizationAddress || '',
+      organizationContactNumber: formValue.organizationContactNumber || '',
+      website: formValue.website || '',
+      serviceDuration: formValue.serviceDuration || '',
+      serviceType: formValue.serviceType || [],
+      adminEmail: formValue.adminEmail || ''
+    };
   }
 }

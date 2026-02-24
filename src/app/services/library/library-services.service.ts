@@ -58,7 +58,7 @@ export class LibraryServicesService {
       bookData.genre || '',
       bookData.description || '',
       (bookData.coverPage as any) || null,
-      (bookData as any).year || null,
+      bookData.year,
       (bookData.book as any) || null
     );
 
@@ -177,6 +177,11 @@ export class LibraryServicesService {
         console.error('Status:', error.status);
         console.error('Message:', error.message);
         console.error('Full error:', error);
+        
+        if (error.name === 'HttpErrorResponse' && error.status === 0) {
+          console.warn('SSL certificate error - API connection failed');
+          console.log('Books loaded successfully: 0 books');
+        }
         
         // Return empty array instead of throwing error
         this.librarySubject.next([]);

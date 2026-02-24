@@ -1,0 +1,340 @@
+<div class="parent-dashboard">
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="header-left">
+      <h1>Welcome, {{ parentName }}</h1>
+      <p class="subtitle">Parent Portal • {{ getCurrentDate() }}</p>
+    </div>
+    <div class="header-right">
+      <button class="icon-button" title="Messages">
+        📧 <span class="badge" *ngIf="unreadMessages > 0">{{ unreadMessages }}</span>
+      </button>
+      <button class="icon-button" (click)="settings()" title="Settings">⚙️</button>
+      <button class="icon-button logout-btn" (click)="logout()" title="Logout">⏻</button>
+      <div class="parent-profile">
+        <div class="avatar">{{ getParentInitials() }}</div>
+        <span>{{ parentName }}</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Children Selector -->
+  <div class="children-selector" *ngIf="children.length > 1">
+    <h3>Select Child:</h3>
+    <div class="children-tabs">
+      <button class="child-tab" 
+              *ngFor="let child of children"
+              [class.active]="selectedChild.id === child.id"
+              (click)="selectChild(child)">
+        <div class="child-avatar" *ngIf="!child.profilePicture">{{ child.name.charAt(0) }}</div>
+        <img *ngIf="child.profilePicture" [src]="child.profilePicture" alt="Profile" class="child-avatar">
+        <span>{{ child.name }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="content-grid">
+    
+    <!-- Child Overview Card -->
+    <div class="card child-overview-card">
+      <div class="card-header">
+        <h3>👨‍🎓 {{ selectedChild.name }}</h3>
+        <span class="grade-badge">{{ selectedChild.grade }}</span>
+      </div>
+      <div class="child-overview">
+        <div class="child-photo">
+          <div class="avatar" *ngIf="!selectedChild.profilePicture">{{ selectedChild.name.charAt(0) }}</div>
+          <img *ngIf="selectedChild.profilePicture" [src]="selectedChild.profilePicture" alt="Child Photo">
+        </div>
+        <div class="overview-stats">
+          <div class="stat-item">
+            <div class="stat-value">{{ selectedChild.overallGrade }}%</div>
+            <div class="stat-label">Overall Grade</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ selectedChild.attendancePercentage }}%</div>
+            <div class="stat-label">Attendance</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ totalSubjects }}</div>
+            <div class="stat-label">Subjects</div>
+          </div>
+        </div>
+      </div>
+      <div class="quick-actions">
+        <button class="action-btn" (click)="viewFullReport()">📊 Full Report</button>
+        <button class="action-btn" (click)="scheduleParentTeacherMeeting()">📅 Schedule Meeting</button>
+      </div>
+    </div>
+
+    <!-- Academic Performance -->
+    <div class="card performance-card">
+      <div class="card-header">
+        <h3>📈 Academic Performance</h3>
+        <button class="view-details-btn" (click)="viewFullReport()">View Details</button>
+      </div>
+      <div class="subjects-performance">
+        <div class="subject-item" *ngFor="let subject of subjectGrades">
+          <div class="subject-header">
+            <div class="subject-name">{{ subject.subject }}</div>
+            <div class="subject-trend">{{ getTrendIcon(subject.trend) }}</div>
+          </div>
+          <div class="subject-details">
+            <div class="grade-display" [ngClass]="getGradeClass(subject.grade)">{{ subject.grade }}%</div>
+            <div class="teacher-name">{{ subject.teacher }}</div>
+            <div class="last-assignment">Last: {{ subject.lastAssignment }}</div>
+          </div>
+          <div class="grade-bar">
+            <div class="grade-fill" [style.width.%]="subject.grade" [ngClass]="getGradeClass(subject.grade)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assignments & Tasks -->
+    <div class="card assignments-card">
+      <div class="card-header">
+        <h3>📝 Assignments & Tasks</h3>
+        <span class="pending-count" *ngIf="pendingAssignments > 0">{{ pendingAssignments }} pending</span>
+      </div>
+      <div class="assignments-list">
+        <div class="assignment-item" *ngFor="let assignment of assignments" [ngClass]="getAssignmentStatusClass(assignment.status)">
+          <div class="assignment-info">
+            <div class="assignment-title">{{ assignment.title }}</div>
+            <div class="assignment-subject">{{ assignment.subject }} • {{ assignment.teacher }}</div>
+            <div class="assignment-due">Due: {{ assignment.dueDate | date:'MMM d, h:mm a' }}</div>
+          </div>
+          <div class="assignment-status">
+            <span class="status-badge" [ngClass]="assignment.status">{{ assignment.status }}</span>
+            <span class="grade" *ngIf="assignment.grade">{{ assignment.grade }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Teacher Communications -->
+    <div class="card communications-card">
+      <div class="card-header">
+        <h3>💬 Teacher Communications</h3>
+        <span class="unread-count" *ngIf="unreadMessages > 0">{{ unreadMessages }} unread</span>
+      </div>
+      <div class="communications-list">
+        <div class="communication-item" *ngFor="let comm of teacherCommunications">
+          <div class="teacher-info">
+            <div class="teacher-name">{{ comm.teacherName }}</div>
+            <div class="subject-name">{{ comm.subject }}</div>
+          </div>
+          <div class="message-preview">
+            <div class="last-message">{{ comm.lastMessage }}</div>
+            <div class="message-date">{{ comm.lastMessageDate | date:'MMM d' }}</div>
+          </div>
+          <div class="communication-actions">
+            <button class="message-btn" (click)="openCommunication(comm)">
+              💬 Message
+              <span class="unread-badge" *ngIf="comm.unreadCount > 0">{{ comm.unreadCount }}</span>
+            </button>
+            <button class="escalate-btn" *ngIf="comm.canEscalate" (click)="escalateToAdmin(comm)">
+              ⚠️ Escalate
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendance Overview -->
+    <div class="card attendance-card">
+      <div class="card-header">
+        <h3>📊 Attendance Overview</h3>
+        <button class="view-details-btn" (click)="viewAttendanceDetails()">View Details</button>
+      </div>
+      <div class="attendance-stats">
+        <div class="attendance-circle">
+          <div class="circle-progress" [style.--progress]="selectedChild.attendancePercentage + '%'">
+            <span class="attendance-value">{{ selectedChild.attendancePercentage }}%</span>
+            <span class="attendance-label">This Term</span>
+          </div>
+        </div>
+        <div class="attendance-breakdown">
+          <div class="stat-item">
+            <span class="stat-value">142</span>
+            <span class="stat-label">Present</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">8</span>
+            <span class="stat-label">Absent</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">3</span>
+            <span class="stat-label">Late</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card quick-actions-card">
+      <div class="card-header">
+        <h3>⚡ Quick Actions</h3>
+      </div>
+      <div class="quick-actions-grid">
+        <button class="quick-action-btn" (click)="viewTimetable()">
+          <span class="action-icon">📅</span>
+          <span class="action-title">View Timetable</span>
+        </button>
+        <button class="quick-action-btn" (click)="downloadReport()">
+          <span class="action-icon">📄</span>
+          <span class="action-title">Download Report</span>
+        </button>
+        <button class="quick-action-btn" (click)="openLibrary()">
+          <span class="action-icon">📚</span>
+          <span class="action-title">Library Access</span>
+        </button>
+        <button class="quick-action-btn" (click)="scheduleParentTeacherMeeting()">
+          <span class="action-icon">🤝</span>
+          <span class="action-title">Schedule Meeting</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Announcements -->
+    <div class="card announcements-card">
+      <div class="card-header">
+        <h3>📢 School Announcements</h3>
+        <button class="view-all-btn" (click)="viewAllAnnouncements()">View All</button>
+      </div>
+      <div class="announcements-list">
+        <div class="announcement-item" *ngFor="let announcement of announcements" [ngClass]="'type-' + announcement.type">
+          <div class="announcement-content">
+            <div class="announcement-title">{{ announcement.title }}</div>
+            <div class="announcement-message">{{ announcement.message }}</div>
+            <div class="announcement-meta">
+              <span class="announcement-from">{{ announcement.from }}</span>
+              <span class="announcement-date">{{ announcement.date | date:'MMM d' }}</span>
+            </div>
+          </div>
+          <div class="announcement-type" [ngClass]="announcement.type"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Teacher Communication Modal -->
+<div class="modal-overlay" *ngIf="isCommunicationModalOpen" (click)="closeCommunicationModal()">
+  <div class="modal-content communication-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>💬 Message {{ selectedTeacher?.teacherName }}</h3>
+      <button class="close-btn" (click)="closeCommunicationModal()">×</button>
+    </div>
+    <form [formGroup]="messageForm" (ngSubmit)="sendMessage()">
+      <div class="modal-body">
+        <div class="teacher-info">
+          <p><strong>Subject:</strong> {{ selectedTeacher?.subject }}</p>
+          <p><strong>Previous Inquiries:</strong> {{ selectedTeacher?.inquiryCount }}</p>
+          <div class="escalation-warning" *ngIf="selectedTeacher && selectedTeacher.inquiryCount >= 3">
+            ⚠️ Multiple inquiries detected. Consider escalating if no response.
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Subject:</label>
+          <input type="text" formControlName="subject" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Message:</label>
+          <textarea formControlName="message" rows="5" class="form-control" 
+                    placeholder="Please describe your inquiry about your child's performance..."></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeCommunicationModal()">Cancel</button>
+        <button type="submit" class="submit-btn" [disabled]="!messageForm.valid">Send Message</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Escalation Modal -->
+<div class="modal-overlay" *ngIf="isEscalationModalOpen" (click)="closeEscalationModal()">
+  <div class="modal-content escalation-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>⚠️ Escalate to Administration</h3>
+      <button class="close-btn" (click)="closeEscalationModal()">×</button>
+    </div>
+    <form [formGroup]="escalationForm" (ngSubmit)="submitEscalation()">
+      <div class="modal-body">
+        <div class="escalation-info">
+          <p><strong>Teacher:</strong> {{ selectedTeacher?.teacherName }}</p>
+          <p><strong>Subject:</strong> {{ selectedTeacher?.subject }}</p>
+          <p><strong>Total Inquiries:</strong> {{ selectedTeacher?.inquiryCount }}</p>
+          <div class="warning-text">
+            This will escalate your concern to the school administration with chat history as evidence.
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Reason for Escalation:</label>
+          <select formControlName="reason" class="form-control">
+            <option value="">Select reason...</option>
+            <option value="no-response">No response from teacher</option>
+            <option value="inadequate-response">Inadequate response</option>
+            <option value="urgent-concern">Urgent academic concern</option>
+            <option value="behavioral-issue">Behavioral issue</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Additional Details:</label>
+          <textarea formControlName="details" rows="4" class="form-control" 
+                    placeholder="Please provide additional context for the administration..."></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" (click)="closeEscalationModal()">Cancel</button>
+        <button type="submit" class="escalate-btn" [disabled]="!escalationForm.valid">Escalate to Admin</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Full Report Modal -->
+<div class="modal-overlay" *ngIf="isReportModalOpen" (click)="closeReportModal()">
+  <div class="modal-content report-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>📊 Academic Report - {{ selectedChild.name }}</h3>
+      <button class="close-btn" (click)="closeReportModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="report-summary">
+        <div class="summary-stats">
+          <div class="stat-card">
+            <div class="stat-value">{{ selectedChild.overallGrade }}%</div>
+            <div class="stat-label">Overall Grade</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ selectedChild.attendancePercentage }}%</div>
+            <div class="stat-label">Attendance</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ totalSubjects }}</div>
+            <div class="stat-label">Subjects</div>
+          </div>
+        </div>
+      </div>
+      <div class="detailed-grades">
+        <h4>Subject Performance</h4>
+        <div class="grade-table">
+          <div class="grade-row" *ngFor="let subject of subjectGrades">
+            <div class="subject-name">{{ subject.subject }}</div>
+            <div class="teacher-name">{{ subject.teacher }}</div>
+            <div class="grade-value" [ngClass]="getGradeClass(subject.grade)">{{ subject.grade }}%</div>
+            <div class="trend-indicator">{{ getTrendIcon(subject.trend) }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="cancel-btn" (click)="closeReportModal()">Close</button>
+      <button class="download-btn" (click)="downloadReport()">📄 Download PDF</button>
+    </div>
+  </div>
+</div>

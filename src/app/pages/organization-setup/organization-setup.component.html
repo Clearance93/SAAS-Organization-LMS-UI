@@ -135,9 +135,19 @@
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" (click)="onCancel()">Cancel</button>
         <button type="button" class="btn btn-outline" (click)="onReset()">Reset</button>
+        <button type="button" class="btn btn-success" (click)="onAddSubject()">Add Subject</button>
+        <button type="button" class="btn btn-info" (click)="openJoinWorkshopModal()" [disabled]="organizationForm.invalid">Join Workshop</button>
         <button type="submit" class="btn btn-primary">Submit</button>
       </div>
 
     </form>
   </div>
 </div>
+
+<!-- Join Workshop Modal -->
+<app-join-workshop-modal 
+  [isVisible]="showJoinWorkshopModal"
+  [organizationData]="organizationData"
+  (close)="closeJoinWorkshopModal()"
+  (workshopJoined)="onWorkshopJoined($event)">
+</app-join-workshop-modal>

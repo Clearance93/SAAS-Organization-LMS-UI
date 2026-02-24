@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { SchoolsService } from '../../../../services/schoolServices/schools.service';
 import { CreateLearnerDto } from '../../../../interfaces/schools/learners/create-learner-dto';
 import { Router } from '@angular/router';
+import { MediaCompressionUtil } from '../../../../utils/media-compression.util';
 
 @Component({
   selector: 'app-add-learner',
@@ -100,7 +101,7 @@ export class AddLearnerComponent implements OnInit{
     });
   }
 
-  onImageSelect(event: Event): void {
+  async onImageSelect(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
 
     if(input.files && input.files[0]) {
@@ -116,15 +117,26 @@ export class AddLearnerComponent implements OnInit{
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => {
-        this.previewImage = e.target?.result as string;
+      try {
+        // Compress image to reduce base64 size by ~75%
+        const compressed = await MediaCompressionUtil.compressImage(file, 300, 0.6);
+        this.previewImage = `data:image/jpeg;base64,${compressed}`;
         this.learnersForm.patchValue({
-          learnerProfilePicture: this.previewImage
+          learnerProfilePicture: compressed // Store only compressed data
         });
-      };
-
-      reader.readAsDataURL(file)
+      } catch (error) {
+        console.warn('Image compression failed, using original:', error);
+        // Fallback to original if compression fails
+        const reader = new FileReader();
+        reader.onload = (e: ProgressEvent<FileReader>) => {
+          const result = e.target?.result as string;
+          this.previewImage = result;
+          this.learnersForm.patchValue({
+            learnerProfilePicture: result.split(',')[1] // Remove data:image prefix
+          });
+        };
+        reader.readAsDataURL(file);
+      }
     }
   }
 

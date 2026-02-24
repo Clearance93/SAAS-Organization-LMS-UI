@@ -5,7 +5,7 @@ import { Observable, forkJoin, map, catchError, of } from 'rxjs';
 export interface User {
   id: string;
   name: string;
-  role: 'student' | 'teacher' | 'staff' | 'guest' | 'learner';
+  role: 'student' | 'teacher' | 'staff' | 'guest' | 'learner' | 'admin';
   email: string;
 }
 

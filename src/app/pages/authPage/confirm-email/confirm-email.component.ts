@@ -21,6 +21,8 @@ export class ConfirmEmailComponent implements OnInit, OnDestroy {
   userId: string = '';
   token: string = '';
   isConfirmed: boolean = false;
+  hasValidParams: boolean = false;
+  showManualConfirm: boolean = false;
 
   constructor(private fb: FormBuilder,
               private authService: AuthService,
@@ -29,32 +31,36 @@ export class ConfirmEmailComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    var snapshot = this.route.snapshot.queryParams;
-    this.userId = snapshot["userId"] || '';
-    this.token = snapshot["token"] || '';
+    this.extractParameters();
+  }
 
-    console.log('Snapshot - User Id:', this.userId)
-    console.log('Snapshot - token:', this.token)
+  private extractParameters(): void {
+    // Check query params first
+    const queryParams = this.route.snapshot.queryParams;
+    this.userId = queryParams["userId"] || '';
+    this.token = queryParams["token"] || '';
 
-    if (this.userId && this.token) {
-      this.confirmEmail();
-      return;
+    // If not in query params, check route params
+    if (!this.userId || !this.token) {
+      this.route.params.subscribe(params => {
+        this.userId = params['userId'] || this.userId;
+        this.token = params['token'] || this.token;
+        this.validateParameters();
+      });
+    } else {
+      this.validateParameters();
     }
+  }
 
-    this.route.params.subscribe(params => {
-      this.userId = params['userId'];
-      this.token = params['token'];
-
-      console.log('User ID:', this.userId)
-      console.log(`Token: ${this.token}`)
-
-      if (this.userId && this.token) {
-        this.confirmEmail();
-      } else {
-        this.errorMessage = 'Invalid confirmation link. Missing parameters.'
-        console.log(`Missing paramters: User Id: ${this.userId}, token: ${this.token}`)
-      }
-    });
+  private validateParameters(): void {
+    if (this.userId && this.token) {
+      this.hasValidParams = true;
+      console.log('Valid parameters found - User ID:', this.userId);
+    } else {
+      this.hasValidParams = false;
+      this.showManualConfirm = true;
+      console.log('Missing parameters - User ID:', this.userId, 'Token:', this.token ? 'Present' : 'Missing');
+    }
   }
 
   confirmEmail(): void {
@@ -64,8 +70,8 @@ export class ConfirmEmailComponent implements OnInit, OnDestroy {
     }
 
     this.isLoading = true;
-    this.errorMessage = '';
-    this.successMessage = '';
+    this.errorMessage = null;
+    this.successMessage = null;
 
     this.authService.confirmEmail(this.userId, this.token).subscribe({
       next: (response) => {
@@ -73,7 +79,7 @@ export class ConfirmEmailComponent implements OnInit, OnDestroy {
         this.isConfirmed = true;
         this.successMessage = response.message || 'Email confirmed successfully!';
 
-        setTimeout(() => {
+        this.redirectTimer = setTimeout(() => {
           this.router.navigate(['/login']);
         }, 3000);
       },
@@ -88,6 +94,14 @@ export class ConfirmEmailComponent implements OnInit, OnDestroy {
   goToLogin(): void {
     this.router.navigate(['/login']);
   }
+
+  resendConfirmation(): void {
+    // This would typically call a resend confirmation email API
+    this.router.navigate(['/login'], { 
+      queryParams: { message: 'Please check your email for a new confirmation link.' }
+    });
+  }
+
   ngOnDestroy(): void {
     if (this.redirectTimer) {
       clearTimeout(this.redirectTimer);

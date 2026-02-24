@@ -5,5 +5,6 @@ export interface ILibrary {
     genre: string;
     coverPage?: string | null;
     description: string;
+    year?: string;
     book?: string | null;
 }

@@ -1,85 +1,157 @@
 <div class="confirm-email-container">
   <div class="confirm-card">
     <div class="header">
-      <div class="icon-wrapper" [class.success]="isConfirmed">
-        <svg *ngIf="!isConfirmed && !errorMessage" xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <div class="icon-wrapper" [ngClass]="{
+        'success': isConfirmed,
+        'error': errorMessage && !isLoading,
+        'warning': !hasValidParams && !errorMessage
+      }">
+        <!-- Default email icon -->
+        <svg *ngIf="!isConfirmed && !errorMessage && hasValidParams" xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
           <polyline points="22,6 12,13 2,6"></polyline>
         </svg>
         
+        <!-- Success checkmark -->
         <svg *ngIf="isConfirmed" xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
           <polyline points="22 4 12 14.01 9 11.01"></polyline>
         </svg>
         
-        <svg *ngIf="errorMessage" xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Error X -->
+        <svg *ngIf="errorMessage && !isLoading" xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="15" y1="9" x2="9" y2="15"></line>
           <line x1="9" y1="9" x2="15" y2="15"></line>
         </svg>
+
+        <!-- Warning icon for invalid params -->
+        <svg *ngIf="!hasValidParams && !errorMessage" xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+          <path d="M12 9v4"></path>
+          <path d="m12 17 .01 0"></path>
+        </svg>
+
+        <!-- Loading spinner -->
+        <div *ngIf="isLoading" class="spinner-icon"></div>
       </div>
       
-      <h1 *ngIf="!isConfirmed && !errorMessage">Confirm Your Email</h1>
+      <h1 *ngIf="!isConfirmed && !errorMessage && hasValidParams && !isLoading">Confirm Your Email</h1>
       <h1 *ngIf="isConfirmed" class="success-title">Email Confirmed!</h1>
       <h1 *ngIf="errorMessage && !isConfirmed" class="error-title">Confirmation Failed</h1>
+      <h1 *ngIf="!hasValidParams && !errorMessage" class="warning-title">Invalid Confirmation Link</h1>
+      <h1 *ngIf="isLoading" class="loading-title">Confirming Email...</h1>
     </div>
 
     <div class="content">
-      <div *ngIf="!isConfirmed && !errorMessage && !isLoading">
+      <!-- Valid parameters, ready to confirm -->
+      <div *ngIf="hasValidParams && !isConfirmed && !errorMessage && !isLoading">
         <p class="description">
           Click the button below to confirm your email address and activate your account.
         </p>
-        <p class="info-text">
-          User ID: <strong>{{ userId }}</strong>
-        </p>
+        <div class="info-box">
+          <p class="info-text">
+            <strong>User ID:</strong> {{ userId.substring(0, 8) }}...
+          </p>
+          <p class="info-text">
+            <strong>Status:</strong> Ready to confirm
+          </p>
+        </div>
       </div>
 
+      <!-- Loading state -->
       <div *ngIf="isLoading" class="loading-state">
-        <div class="spinner"></div>
-        <p>Confirming your email...</p>
+        <p>Please wait while we confirm your email address...</p>
       </div>
 
+      <!-- Success state -->
       <div *ngIf="isConfirmed && successMessage">
         <div class="success-message">
           <p>{{ successMessage }}</p>
         </div>
         <p class="redirect-text">
-          You will be redirected to the login page in a few seconds...
+          🎉 Welcome! You will be redirected to the login page in a few seconds...
         </p>
       </div>
 
+      <!-- Error state -->
       <div *ngIf="errorMessage && !isConfirmed">
         <div class="error-message">
           <p>{{ errorMessage }}</p>
         </div>
-        <p class="help-text">
-          Please try again or contact support if the problem persists.
-        </p>
+        <div class="help-section">
+          <p class="help-text">
+            <strong>What you can do:</strong>
+          </p>
+          <ul class="help-list">
+            <li>Check if you clicked the correct link from your email</li>
+            <li>Make sure the link hasn't expired</li>
+            <li>Request a new confirmation email</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Invalid parameters state -->
+      <div *ngIf="!hasValidParams && !errorMessage">
+        <div class="warning-message">
+          <p>The confirmation link appears to be incomplete or invalid.</p>
+        </div>
+        <div class="help-section">
+          <p class="help-text">
+            <strong>Please try:</strong>
+          </p>
+          <ul class="help-list">
+            <li>Copy and paste the complete link from your email</li>
+            <li>Check your email for the correct confirmation link</li>
+            <li>Request a new confirmation email if needed</li>
+          </ul>
+        </div>
       </div>
     </div>
 
     <div class="actions">
+      <!-- Confirm button -->
       <button 
-        *ngIf="!isConfirmed && !isLoading" 
+        *ngIf="hasValidParams && !isConfirmed && !isLoading" 
         class="btn btn-primary" 
         (click)="confirmEmail()"
         [disabled]="isLoading">
-        Confirm Email
+        <span class="btn-icon">✉️</span>
+        Confirm Email Address
       </button>
 
+      <!-- Success - go to login -->
       <button 
         *ngIf="isConfirmed" 
         class="btn btn-success" 
         (click)="goToLogin()">
-        Go to Login
+        <span class="btn-icon">🚀</span>
+        Continue to Login
       </button>
 
-      <button 
-        *ngIf="errorMessage && !isConfirmed && !isLoading" 
-        class="btn btn-secondary" 
-        (click)="goToLogin()">
-        Back to Login
-      </button>
+      <!-- Error actions -->
+      <div *ngIf="errorMessage && !isConfirmed && !isLoading" class="error-actions">
+        <button class="btn btn-secondary" (click)="goToLogin()">
+          <span class="btn-icon">🔙</span>
+          Back to Login
+        </button>
+        <button class="btn btn-outline" (click)="resendConfirmation()">
+          <span class="btn-icon">📧</span>
+          Request New Link
+        </button>
+      </div>
+
+      <!-- Invalid params actions -->
+      <div *ngIf="!hasValidParams && !errorMessage" class="invalid-actions">
+        <button class="btn btn-secondary" (click)="goToLogin()">
+          <span class="btn-icon">🔙</span>
+          Back to Login
+        </button>
+        <button class="btn btn-outline" (click)="resendConfirmation()">
+          <span class="btn-icon">📧</span>
+          Get New Confirmation Link
+        </button>
+      </div>
     </div>
   </div>
 </div>

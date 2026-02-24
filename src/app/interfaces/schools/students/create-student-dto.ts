@@ -2,13 +2,14 @@ export interface CreateStudentDto {
     firstName: string;
     lastName: string;
     studentEmail: string;
+    registrationLinkId: string;
     studentProfilePicture: string;
+    password: string;
+    dateOfBirth: Date;
+    gender: string;
     isDeleted: boolean;
     isActive: boolean;
     createdAt: Date;
-    updateAt: Date;
-    dateOfBirth: Date;
-    gender: string;
+    updatedAt: Date;
     organizationSetupId: string;
-    registrationLinkId?: string | null;
 }
