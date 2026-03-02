@@ -2,7 +2,7 @@
   <header class="dashboard-header">
     <div class="header-left">
       <h1>Welcome back, {{ studentName }}</h1>
-      <p class="subtitle">{{ getHeaderSubtitle() }}</p>
+      <p class="subtitle">Overall Grade: {{ overallGrade }}% | Attendance: {{ attendancePercentage }}%</p>
     </div>
     <div class="header-right">
       <button class="icon-button" (click)="openMessages()" title="Messages">
@@ -115,10 +115,32 @@
       <div class="card-header">
         <h3>📊 Attendance</h3>
       </div>
-      <div class="attendance-stats">
-        <div class="attendance-circle">
-          <span class="attendance-value">{{ attendancePercentage }}%</span>
-          <span class="attendance-label">This Term</span>
+      <div class="attendance-stats" style="display: flex; flex-direction: column; gap: 1.5rem; padding: 1rem;">
+        <div class="attendance-circle" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem;">
+          <span class="attendance-value" style="font-size: 3rem; font-weight: bold; color: #3b82f6;">{{ yearlyAttendance.percentage }}%</span>
+          <span class="attendance-label" style="color: #6b7280; margin-top: 0.5rem;">This Year</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div style="background: #eff6ff; padding: 1rem; border-radius: 8px; text-align: center;">
+            <div style="font-size: 1.5rem; font-weight: bold; color: #3b82f6;">{{ dailyAttendance.percentage }}%</div>
+            <div style="color: #6b7280; font-size: 0.85rem; margin-top: 0.25rem;">Today</div>
+            <div style="color: #9ca3af; font-size: 0.75rem; margin-top: 0.25rem;">{{ dailyAttendance.present }}P / {{ dailyAttendance.absent }}A</div>
+          </div>
+          <div style="background: #f0fdf4; padding: 1rem; border-radius: 8px; text-align: center;">
+            <div style="font-size: 1.5rem; font-weight: bold; color: #10b981;">{{ weeklyAttendance.percentage }}%</div>
+            <div style="color: #6b7280; font-size: 0.85rem; margin-top: 0.25rem;">This Week</div>
+            <div style="color: #9ca3af; font-size: 0.75rem; margin-top: 0.25rem;">{{ weeklyAttendance.present }}P / {{ weeklyAttendance.absent }}A</div>
+          </div>
+          <div style="background: #fef3c7; padding: 1rem; border-radius: 8px; text-align: center;">
+            <div style="font-size: 1.5rem; font-weight: bold; color: #f59e0b;">{{ monthlyAttendance.percentage }}%</div>
+            <div style="color: #6b7280; font-size: 0.85rem; margin-top: 0.25rem;">This Month</div>
+            <div style="color: #9ca3af; font-size: 0.75rem; margin-top: 0.25rem;">{{ monthlyAttendance.present }}P / {{ monthlyAttendance.absent }}A</div>
+          </div>
+          <div style="background: #fce7f3; padding: 1rem; border-radius: 8px; text-align: center;">
+            <div style="font-size: 1.5rem; font-weight: bold; color: #ec4899;">{{ yearlyAttendance.percentage }}%</div>
+            <div style="color: #6b7280; font-size: 0.85rem; margin-top: 0.25rem;">This Year</div>
+            <div style="color: #9ca3af; font-size: 0.75rem; margin-top: 0.25rem;">{{ yearlyAttendance.present }}P / {{ yearlyAttendance.absent }}A</div>
+          </div>
         </div>
       </div>
     </div>
@@ -152,12 +174,25 @@
         <h3>🗓️ Upcoming Events</h3>
       </div>
       <div class="events-list">
-        <div class="event-item" *ngFor="let event of upcomingEvents">
-          <div class="event-date">{{ event.date }}</div>
-          <div class="event-details">
-            <div class="event-title">{{ event.title }}</div>
-            <div class="event-time">{{ event.time }}</div>
-            <div class="event-location">{{ event.location }}</div>
+        <div *ngFor="let event of upcomingEvents" style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb; background: linear-gradient(to right, #f8fafc 0%, #ffffff 100%); margin-bottom: 0.5rem; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h4 style="margin: 0; color: #1e293b; font-size: 1.2rem; font-weight: 700;">{{ event.title }}</h4>
+            <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">{{ event.eventType }}</span>
+          </div>
+          <p style="margin: 0 0 1rem 0; color: #64748b; font-size: 0.95rem; line-height: 1.6;">{{ event.description }}</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; padding: 1rem; background: white; border-radius: 8px; border-left: 4px solid #667eea;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.2rem;">📅</span>
+              <span style="color: #475569; font-size: 0.9rem; font-weight: 500;">{{ event.date | date:'MMM d, y' }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.2rem;">🕐</span>
+              <span style="color: #475569; font-size: 0.9rem; font-weight: 500;">{{ event.startTime }} - {{ event.endTime }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.2rem;">📍</span>
+              <span style="color: #475569; font-size: 0.9rem; font-weight: 500;">{{ event.location }}</span>
+            </div>
           </div>
         </div>
         <div *ngIf="upcomingEvents.length === 0" class="no-events">

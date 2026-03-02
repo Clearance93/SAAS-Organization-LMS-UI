@@ -168,16 +168,21 @@ export class AuthService {
       localStorage.removeItem('currentUser');
       localStorage.removeItem('adminEmail');
       localStorage.removeItem('organizationId');
-    }
-    if (this.userProfileSubject) {
-      this.userProfileSubject.next(null);
-    }
-    if (this.isBrowser) {
       localStorage.removeItem('userProfile');
       localStorage.removeItem('userRole');
       localStorage.removeItem('roleUserId');
       localStorage.removeItem('roleUserIdKey');
       localStorage.removeItem('userId');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('adminProfile');
+      localStorage.removeItem('teacherProfile');
+      localStorage.removeItem('studentProfile');
+      localStorage.removeItem('adminId');
+      localStorage.removeItem('teacherId');
+      localStorage.removeItem('studentId');
+    }
+    if (this.userProfileSubject) {
+      this.userProfileSubject.next(null);
     }
     this.currentUserSubject.next(null)
    }

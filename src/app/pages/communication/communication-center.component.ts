@@ -293,47 +293,29 @@ export class CommunicationCenterComponent implements OnInit, OnDestroy {
   }
 
   private getCurrentUserEmail(): string {
-    if (typeof localStorage === 'undefined') return 'unknown@local';
-    
     let email = '';
     
     if (this.currentUserRole === 'student') {
       const studentProfile = JSON.parse(localStorage.getItem('studentProfile') || '{}');
-      email = studentProfile.email || studentProfile.studentEmail || studentProfile.studentBusinessEmail || '';
+      console.log('Student Profile:', studentProfile);
+      email = studentProfile.studentBusinessEmail || studentProfile.email || '';
     } else if (this.currentUserRole === 'teacher') {
-      // Check multiple sources for teacher email
-      email = localStorage.getItem('adminEmail') || '';
-      
-      if (!email) {
-        const teacherProfile = JSON.parse(localStorage.getItem('teacherProfile') || '{}');
-        email = teacherProfile.email || teacherProfile.teacherEmail || teacherProfile.teacherBusinessEmail || '';
-      }
-      
-      if (!email) {
-        const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-        email = userProfile.email || '';
-      }
-    } else {
-      // Admin or other roles - check multiple sources
-      email = localStorage.getItem('adminEmail') || '';
-      
-      if (!email) {
-        const adminProfile = JSON.parse(localStorage.getItem('adminProfile') || '{}');
-        email = adminProfile.adminBusinessEmail || adminProfile.email || adminProfile.adminEmail || '';
-      }
-      
-      if (!email) {
-        const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-        email = userProfile.email || '';
-      }
-      
-      if (!email) {
-        email = localStorage.getItem('userEmail') || '';
-      }
+      const teacherProfile = JSON.parse(localStorage.getItem('teacherProfile') || '{}');
+      console.log('Teacher Profile:', teacherProfile);
+      email = teacherProfile.teacherBusinessEmail || teacherProfile.email || '';
+    } else if (this.currentUserRole === 'admin') {
+      const adminProfile = JSON.parse(localStorage.getItem('adminProfile') || '{}');
+      console.log('Admin Profile:', adminProfile);
+      email = adminProfile.adminBusinessEmail || adminProfile.email || '';
+    }
+    
+    if (!email) {
+      console.warn('No email found in profile, checking userEmail fallback');
+      email = localStorage.getItem('userEmail') || localStorage.getItem('adminEmail') || 'unknown@local';
     }
     
     console.log('Current User Email:', email, '| Role:', this.currentUserRole);
-    return email || 'unknown@local';
+    return email;
   }
 
   private async compressAndEncodeFile(file: File): Promise<{name: string, data: string, type: string, size: number}> {
@@ -401,6 +383,7 @@ export class CommunicationCenterComponent implements OnInit, OnDestroy {
 
   private sendBroadcastMessage(orgId: string) {
     const senderEmail = this.getCurrentUserEmail();
+    console.log('Broadcast sender email:', senderEmail, 'Role:', this.currentUserRole);
     
     const broadcastData: BroadcastMessageDto = {
       content: this.newMessage.subject + '\n' + (this.newMessage.content || ''),
@@ -447,6 +430,7 @@ export class CommunicationCenterComponent implements OnInit, OnDestroy {
   }
 
   canSendBroadcast(): boolean {
+    console.log('canSendBroadcast check - currentUserRole:', this.currentUserRole);
     return this.currentUserRole !== 'student'; // Only non-students can send broadcasts
   }
 

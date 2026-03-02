@@ -42,6 +42,10 @@ export class TeachingClassService {
     return this.http.get<any>(`https://localhost:7270/api/SchoolDashboards/teacherDashboard/${organizationId}/${teacherId}`);
   }
 
+  getTeacherAttendanceOverview(teacherId: string): Observable<any> {
+    return this.http.get<any>(`https://localhost:7270/api/Attendance/teacheDashboard/${teacherId}`);
+  }
+
   updateTeachingClass(teachingClassId: string, teachingClass: Partial<TeachingClass>): Observable<TeachingClass> {
     return this.http.put<TeachingClass>(`${this.apiUrl}/teachingClass/${teachingClassId}`, teachingClass, this.httpOptions);
   }

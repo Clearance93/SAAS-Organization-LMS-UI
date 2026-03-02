@@ -24,7 +24,6 @@ export interface ChatMessage {
 })
 export class CommunicationService {
   private apiUrl = 'https://localhost:7270/api/SchoolDashboards';
-  private httpApiUrl = 'http://localhost:7270/api/SchoolDashboards';
   private chatApiUrl = 'https://localhost:7270/api/MeetingsUrl';
   
   private unreadCountSubject = new BehaviorSubject<number>(0);
@@ -36,7 +35,6 @@ export class CommunicationService {
   constructor(private http: HttpClient) {}
 
   getMessages(organizationId: string, senderId: string): Observable<Message[]> {
-    // Try HTTPS first, fallback to HTTP if SSL fails
     return this.http.get<Message[]>(`${this.apiUrl}/getMessages/${organizationId}/${senderId}`)
       .pipe(
         tap(messages => {
@@ -44,57 +42,30 @@ export class CommunicationService {
           this.updateUnreadCount(messages);
         }),
         catchError(error => {
-          console.warn('HTTPS failed for messages, trying HTTP:', error.message);
-          // Fallback to HTTP
-          return this.http.get<Message[]>(`${this.httpApiUrl}/getMessages/${organizationId}/${senderId}`)
-            .pipe(
-              tap(messages => {
-                this.messagesSubject.next(messages);
-                this.updateUnreadCount(messages);
-              }),
-              catchError(httpError => {
-                console.error('Error loading messages:', httpError);
-                const emptyMessages: Message[] = [];
-                this.messagesSubject.next(emptyMessages);
-                return of(emptyMessages);
-              })
-            );
+          console.error('Error loading messages:', error);
+          const emptyMessages: Message[] = [];
+          this.messagesSubject.next(emptyMessages);
+          return of(emptyMessages);
         })
       );
   }
 
   getBroadcastMessages(userRole: string): Observable<Message[]> {
-    // Try HTTPS first, fallback to HTTP if SSL fails
     return this.http.get<Message[]>(`${this.apiUrl}/broadcastsMessages/${userRole}`)
       .pipe(
         catchError(error => {
-          console.warn('HTTPS failed for broadcast messages, trying HTTP:', error.message);
-          // Fallback to HTTP
-          return this.http.get<Message[]>(`${this.httpApiUrl}/broadcastsMessages/${userRole}`)
-            .pipe(
-              catchError(httpError => {
-                console.error('Error loading broadcast messages:', httpError);
-                return of([]);
-              })
-            );
+          console.error('Error loading broadcast messages:', error);
+          return of([]);
         })
       );
   }
 
   getIndividualMessages(userId: string): Observable<Message[]> {
-    // Try HTTPS first, fallback to HTTP if SSL fails
     return this.http.get<Message[]>(`${this.apiUrl}/individualMessages/${userId}`)
       .pipe(
         catchError(error => {
-          console.warn('HTTPS failed for individual messages, trying HTTP:', error.message);
-          // Fallback to HTTP
-          return this.http.get<Message[]>(`${this.httpApiUrl}/individualMessages/${userId}`)
-            .pipe(
-              catchError(httpError => {
-                console.error('Error loading individual messages:', httpError);
-                return of([]);
-              })
-            );
+          console.error('Error loading individual messages:', error);
+          return of([]);
         })
       );
   }
@@ -132,25 +103,13 @@ export class CommunicationService {
     };
 
     console.log('Sending message payload:', payload);
-    // Try HTTPS first, fallback to HTTP if it fails
     return this.http.post<Message>(`${this.apiUrl}/message`, payload)
       .pipe(
         tap(newMessage => {
           const currentMessages = this.messagesSubject.value;
           this.messagesSubject.next([newMessage, ...currentMessages]);
         }),
-        catchError(error => {
-          console.warn('HTTPS failed for message, trying HTTP:', error.message);
-          // Fallback to HTTP
-          return this.http.post<Message>(`${this.httpApiUrl}/message`, payload)
-            .pipe(
-              tap(newMessage => {
-                const currentMessages = this.messagesSubject.value;
-                this.messagesSubject.next([newMessage, ...currentMessages]);
-              }),
-              catchError(this.handleError)
-            );
-        })
+        catchError(this.handleError)
       );
   }
 
@@ -203,26 +162,12 @@ export class CommunicationService {
     console.log('Sending broadcast payload:', JSON.stringify(payload, null, 2));
     console.log('API URL:', `${this.apiUrl}/broadcastMessages`);
 
-    // Try HTTPS first, fallback to HTTP if it fails
     return this.http.post(`${this.apiUrl}/broadcastMessages`, payload)
       .pipe(
         tap(response => {
           console.log('Broadcast message sent:', response);
         }),
-        catchError(error => {
-          console.warn('HTTPS failed, trying HTTP:', error.message);
-          // Fallback to HTTP
-          return this.http.post(`${this.httpApiUrl}/broadcastMessages`, payload)
-            .pipe(
-              tap(response => {
-                console.log('Broadcast message sent via HTTP:', response);
-              }),
-              catchError(httpError => {
-                console.error('Both HTTPS and HTTP failed:', httpError);
-                return this.handleError(httpError);
-              })
-            );
-        })
+        catchError(this.handleError)
       );
   }
 

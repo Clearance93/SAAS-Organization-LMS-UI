@@ -107,4 +107,18 @@ export class StudentDashboardService {
     const url = `${this.apiUrl}VideoUpload/studentVideos/${studentId}`;
     return this.http.get<any[]>(url);
   }
+
+  // Get student attendance records
+  // GET https://localhost:7270/api/Attendance/studentAttendance/{studentId}
+  getStudentAttendanceRecords(studentId: string): Observable<any[]> {
+    const url = `${this.apiUrl}Attendance/studentAttendance/${studentId}`;
+    return this.http.get<any[]>(url);
+  }
+
+  // Get organization events
+  // GET https://localhost:7270/api/OrganizationActivities/allEvents/{organizationId}
+  getOrganizationEvents(organizationId: string): Observable<any[]> {
+    const url = `${this.apiUrl}OrganizationActivities/allEvents/${organizationId}`;
+    return this.http.get<any[]>(url);
+  }
 }

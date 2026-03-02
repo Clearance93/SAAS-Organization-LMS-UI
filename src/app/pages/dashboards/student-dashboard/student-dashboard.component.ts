@@ -43,9 +43,13 @@ interface ScheduleItem {
 interface Event {
   id: string;
   title: string;
+  description?: string;
   date: string;
   time: string;
+  startTime?: string;
+  endTime?: string;
   location: string;
+  eventType?: string;
 }
 
 @Component({
@@ -71,6 +75,10 @@ export class StudentDashboardComponent implements OnInit {
   announcementsCount: number = 0;
   upcomingEvents: Event[] = [];
   attendancePercentage: number = 0;
+  dailyAttendance = { present: 0, absent: 0, percentage: 0 };
+  weeklyAttendance = { present: 0, absent: 0, percentage: 0 };
+  monthlyAttendance = { present: 0, absent: 0, percentage: 0 };
+  yearlyAttendance = { present: 0, absent: 0, percentage: 0 };
   messagesCount: number = 0;
   studentId: string = '';
   isLoading: boolean = true;
@@ -154,6 +162,7 @@ export class StudentDashboardComponent implements OnInit {
         this.loadUpcomingSessions();
         this.loadBroadcastAnnouncements();
         this.loadStudentSchedule();
+        this.loadStudentAttendance();
       }
       
       // Subscribe to unread count changes from communication service
@@ -185,7 +194,7 @@ export class StudentDashboardComponent implements OnInit {
         
         this.processAssignments(data);
         this.processAnnouncements(data);
-        this.processEvents(data);
+        this.loadOrganizationEvents();
         this.processSchedule(data);
         
         this.isLoading = false;
@@ -352,19 +361,27 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   processEvents(data: StudentDashboardApiResponse[]): void {
-    const uniqueEvents = new Map<string, Event>();
-    data.forEach(d => {
-      if (d.eventId && d.eventId !== '00000000-0000-0000-0000-000000000000') {
-        uniqueEvents.set(d.eventId, {
-          id: d.eventId,
-          title: d.eventTitle || 'Event',
-          date: d.eventStartTime,
-          time: `${d.eventStartTime} - ${d.eventEndTime}`,
-          location: d.eventLocation || 'TBA'
-        });
-      }
+    // Deprecated - now using loadOrganizationEvents
+  }
+
+  loadOrganizationEvents(): void {
+    if (!this.organizationId) return;
+    this.studentDashboardService.getOrganizationEvents(this.organizationId).subscribe({
+      next: (events) => {
+        this.upcomingEvents = events.map((e: any) => ({
+          id: e.eventId,
+          title: e.title,
+          description: e.description,
+          date: e.startTime,
+          time: '',
+          startTime: new Date(e.startTime).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}),
+          endTime: new Date(e.endTime).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}),
+          location: e.location || 'TBA',
+          eventType: e.eventType
+        }));
+      },
+      error: (error) => console.error('Failed to load events:', error)
     });
-    this.upcomingEvents = Array.from(uniqueEvents.values());
   }
 
   loadStudentSchedule(): void {
@@ -1081,5 +1098,104 @@ export class StudentDashboardComponent implements OnInit {
 
   closeMyVideosModal(): void {
     this.showMyVideosModal = false;
+  }
+
+  loadStudentAttendance(): void {
+    this.studentDashboardService.getStudentAttendanceRecords(this.studentId).subscribe({
+      next: (records) => {
+        this.calculateAttendance(records);
+      },
+      error: (error) => {
+        console.error('Failed to load attendance:', error);
+      }
+    });
+  }
+
+  calculateAttendance(records: any[]): void {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
+    // Calculate date ranges
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const yearStart = new Date(now.getFullYear(), 0, 1);
+
+    // South African public holidays 2026
+    const holidays = [
+      '2026-01-01', '2026-03-21', '2026-04-03', '2026-04-06',
+      '2026-04-27', '2026-05-01', '2026-06-16', '2026-08-09',
+      '2026-09-24', '2026-12-16', '2026-12-25', '2026-12-26'
+    ];
+
+    const isWeekend = (date: Date) => date.getDay() === 0 || date.getDay() === 6;
+    const isHoliday = (dateStr: string) => holidays.includes(dateStr);
+    const isSchoolDay = (dateStr: string) => {
+      const date = new Date(dateStr);
+      return !isWeekend(date) && !isHoliday(dateStr);
+    };
+
+    const countSchoolDays = (startDate: Date, endDate: Date) => {
+      let count = 0;
+      const current = new Date(startDate);
+      while (current <= endDate) {
+        const dateStr = current.toISOString().split('T')[0];
+        if (isSchoolDay(dateStr)) count++;
+        current.setDate(current.getDate() + 1);
+      }
+      return count;
+    };
+
+    // Get unique dates to determine classes per day
+    const uniqueDates = [...new Set(records.map(r => r.date))];
+    const classesPerDay = uniqueDates.length > 0 ? Math.round(records.length / uniqueDates.length) : 5;
+
+    // Daily (today only)
+    const dailyRecords = records.filter(r => r.date === today);
+    this.dailyAttendance.present = dailyRecords.reduce((sum, r) => sum + r.dailyPresent, 0);
+    this.dailyAttendance.absent = dailyRecords.reduce((sum, r) => sum + r.dailyAbsent, 0);
+    const dailyTotal = this.dailyAttendance.present + this.dailyAttendance.absent;
+    this.dailyAttendance.percentage = dailyTotal > 0 ? Math.round((this.dailyAttendance.present / dailyTotal) * 100) : 0;
+
+    // Weekly (last 7 days, school days only)
+    const weeklyRecords = records.filter(r => {
+      const recordDate = new Date(r.date);
+      return recordDate >= weekAgo && recordDate <= now && isSchoolDay(r.date);
+    });
+    this.weeklyAttendance.present = weeklyRecords.reduce((sum, r) => sum + r.dailyPresent, 0);
+    this.weeklyAttendance.absent = weeklyRecords.reduce((sum, r) => sum + r.dailyAbsent, 0);
+    const weeklySchoolDays = countSchoolDays(weekAgo, now);
+    const weeklyExpected = weeklySchoolDays * classesPerDay;
+    this.weeklyAttendance.percentage = weeklyExpected > 0 ? Math.round((this.weeklyAttendance.present / weeklyExpected) * 100) : 0;
+
+    // Monthly (current month, school days only)
+    const monthlyRecords = records.filter(r => {
+      const recordDate = new Date(r.date);
+      return recordDate >= monthStart && recordDate <= now && isSchoolDay(r.date);
+    });
+    this.monthlyAttendance.present = monthlyRecords.reduce((sum, r) => sum + r.dailyPresent, 0);
+    this.monthlyAttendance.absent = monthlyRecords.reduce((sum, r) => sum + r.dailyAbsent, 0);
+    const monthlySchoolDays = countSchoolDays(monthStart, now);
+    const monthlyExpected = monthlySchoolDays * classesPerDay;
+    this.monthlyAttendance.percentage = monthlyExpected > 0 ? Math.round((this.monthlyAttendance.present / monthlyExpected) * 100) : 0;
+
+    // Yearly (current year, school days only)
+    const yearlyRecords = records.filter(r => {
+      const recordDate = new Date(r.date);
+      return recordDate >= yearStart && recordDate <= now && isSchoolDay(r.date);
+    });
+    this.yearlyAttendance.present = yearlyRecords.reduce((sum, r) => sum + r.dailyPresent, 0);
+    this.yearlyAttendance.absent = yearlyRecords.reduce((sum, r) => sum + r.dailyAbsent, 0);
+    const yearlySchoolDays = countSchoolDays(yearStart, now);
+    const yearlyExpected = yearlySchoolDays * classesPerDay;
+    this.yearlyAttendance.percentage = yearlyExpected > 0 ? Math.round((this.yearlyAttendance.present / yearlyExpected) * 100) : 0;
+
+    // Overall = Yearly percentage
+    this.attendancePercentage = this.yearlyAttendance.percentage;
+    console.log('Attendance calculated:', {
+      yearly: this.yearlyAttendance.percentage,
+      overall: this.attendancePercentage,
+      present: this.yearlyAttendance.present,
+      expected: yearlyExpected
+    });
   }
 }

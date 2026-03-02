@@ -155,31 +155,67 @@
     <div class="card attendance-overview-card">
       <div class="card-header">
         <h3>📊 Attendance Overview</h3>
-        <select class="class-selector" [(ngModel)]="selectedAttendanceSubject">
-          <option *ngFor="let subject of getTeacherSubjects()" [value]="subject">{{ subject }}</option>
-        </select>
       </div>
       <div class="attendance-stats">
-        <div class="stat-item">
+        <div class="stat-item" *ngIf="attendanceOverview?.weeklyAttendance?.length > 0">
           <div class="stat-label">This Week</div>
           <div class="stat-details">
-            <span class="stat-value present">{{ getWeeklyPresent() }} Present</span>
-            <span class="stat-value absent">{{ getWeeklyAbsent() }} Absent</span>
+            <span class="stat-value present">{{ attendanceOverview.weeklyAttendance[0].TotalPresent }} Present</span>
+            <span class="stat-value absent">{{ attendanceOverview.weeklyAttendance[0].TotalStudents - attendanceOverview.weeklyAttendance[0].TotalPresent }} Absent</span>
+            <span class="stat-value" style="color: #6366f1; font-weight: 600;">{{ attendanceOverview.weeklyAttendance[0].AttendanceRate }}% Rate</span>
           </div>
         </div>
-        <div class="stat-item">
+        <div class="stat-item" *ngIf="attendanceOverview?.monhtlyAttendance?.length > 0">
           <div class="stat-label">This Month</div>
           <div class="stat-details">
-            <span class="stat-value present">{{ getMonthlyPresent() }} Present</span>
-            <span class="stat-value absent">{{ getMonthlyAbsent() }} Absent</span>
+            <span class="stat-value present">{{ attendanceOverview.monhtlyAttendance[0].TotalPresent }} Present</span>
+            <span class="stat-value absent">{{ attendanceOverview.monhtlyAttendance[0].TotalStudents - attendanceOverview.monhtlyAttendance[0].TotalPresent }} Absent</span>
+            <span class="stat-value" style="color: #6366f1; font-weight: 600;">{{ attendanceOverview.monhtlyAttendance[0].AttendanceRate }}% Rate</span>
           </div>
         </div>
-        <div class="stat-item">
+        <div class="stat-item" *ngIf="attendanceOverview?.todayAttendance?.length > 0">
           <div class="stat-label">Today</div>
           <div class="stat-details">
-            <span class="stat-value present">{{ getTodayPresent() }} Present</span>
-            <span class="stat-value absent">{{ getTodayAbsent() }} Absent</span>
+            <span class="stat-value present">{{ attendanceOverview.todayAttendance[0].TotalPresent }} Present</span>
+            <span class="stat-value absent">{{ attendanceOverview.todayAttendance[0].TotalStudents - attendanceOverview.todayAttendance[0].TotalPresent }} Absent</span>
+            <span class="stat-value" style="color: #6366f1; font-weight: 600;">{{ attendanceOverview.todayAttendance[0].AttendanceRate }}% Rate</span>
           </div>
+        </div>
+        <div *ngIf="!attendanceOverview" style="text-align: center; padding: 2rem; color: #6b7280;">
+          <p style="margin: 0;">Loading attendance data...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upcoming Events -->
+    <div class="card events-card">
+      <div class="card-header">
+        <h3>🗓️ Upcoming Events</h3>
+      </div>
+      <div class="events-list">
+        <div *ngFor="let event of upcomingEvents" style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb; background: linear-gradient(to right, #f8fafc 0%, #ffffff 100%); margin-bottom: 0.5rem; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h4 style="margin: 0; color: #1e293b; font-size: 1.2rem; font-weight: 700;">{{ event.title }}</h4>
+            <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase;">{{ event.eventType }}</span>
+          </div>
+          <p style="margin: 0 0 1rem 0; color: #64748b; font-size: 0.95rem; line-height: 1.6;">{{ event.description }}</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; padding: 1rem; background: white; border-radius: 8px; border-left: 4px solid #667eea;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.2rem;">📅</span>
+              <span style="color: #475569; font-size: 0.9rem; font-weight: 500;">{{ event.date | date:'MMM d, y' }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.2rem;">🕐</span>
+              <span style="color: #475569; font-size: 0.9rem; font-weight: 500;">{{ event.startTime }} - {{ event.endTime }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.2rem;">📍</span>
+              <span style="color: #475569; font-size: 0.9rem; font-weight: 500;">{{ event.location }}</span>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="upcomingEvents.length === 0" class="no-events">
+          <p>No upcoming events</p>
         </div>
       </div>
     </div>
@@ -189,31 +225,62 @@
 
 <!-- Attendance Modal -->
 <div class="modal-overlay" *ngIf="isAttendanceModalOpen" (click)="closeAttendanceModal()">
-  <div class="modal-content" (click)="$event.stopPropagation()">
+  <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 800px;">
     <div class="modal-header">
       <h3>Take Attendance</h3>
       <button class="close-btn" (click)="closeAttendanceModal()">×</button>
     </div>
     <div class="modal-body">
-      <div class="attendance-controls">
-        <select [(ngModel)]="selectedClass" class="class-select">
-          <option *ngFor="let class of myClasses" [value]="class.name">{{ class.name }}</option>
+      <div class="attendance-controls" style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+        <select [(ngModel)]="selectedStreamFilter" (change)="selectedSubjectFilter = $any($event.target).selectedOptions[0].dataset['subject']; onStudentFilterChange()" class="class-select" style="flex: 1;">
+          <option value="">All Streams</option>
+          <option *ngFor="let combo of getUniqueStreamSubjectCombos()" [value]="combo.streamName" [attr.data-subject]="combo.subject">{{ combo.display }}</option>
         </select>
-        <input type="date" [(ngModel)]="attendanceDate" class="date-input">
+        <input type="text" [(ngModel)]="studentSearchQuery" (ngModelChange)="onStudentFilterChange()" placeholder="Search student..." class="date-input" style="flex: 1;">
+        <input type="date" [(ngModel)]="attendanceDate" class="date-input" style="flex: 1;">
       </div>
       <div class="students-list">
-        <div class="student-item" *ngFor="let student of students">
-          <div class="student-info">
-            <div class="student-avatar">{{ getInitials(student.name) }}</div>
-            <span class="student-name">{{ student.name }}</span>
+        <div class="student-item" *ngFor="let student of filteredStudents" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-bottom: 1px solid #e5e7eb;">
+          <div class="student-info" style="display: flex; align-items: center; gap: 1rem;">
+            <img *ngIf="student.profilePicture" [src]="'data:image/jpeg;base64,' + student.profilePicture" alt="{{ student.name }}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
+            <div *ngIf="!student.profilePicture" class="student-avatar" style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">{{ getInitials(student.name) }}</div>
+            <div>
+              <span class="student-name" style="font-weight: 600; color: #1e293b;">{{ student.name }}</span>
+              <p style="margin: 0; font-size: 0.85rem; color: #64748b;">{{ student.streamName }} • {{ student.subject }}</p>
+            </div>
           </div>
           <div class="attendance-toggle">
             <button class="toggle-btn" 
                     [class.present]="student.isPresent"
                     [class.absent]="!student.isPresent"
-                    (click)="toggleAttendance(student.id)">
+                    (click)="toggleAttendance(student.studentId)">
               {{ student.isPresent ? 'Present' : 'Absent' }}
             </button>
+          </div>
+        </div>
+        <div *ngIf="filteredStudents.length === 0" style="text-align: center; padding: 3rem; color: #6b7280;">
+          <p style="font-size: 3rem; margin: 0 0 1rem 0;">👥</p>
+          <p style="margin: 0; font-size: 1.1rem;">No students found</p>
+        </div>
+      </div>
+      
+      <!-- Attendance Summary -->
+      <div style="background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem;">
+        <h4 style="margin: 0 0 1rem 0; color: #1e40af; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+          <span>📊</span> Attendance Summary
+        </h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+          <div style="text-align: center; padding: 1rem; background: white; border-radius: 8px;">
+            <div style="font-size: 2rem; font-weight: bold; color: #6b7280;">{{ filteredStudents.length }}</div>
+            <div style="color: #6b7280; font-size: 0.9rem; margin-top: 0.25rem;">Total Students</div>
+          </div>
+          <div style="text-align: center; padding: 1rem; background: #d1fae5; border-radius: 8px; border: 2px solid #10b981;">
+            <div style="font-size: 2rem; font-weight: bold; color: #10b981;">{{ getAttendancePresentCount() }}</div>
+            <div style="color: #065f46; font-size: 0.9rem; margin-top: 0.25rem;">Present</div>
+          </div>
+          <div style="text-align: center; padding: 1rem; background: #fee2e2; border-radius: 8px; border: 2px solid #ef4444;">
+            <div style="font-size: 2rem; font-weight: bold; color: #ef4444;">{{ getAttendanceAbsentCount() }}</div>
+            <div style="color: #991b1b; font-size: 0.9rem; margin-top: 0.25rem;">Absent</div>
           </div>
         </div>
       </div>
@@ -648,17 +715,24 @@
     <div class="modal-body">
       <p style="margin-bottom: 1rem; color: #6b7280;">You have {{ upcomingWorkshops.length }} upcoming workshop(s)</p>
       <div style="display: flex; flex-direction: column; gap: 1rem;">
-        <div *ngFor="let workshop of upcomingWorkshops" style="padding: 1.5rem; background: #f0f9ff; border-radius: 12px; border-left: 4px solid #3b82f6;">
+        <div *ngFor="let workshop of paginatedWorkshops" style="padding: 1.5rem; background: #f0f9ff; border-radius: 12px; border-left: 4px solid #3b82f6;">
           <div style="display: flex; justify-content: space-between; align-items: start;">
             <div style="flex: 1;">
-              <h3 style="margin: 0 0 0.5rem 0; font-size: 1.2rem; color: #1f2937;">{{ workshop.workshopName }}</h3>
-              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">{{ workshop.workShopDescription }}</p>
-              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">📅 {{ workshop.scheduledDate | date:'fullDate' }}</p>
-              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">⏰ {{ workshop.scheduleTime }}</p>
-              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">⏱️ Duration: {{ workshop.timeDuration }} minutes</p>
-              <p style="margin: 0 0 0.25rem 0; color: #6b7280; font-size: 0.9rem;">👥 Max Participants: {{ workshop.maxParticipants }}</p>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                <h3 style="margin: 0; font-size: 1.2rem; color: #1f2937;">{{ workshop.workshopName }}</h3>
+                <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">{{ workshop.privacy }}</span>
+              </div>
+              <p style="margin: 0 0 0.75rem 0; color: #6b7280; font-size: 0.9rem;">{{ workshop.workShopDescription }}</p>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem;">
+                <p style="margin: 0; color: #6b7280; font-size: 0.9rem;"><span style="margin-right: 0.25rem;">📅</span>{{ workshop.scheduledDate | date:'fullDate' }}</p>
+                <p style="margin: 0; color: #6b7280; font-size: 0.9rem;"><span style="margin-right: 0.25rem;">⏰</span>{{ workshop.scheduleTime }}</p>
+                <p style="margin: 0; color: #6b7280; font-size: 0.9rem;"><span style="margin-right: 0.25rem;">⏱️</span>{{ workshop.timeDuration }} minutes</p>
+                <p style="margin: 0; color: #6b7280; font-size: 0.9rem;"><span style="margin-right: 0.25rem;">👥</span>Max: {{ workshop.maxParticipants }}</p>
+              </div>
+              <div style="margin-top: 1rem;">
+                <a [href]="workshop.meetingUrl" target="_blank" style="display: inline-block; padding: 0.5rem 1rem; background: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;"><span style="margin-right: 0.25rem;">🔗</span>Join Workshop</a>
+              </div>
             </div>
-            <button class="btn-primary" (click)="joinWorkshop(workshop.meetingUrl)" style="white-space: nowrap;">🎥 Join Workshop</button>
           </div>
         </div>
       </div>
@@ -666,6 +740,11 @@
         <p style="font-size: 3rem; margin: 0 0 1rem 0;">📅</p>
         <p style="margin: 0; font-size: 1.1rem;">No upcoming workshops</p>
         <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Check back later for new workshops</p>
+      </div>
+      <div class="pagination" *ngIf="workshopsTotalPages > 1" style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem;">
+        <button (click)="prevWorkshopsPage()" [disabled]="workshopsCurrentPage === 1" style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" [style.opacity]="workshopsCurrentPage === 1 ? '0.5' : '1'" [style.cursor]="workshopsCurrentPage === 1 ? 'not-allowed' : 'pointer'">‹ Previous</button>
+        <span style="color: #6b7280; font-weight: 600;">{{ workshopsCurrentPage }} / {{ workshopsTotalPages }}</span>
+        <button (click)="nextWorkshopsPage()" [disabled]="workshopsCurrentPage === workshopsTotalPages" style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" [style.opacity]="workshopsCurrentPage === workshopsTotalPages ? '0.5' : '1'" [style.cursor]="workshopsCurrentPage === workshopsTotalPages ? 'not-allowed' : 'pointer'">Next ›</button>
       </div>
     </div>
     <div class="modal-footer">

@@ -86,9 +86,9 @@ export class TeacherDashboardService {
   }
 
   // Get upcoming sessions by role
-  // GET https://localhost:7270/api/MeetingsUrl/upcommingSession/{role}
-  getUpcomingSessionsByRole(role: string): Observable<any[]> {
-    const url = `https://localhost:7270/api/MeetingsUrl/upcommingSession/${role}`;
+  // GET https://localhost:7270/api/MeetingsUrl/upcommingSession/{usrRole}
+  getUpcomingSessionsByRole(usrRole: string): Observable<any[]> {
+    const url = `https://localhost:7270/api/MeetingsUrl/upcommingSession/${usrRole}`;
     return this.http.get<any[]>(url);
   }
 
@@ -153,5 +153,19 @@ export class TeacherDashboardService {
   getTeacherSchedule(teacherId: string): Observable<any[]> {
     const url = `${this.teacherScheduleUrl}/teacherSchedule/${teacherId}`;
     return this.http.get<any[]>(url);
+  }
+
+  // Get teacher students
+  // GET https://localhost:7270/api/School/teacherStudent/{teacherId}
+  getTeacherStudents(teacherId: string): Observable<any[]> {
+    const url = `https://localhost:7270/api/School/teacherStudent/${teacherId}`;
+    return this.http.get<any[]>(url);
+  }
+
+  // Submit student attendance
+  // POST https://localhost:7270/api/Attendance/addStduentAttendance
+  submitAttendance(payload: any[]): Observable<any> {
+    const url = 'https://localhost:7270/api/Attendance/addStduentAttendance';
+    return this.http.post<any>(url, payload);
   }
 }

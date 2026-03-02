@@ -10,6 +10,7 @@ import { AuthService } from '../../../services/authServices/auth.service';
 import { CommunicationService } from '../../../services/communication/communication.service';
 import { WorkshopService } from '../../../services/workshop.service';
 import { AiGradingService } from '../../../services/ai-grading.service';
+import { StudentDashboardService } from '../../../services/studentServices/student-dashboard.service';
 import { AiAssistantComponent } from '../../../components/ai-assistant/ai-assistant.component';
 import { StreamResponse, ClassScheduleDto, ScheduleStatus } from '../../../interfaces/class-schedule';
 import { TeachingClass } from '../../../interfaces/teaching-class.interface';
@@ -56,12 +57,12 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   // Attendance Management
   selectedClass = 'Grade 10A Math';
   attendanceDate = new Date().toISOString().split('T')[0];
-  students = [
-    { id: '1', name: 'Alice Johnson', isPresent: true },
-    { id: '2', name: 'Bob Smith', isPresent: true },
-    { id: '3', name: 'Carol Davis', isPresent: false },
-    { id: '4', name: 'David Wilson', isPresent: true }
-  ];
+  students: any[] = [];
+  allStudents: any[] = [];
+  filteredStudents: any[] = [];
+  selectedStreamFilter = '';
+  selectedSubjectFilter = '';
+  studentSearchQuery = '';
 
   // Teacher's classes (populated by API when available)
   myClasses: { name: string; students?: number; time?: string }[] = [];
@@ -77,6 +78,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   // Attendance data
   attendanceData: any = null;
   selectedAttendanceSubject = '';
+  attendanceOverview: any = null;
 
   // Assignments pagination
   assignmentsCurrentPage = 1;
@@ -127,6 +129,11 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   cachedTeachingClasses: TeachingClass[] = [];
   upcomingWorkshops: any[] = [];
   isUpcomingWorkshopsModalOpen = false;
+  workshopsCurrentPage = 1;
+  workshopsItemsPerPage = 5;
+  paginatedWorkshops: any[] = [];
+  workshopsTotalPages = 1;
+  upcomingEvents: any[] = [];
   
   // Live Session Data
   liveSessionForm: FormGroup;
@@ -182,6 +189,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     private communicationService: CommunicationService,
     private workshopService: WorkshopService,
     private aiGradingService: AiGradingService,
+    private studentDashboardService: StudentDashboardService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.assignmentForm = this.fb.group({
@@ -233,6 +241,8 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
             this.loadUnreadMessageCount(orgId, roleUserId);
             this.loadAnnouncements();
             this.loadUpcomingWorkshops();
+            this.loadOrganizationEvents(orgId);
+            this.loadAttendanceOverview();
           },
           error: (err) => {
             console.error('Failed to load teacher dashboard', err);
@@ -517,6 +527,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   // Attendance Methods
   openAttendanceModal(): void {
     this.isAttendanceModalOpen = true;
+    this.loadTeacherStudents();
   }
 
   closeAttendanceModal(): void {
@@ -524,20 +535,120 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   }
 
   toggleAttendance(studentId: string): void {
-    const student = this.students.find(s => s.id === studentId);
+    const student = this.filteredStudents.find(s => s.studentId === studentId);
     if (student) {
       student.isPresent = !student.isPresent;
     }
   }
 
-  saveAttendance(): void {
-    Swal.fire({
-      title: 'Success!',
-      text: 'Attendance saved successfully!',
-      icon: 'success',
-      confirmButtonText: 'OK'
+  loadTeacherStudents(): void {
+    if (!this.teacherId) return;
+    
+    this.teacherDashboardService.getTeacherStudents(this.teacherId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (students) => {
+          this.allStudents = students.map((s: any) => ({
+            studentId: s.studentId,
+            name: `${s.studentFirstName} ${s.studentLastName}`,
+            firstName: s.studentFirstName,
+            lastName: s.studentLastName,
+            profilePicture: s.studentProfilePicture,
+            subject: s.subject,
+            streamName: s.streamName,
+            gradeStreamId: s.streamGradeId,
+            teachingClassId: s.teachingClassId,
+            isPresent: true
+          }));
+          this.filteredStudents = this.allStudents;
+          console.log('Students loaded with gradeStreamId:', this.allStudents);
+        },
+        error: (error) => {
+          console.error('Failed to load students:', error);
+          Swal.fire('Error', 'Failed to load students', 'error');
+        }
+      });
+  }
+
+  getUniqueStreamNames(): string[] {
+    return [...new Set(this.allStudents.map(s => s.streamName))];
+  }
+
+  getUniqueStreamSubjectCombos(): Array<{display: string, streamName: string, subject: string}> {
+    const combos = new Map<string, {display: string, streamName: string, subject: string}>();
+    this.allStudents.forEach(s => {
+      const key = `${s.streamName}_${s.subject}`;
+      if (!combos.has(key)) {
+        combos.set(key, {
+          display: `${s.streamName} - ${s.subject}`,
+          streamName: s.streamName,
+          subject: s.subject
+        });
+      }
     });
-    this.closeAttendanceModal();
+    return Array.from(combos.values());
+  }
+
+  onStudentFilterChange(): void {
+    this.filteredStudents = this.allStudents.filter(s =>
+      (!this.selectedStreamFilter || s.streamName === this.selectedStreamFilter) &&
+      (!this.selectedSubjectFilter || s.subject === this.selectedSubjectFilter) &&
+      (!this.studentSearchQuery || s.name.toLowerCase().includes(this.studentSearchQuery.toLowerCase()))
+    );
+  }
+
+  getAttendancePresentCount(): number {
+    return this.filteredStudents.filter(s => s.isPresent).length;
+  }
+
+  getAttendanceAbsentCount(): number {
+    return this.filteredStudents.filter(s => !s.isPresent).length;
+  }
+
+  saveAttendance(): void {
+    const profile = this.authService.getUserProfile();
+    const organizationId = profile?.organizationId || localStorage.getItem('organizationId');
+
+    if (!organizationId || !this.teacherId) {
+      Swal.fire('Error', 'Missing organization or teacher information', 'error');
+      return;
+    }
+
+    // Validate that students have gradeStreamId
+    const studentsWithoutGradeStream = this.filteredStudents.filter(s => !s.gradeStreamId || s.gradeStreamId === '00000000-0000-0000-0000-000000000000');
+    if (studentsWithoutGradeStream.length > 0) {
+      console.warn('Students without gradeStreamId:', studentsWithoutGradeStream);
+    }
+
+    // Build payload array with individual student records
+    const payload = this.filteredStudents.map(student => ({
+      attendanceOverviewId: '00000000-0000-0000-0000-000000000000',
+      organizationId: organizationId,
+      teacherId: this.teacherId,
+      gradeStreamId: student.gradeStreamId,
+      studentId: student.studentId,
+      studentFirstName: student.firstName,
+      studentLastName: student.lastName,
+      teachingClassId: student.teachingClassId,
+      dailyPresent: student.isPresent ? 1 : 0,
+      dailyAbsent: student.isPresent ? 0 : 1,
+      date: this.attendanceDate
+    }));
+
+    console.log('Attendance payload:', payload);
+
+    this.teacherDashboardService.submitAttendance(payload)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          Swal.fire('Success', 'Attendance saved successfully!', 'success');
+          this.closeAttendanceModal();
+        },
+        error: (error) => {
+          console.error('Failed to save attendance:', error);
+          Swal.fire('Error', 'Failed to save attendance', 'error');
+        }
+      });
   }
 
   // Assignment Methods
@@ -919,7 +1030,62 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   }
 
   loadUpcomingWorkshops(): void {
-    this.upcomingWorkshops = [];
+    this.teacherDashboardService.getUpcomingSessionsByRole('Teacher')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (workshops) => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          // Filter to only show workshops with future dates
+          this.upcomingWorkshops = workshops.filter((w: any) => {
+            const workshopDate = new Date(w.scheduledDate);
+            workshopDate.setHours(0, 0, 0, 0);
+            return workshopDate >= today;
+          });
+          
+          console.log('Upcoming workshops loaded:', this.upcomingWorkshops);
+          this.updateWorkshopBadge();
+          this.updateWorkshopsPagination();
+        },
+        error: (error) => {
+          console.error('Failed to load workshops:', error);
+          this.upcomingWorkshops = [];
+          this.updateWorkshopBadge();
+          this.updateWorkshopsPagination();
+        }
+      });
+  }
+
+  loadOrganizationEvents(organizationId: string): void {
+    this.studentDashboardService.getOrganizationEvents(organizationId).subscribe({
+      next: (events: any[]) => {
+        this.upcomingEvents = events.map((e: any) => ({
+          id: e.eventId,
+          title: e.title,
+          description: e.description,
+          date: e.startTime,
+          startTime: new Date(e.startTime).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}),
+          endTime: new Date(e.endTime).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}),
+          location: e.location || 'TBA',
+          eventType: e.eventType
+        }));
+      },
+      error: (error: any) => console.error('Failed to load events:', error)
+    });
+  }
+
+  loadAttendanceOverview(): void {
+    if (!this.teacherId) return;
+    this.teachingClassService.getTeacherAttendanceOverview(this.teacherId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          this.attendanceOverview = data;
+          console.log('Attendance overview loaded:', data);
+        },
+        error: (error) => console.error('Failed to load attendance overview:', error)
+      });
   }
 
   handleQuickAction(action: string): void {
@@ -933,7 +1099,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       uploadVideo: () => this.isUploadVideoModalOpen = true,
       myVideos: () => { this.isMyVideosModalOpen = true; this.loadUploadedVideos(); },
       checkPlagiarism: () => { this.isPlagiarismModalOpen = true; this.loadPlagiarismAssignments(); },
-      upcomingWorkshops: () => this.isUpcomingWorkshopsModalOpen = true
+      upcomingWorkshops: () => { this.isUpcomingWorkshopsModalOpen = true; this.updateWorkshopsPagination(); }
     };
     actions[action]?.();
   }
@@ -1496,6 +1662,23 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     const end = start + this.itemsPerPage;
     this.paginatedTodaySchedule = this.todaySchedule.slice(start, end);
   }
+
+  updateWorkshopsPagination(): void {
+    this.workshopsTotalPages = Math.ceil(this.upcomingWorkshops.length / this.workshopsItemsPerPage);
+    const start = (this.workshopsCurrentPage - 1) * this.workshopsItemsPerPage;
+    const end = start + this.workshopsItemsPerPage;
+    this.paginatedWorkshops = this.upcomingWorkshops.slice(start, end);
+  }
+
+  updateWorkshopBadge(): void {
+    const workshopAction = this.quickActions.find(a => a.action === 'upcomingWorkshops');
+    if (workshopAction) {
+      workshopAction.badge = this.upcomingWorkshops.length;
+    }
+  }
+
+  prevWorkshopsPage(): void { if (this.workshopsCurrentPage > 1) { this.workshopsCurrentPage--; this.updateWorkshopsPagination(); } }
+  nextWorkshopsPage(): void { if (this.workshopsCurrentPage < this.workshopsTotalPages) { this.workshopsCurrentPage++; this.updateWorkshopsPagination(); } }
 
   loadPlagiarismAssignments(): void {
     if (!this.teacherId) return;

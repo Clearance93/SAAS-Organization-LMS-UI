@@ -69,15 +69,25 @@ export class LoginComponent implements OnInit {
         if (role === 'teacher') {
           const orgId = localStorage.getItem('organizationId');
           const teacherId = localStorage.getItem('userId') || localStorage.getItem('teacherId');
+          const email = this.loginForm.value.email;
 
           if (orgId && teacherId) {
-            this.teacherDashboardService.getTeacherDashboard(orgId, teacherId).subscribe({
-              next: (stats) => {
-                localStorage.setItem('teacherDashboard', JSON.stringify(stats));
-                this.router.navigate(['/teacher-dashboard']);
+            this.teacherDashboardService.getTeacherByEmail(email).subscribe({
+              next: (teacherProfile) => {
+                localStorage.setItem('teacherProfile', JSON.stringify(teacherProfile));
+                this.teacherDashboardService.getTeacherDashboard(orgId, teacherId).subscribe({
+                  next: (stats) => {
+                    localStorage.setItem('teacherDashboard', JSON.stringify(stats));
+                    this.router.navigate(['/teacher-dashboard']);
+                  },
+                  error: (err) => {
+                    console.error('Failed to load teacher dashboard', err);
+                    this.router.navigate(['/teacher-dashboard']);
+                  }
+                });
               },
               error: (err) => {
-                console.error('Failed to load teacher dashboard', err);
+                console.error('Failed to load teacher profile', err);
                 this.router.navigate(['/teacher-dashboard']);
               }
             });
