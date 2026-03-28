@@ -398,6 +398,35 @@
   grid-column: span 3;
 }
 
+.performance-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.performance-card .refresh-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.performance-card .refresh-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: rotate(180deg) scale(1.1);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
 .performance-list {
   display: flex;
   flex-direction: column;
@@ -408,28 +437,91 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  padding: 1.25rem;
   border-radius: 12px;
-  background: #f9fafb;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s ease;
+}
+
+.performance-item:hover {
+  border-color: #6366f1;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+  transform: translateX(5px);
 }
 
 .performance-class {
   font-weight: 600;
+  color: #1e293b;
+  flex: 1;
 }
 
 .performance-average {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #6366f1;
+  font-size: 1.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0 1rem;
 }
 
 .performance-trend {
-  font-size: 1.2rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  background: #d1fae5;
+  color: #10b981;
 }
 
 /* Attendance Overview Card */
 .attendance-overview-card {
   grid-column: span 3;
+}
+
+/* Events Card */
+.events-card {
+  grid-column: span 6;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.no-events {
+  text-align: center;
+  padding: 3rem;
+  color: #6b7280;
+}
+
+.attendance-overview-card .class-selector {
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.attendance-overview-card .class-selector:hover {
+  border-color: #6366f1;
+}
+
+.attendance-overview-card .class-selector:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .class-selector {
@@ -446,39 +538,79 @@
 }
 
 .stat-item {
-  padding: 1rem;
+  padding: 1.25rem;
   border-radius: 12px;
-  background: #f9fafb;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+  border-color: #6366f1;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+  transform: translateY(-2px);
 }
 
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: #6b7280;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stat-label::before {
+  content: '';
+  width: 4px;
+  height: 16px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 2px;
 }
 
 .stat-details {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .stat-value {
-  font-size: 1.1rem;
-  font-weight: 600;
-  padding: 0.5rem;
-  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+}
+
+.stat-value::before {
+  font-size: 1.2rem;
+  margin-right: 0.5rem;
 }
 
 .stat-value.present {
-  background: #d1fae5;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
   color: #065f46;
+  border: 2px solid #10b981;
+}
+
+.stat-value.present::before {
+  content: '✓';
 }
 
 .stat-value.absent {
-  background: #fee2e2;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
   color: #991b1b;
+  border: 2px solid #ef4444;
+}
+
+.stat-value.absent::before {
+  content: '✗';
 }
 
 /* Common Button Styles */
@@ -1159,7 +1291,8 @@
     grid-column: span 6;
   }
   
-  .assignments-card {
+  .assignments-card,
+  .events-card {
     grid-column: span 12;
   }
   
@@ -1180,11 +1313,82 @@
     text-align: center;
   }
   
+  .header-left h1 {
+    font-size: 1.5rem;
+  }
+  
+  .header-right {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
   .content-grid > .card {
-    grid-column: span 12;
+    grid-column: span 12 !important;
   }
   
   .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .quick-action-btn {
+    padding: 0.75rem;
+  }
+  
+  .action-title {
+    font-size: 0.75rem;
+  }
+  
+  .events-list {
+    max-height: 400px;
+  }
+  
+  .card {
+    padding: 1.25rem;
+  }
+  
+  .card-header h3 {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .teacher-dashboard {
+    padding: 0.75rem;
+  }
+  
+  .dashboard-header {
+    padding: 1rem;
+  }
+  
+  .header-left h1 {
+    font-size: 1.25rem;
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .events-list {
+    max-height: 300px;
+  }
+  
+  .schedule-item,
+  .assignment-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .schedule-time {
+    min-width: auto;
+  }
+  
+  .modal-content {
+    width: 95%;
+    padding: 1.5rem;
+  }
+  
+  .form-row {
     grid-template-columns: 1fr;
   }
 }

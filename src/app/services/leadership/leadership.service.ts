@@ -7,7 +7,7 @@ import { CreateLeadershipProgramDto, LeadershipProgramDto, EnrollParticipantDto 
   providedIn: 'root'
 })
 export class LeadershipService {
-  private baseUrl = 'https://localhost:7270/api';
+  private baseUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api';
 
   constructor(private http: HttpClient) { }
 

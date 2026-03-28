@@ -8,7 +8,7 @@ import { TeacherStream } from '../interfaces/teacher-stream.interface';
   providedIn: 'root'
 })
 export class TeachingClassService {
-  private apiUrl = 'https://localhost:7270/api/TeachersSchedule';
+  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/TeachersSchedule';
 
   private httpOptions = {
     headers: new HttpHeaders({
@@ -39,11 +39,11 @@ export class TeachingClassService {
   }
 
   getTeacherAttendanceDashboard(organizationId: string, teacherId: string): Observable<any> {
-    return this.http.get<any>(`https://localhost:7270/api/SchoolDashboards/teacherDashboard/${organizationId}/${teacherId}`);
+    return this.http.get<any>(`https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/SchoolDashboards/teacherDashboard/${organizationId}/${teacherId}`);
   }
 
   getTeacherAttendanceOverview(teacherId: string): Observable<any> {
-    return this.http.get<any>(`https://localhost:7270/api/Attendance/teacheDashboard/${teacherId}`);
+    return this.http.get<any>(`https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Attendance/teacheDashboard/${teacherId}`);
   }
 
   updateTeachingClass(teachingClassId: string, teachingClass: Partial<TeachingClass>): Observable<TeachingClass> {

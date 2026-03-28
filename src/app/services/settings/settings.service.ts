@@ -33,8 +33,8 @@ import { ExamGradesScaleModel } from '../../features/organization/models/setting
   providedIn: 'root'
 })
 export class SettingsService {
-  private apiUrl = 'https://localhost:7270/api/Settings';
-  private schoolApiUrl = 'https://localhost:7270/api/School/'
+  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Settings';
+  private schoolApiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School/'
 
 
 

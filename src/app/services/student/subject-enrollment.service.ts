@@ -7,7 +7,7 @@ import { Grade, Subject, EnrollSubjectDto } from '../../interfaces/student/subje
   providedIn: 'root'
 })
 export class SubjectEnrollmentService {
-  private baseUrl = 'https://localhost:7270/api';
+  private baseUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api';
 
   constructor(private http: HttpClient) { }
 

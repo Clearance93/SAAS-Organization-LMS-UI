@@ -16,7 +16,7 @@ export interface Teacher {
   providedIn: 'root'
 })
 export class TeacherService {
-  private baseUrl = 'https://localhost:7270/apiSchool';
+  private baseUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/apiSchool';
 
   constructor(private http: HttpClient) {}
 

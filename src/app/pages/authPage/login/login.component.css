@@ -239,3 +239,30 @@
     font-size: 24px;
   }
 }
+
+.confirm-email-alert {
+  background-color: #fffbeb;
+  border: 1px solid #f6ad55;
+  color: #92400e;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.confirm-email-alert svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.confirm-email-alert strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.confirm-email-alert p {
+  margin: 0;
+}

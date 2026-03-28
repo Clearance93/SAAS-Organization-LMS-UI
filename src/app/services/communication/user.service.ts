@@ -13,7 +13,7 @@ export interface User {
   providedIn: 'root'
 })
 export class UserService {
-  private apiUrl = 'https://localhost:7270/api/School';
+  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School';
 
   constructor(private http: HttpClient) {}
 

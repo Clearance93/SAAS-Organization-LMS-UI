@@ -7,7 +7,7 @@ import { Event, CreateEventDto, UpdateEventDto } from '../interfaces/schools/adm
   providedIn: 'root'
 })
 export class EventService {
-  private apiUrl = 'https://localhost:7270/api/OrganizationActivities';
+  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/OrganizationActivities';
 
   constructor(private http: HttpClient) {}
 

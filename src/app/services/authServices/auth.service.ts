@@ -17,8 +17,8 @@ import { EmailConfirmationResponse } from '../../interfaces/auth/email-confirmat
 export class AuthService {
  
 
-  private apiUrl = 'https://localhost:7270/api/Auth';
-  private adminApiUrl = 'https://localhost:7270/api/Admin';
+  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Auth';
+  private adminApiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Admin';
 
   private currentUserSubject: BehaviorSubject<LoginAuthUser | null>;
   private userProfileSubject: BehaviorSubject<any | null>;
@@ -40,12 +40,8 @@ export class AuthService {
     this.userProfile = this.userProfileSubject.asObservable();
    }
 
-  register(registerRequest: RegisterRequest): Observable<any> {
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-
-    return this.http.post<any>(`${this.apiUrl}/register`, registerRequest, { headers });
+  register(formData: FormData): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/register`, formData);
   }
 
    public get currentUserValue(): LoginAuthUser | null {

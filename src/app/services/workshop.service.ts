@@ -30,7 +30,7 @@ export interface ScheduledWorkshopDto {
   providedIn: 'root'
 })
 export class WorkshopService {
-  private baseUrl = 'https://localhost:7270/api/MeetingsUrl';
+  private baseUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/MeetingsUrl';
 
   constructor(private http: HttpClient) {}
 

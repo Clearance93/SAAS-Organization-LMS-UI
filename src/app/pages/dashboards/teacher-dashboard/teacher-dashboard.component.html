@@ -141,12 +141,18 @@
     <div class="card performance-card">
       <div class="card-header">
         <h3>📈 Class Performance</h3>
+        <button class="refresh-btn" (click)="loadClassPerformance()" title="Refresh" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄</button>
       </div>
       <div class="performance-list">
-        <div class="performance-item" *ngFor="let perf of classPerformanceList">
-          <div class="performance-class">{{ perf.class }}</div>
-          <div class="performance-average">{{ perf.average }}%</div>
-          <div class="performance-trend">{{ getTrendIcon(perf.trend) }}</div>
+        <div class="performance-item" *ngFor="let perf of classPerformanceList" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #e5e7eb;">
+          <div class="performance-class" style="flex: 1; font-weight: 600; color: #1e293b;">{{ perf.class }}</div>
+          <div class="performance-average" style="font-size: 1.5rem; font-weight: bold; color: #6366f1; margin: 0 1rem;">{{ perf.average }}%</div>
+          <div class="performance-trend" style="font-size: 1.5rem;" [style.color]="perf.trend === 'up' ? '#10b981' : '#ef4444'">{{ getTrendIcon(perf.trend) }}</div>
+        </div>
+        <div *ngIf="classPerformanceList.length === 0" style="text-align: center; padding: 3rem; color: #6b7280;">
+          <p style="font-size: 3rem; margin: 0 0 1rem 0;">📊</p>
+          <p style="margin: 0; font-size: 1.1rem;">No performance data available</p>
+          <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Performance data will appear once students complete assignments</p>
         </div>
       </div>
     </div>
@@ -157,33 +163,57 @@
         <h3>📊 Attendance Overview</h3>
       </div>
       <div class="attendance-stats">
-        <div class="stat-item" *ngIf="attendanceOverview?.weeklyAttendance?.length > 0">
+        <!-- Weekly Attendance -->
+        <div class="stat-item" *ngIf="getFilteredWeeklyAttendance()">
           <div class="stat-label">This Week</div>
           <div class="stat-details">
-            <span class="stat-value present">{{ attendanceOverview.weeklyAttendance[0].TotalPresent }} Present</span>
-            <span class="stat-value absent">{{ attendanceOverview.weeklyAttendance[0].TotalStudents - attendanceOverview.weeklyAttendance[0].TotalPresent }} Absent</span>
-            <span class="stat-value" style="color: #6366f1; font-weight: 600;">{{ attendanceOverview.weeklyAttendance[0].AttendanceRate }}% Rate</span>
+            <span class="stat-value present">{{ getFilteredWeeklyAttendance().TotalPresent }} Present</span>
+            <span class="stat-value absent">{{ getFilteredWeeklyAttendance().TotalAbsent || (getFilteredWeeklyAttendance().TotalStudents - getFilteredWeeklyAttendance().TotalPresent) }} Absent</span>
+            <span class="stat-value" style="color: #6366f1; font-weight: 600;">{{ getFilteredWeeklyAttendance().AttendanceRate }}% Rate</span>
+          </div>
+          <div style="font-size: 0.85rem; color: #6b7280; margin-top: 0.5rem;" *ngIf="paginatedAttendanceClasses.length > 0">
+            {{ getFilteredWeeklyAttendance().StreamName }} - {{ getFilteredWeeklyAttendance().Subject }}
           </div>
         </div>
-        <div class="stat-item" *ngIf="attendanceOverview?.monhtlyAttendance?.length > 0">
+        
+        <!-- Monthly Attendance -->
+        <div class="stat-item" *ngIf="getFilteredMonthlyAttendance()">
           <div class="stat-label">This Month</div>
           <div class="stat-details">
-            <span class="stat-value present">{{ attendanceOverview.monhtlyAttendance[0].TotalPresent }} Present</span>
-            <span class="stat-value absent">{{ attendanceOverview.monhtlyAttendance[0].TotalStudents - attendanceOverview.monhtlyAttendance[0].TotalPresent }} Absent</span>
-            <span class="stat-value" style="color: #6366f1; font-weight: 600;">{{ attendanceOverview.monhtlyAttendance[0].AttendanceRate }}% Rate</span>
+            <span class="stat-value present">{{ getFilteredMonthlyAttendance().TotalPresent }} Present</span>
+            <span class="stat-value absent">{{ getFilteredMonthlyAttendance().TotalAbsent || (getFilteredMonthlyAttendance().TotalStudents - getFilteredMonthlyAttendance().TotalPresent) }} Absent</span>
+            <span class="stat-value" style="color: #6366f1; font-weight: 600;">{{ getFilteredMonthlyAttendance().AttendanceRate }}% Rate</span>
+          </div>
+          <div style="font-size: 0.85rem; color: #6b7280; margin-top: 0.5rem;" *ngIf="paginatedAttendanceClasses.length > 0">
+            {{ getFilteredMonthlyAttendance().StreamName }} - {{ getFilteredMonthlyAttendance().Subject }}
           </div>
         </div>
-        <div class="stat-item" *ngIf="attendanceOverview?.todayAttendance?.length > 0">
+        
+        <!-- Today's Attendance -->
+        <div class="stat-item" *ngIf="getFilteredTodayAttendance()">
           <div class="stat-label">Today</div>
           <div class="stat-details">
-            <span class="stat-value present">{{ attendanceOverview.todayAttendance[0].TotalPresent }} Present</span>
-            <span class="stat-value absent">{{ attendanceOverview.todayAttendance[0].TotalStudents - attendanceOverview.todayAttendance[0].TotalPresent }} Absent</span>
-            <span class="stat-value" style="color: #6366f1; font-weight: 600;">{{ attendanceOverview.todayAttendance[0].AttendanceRate }}% Rate</span>
+            <span class="stat-value present">{{ getFilteredTodayAttendance().TotalPresent }} Present</span>
+            <span class="stat-value absent">{{ getFilteredTodayAttendance().TotalAbsent || (getFilteredTodayAttendance().TotalStudents - getFilteredTodayAttendance().TotalPresent) }} Absent</span>
+            <span class="stat-value" style="color: #6366f1; font-weight: 600;">{{ getFilteredTodayAttendance().AttendanceRate }}% Rate</span>
+          </div>
+          <div style="font-size: 0.85rem; color: #6b7280; margin-top: 0.5rem;" *ngIf="paginatedAttendanceClasses.length > 0">
+            {{ getFilteredTodayAttendance().StreamName }} - {{ getFilteredTodayAttendance().Subject }}
           </div>
         </div>
+        
         <div *ngIf="!attendanceOverview" style="text-align: center; padding: 2rem; color: #6b7280;">
           <p style="margin: 0;">Loading attendance data...</p>
         </div>
+        
+        <div *ngIf="attendanceOverview && (!attendanceOverview.weeklyAttendance || attendanceOverview.weeklyAttendance.length === 0)" style="text-align: center; padding: 2rem; color: #6b7280;">
+          <p style="margin: 0;">No attendance data available</p>
+        </div>
+      </div>
+      <div class="pagination" *ngIf="attendanceOverviewTotalPages > 1" style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+        <button (click)="prevAttendanceOverviewPage()" [disabled]="attendanceOverviewCurrentPage === 1" style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" [style.opacity]="attendanceOverviewCurrentPage === 1 ? '0.5' : '1'" [style.cursor]="attendanceOverviewCurrentPage === 1 ? 'not-allowed' : 'pointer'">‹</button>
+        <span style="color: #6b7280; font-weight: 600;">{{ attendanceOverviewCurrentPage }} / {{ attendanceOverviewTotalPages }}</span>
+        <button (click)="nextAttendanceOverviewPage()" [disabled]="attendanceOverviewCurrentPage === attendanceOverviewTotalPages" style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;" [style.opacity]="attendanceOverviewCurrentPage === attendanceOverviewTotalPages ? '0.5' : '1'" [style.cursor]="attendanceOverviewCurrentPage === attendanceOverviewTotalPages ? 'not-allowed' : 'pointer'">›</button>
       </div>
     </div>
 

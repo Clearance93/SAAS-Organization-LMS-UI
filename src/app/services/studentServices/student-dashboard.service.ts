@@ -8,7 +8,7 @@ import { StudentAcademicProgress } from '../../interfaces/student-academic-progr
   providedIn: 'root'
 })
 export class StudentDashboardService {
-  private apiUrl = 'https://localhost:7270/api/';
+  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/';
 
   constructor(private http: HttpClient) { }
 
@@ -102,21 +102,21 @@ export class StudentDashboardService {
   }
 
   // Get student videos
-  // GET https://localhost:7270/api/VideoUpload/studentVideos/{studentId}
+  // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/VideoUpload/studentVideos/{studentId}
   getStudentVideos(studentId: string): Observable<any[]> {
     const url = `${this.apiUrl}VideoUpload/studentVideos/${studentId}`;
     return this.http.get<any[]>(url);
   }
 
   // Get student attendance records
-  // GET https://localhost:7270/api/Attendance/studentAttendance/{studentId}
+  // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Attendance/studentAttendance/{studentId}
   getStudentAttendanceRecords(studentId: string): Observable<any[]> {
     const url = `${this.apiUrl}Attendance/studentAttendance/${studentId}`;
     return this.http.get<any[]>(url);
   }
 
   // Get organization events
-  // GET https://localhost:7270/api/OrganizationActivities/allEvents/{organizationId}
+  // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/OrganizationActivities/allEvents/{organizationId}
   getOrganizationEvents(organizationId: string): Observable<any[]> {
     const url = `${this.apiUrl}OrganizationActivities/allEvents/${organizationId}`;
     return this.http.get<any[]>(url);

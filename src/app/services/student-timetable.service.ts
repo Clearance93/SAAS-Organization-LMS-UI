@@ -19,7 +19,7 @@ export interface StudentTimetable {
   providedIn: 'root'
 })
 export class StudentTimetableService {
-  private baseUrl = 'https://localhost:7270/api/School';
+  private baseUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School';
 
   constructor(private http: HttpClient) { }
 

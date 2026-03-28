@@ -18,7 +18,7 @@ export interface AssignmentSubmission {
   providedIn: 'root'
 })
 export class AssignmentSubmissionService {
-  private apiUrl = 'https://localhost:7270/api';
+  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api';
 
   constructor(private http: HttpClient) {}
 

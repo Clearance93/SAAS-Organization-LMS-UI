@@ -11,7 +11,7 @@ import { UpdateAdminDto } from '../../interfaces/schools/admin/update-admin-dto'
 })
 export class AdminDashboardService {
 
-  private apiUrl = 'https://localhost:7270/api/'
+  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/'
 
   private organizationIdSubject = new BehaviorSubject<string>('')
   public organizationId$ = this.organizationIdSubject.asObservable();
@@ -59,6 +59,10 @@ export class AdminDashboardService {
       .pipe(
         map(response => {
           console.log('Dashboard API response.', response)
+
+          if (!response) {
+            throw new Error('Dashboard data not found for this organization.');
+          }
 
           return new SchoolDashbaordModel({
           organizationSetupId: response.organizationSetupId,

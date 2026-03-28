@@ -3,7 +3,6 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractContro
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../services/authServices/auth.service';
-import { RegisterRequest } from '../../../features/organization/models/auth/register-request';
 import { UserRole } from '../../../features/organization/models/auth/UserRole';
 import { finalize } from 'rxjs/operators';
 
@@ -177,25 +176,25 @@ export class RegisterComponent implements OnInit {
 
     this.loading = true;
 
-    const registerRequest = new RegisterRequest({
-      firstName: this.f['firstName'].value.trim(),
-      lastName: this.f['lastName'].value.trim(),
-      email: this.f['email'].value.trim(),
-      password: this.f['password'].value,
-      image: this.imageBase64 || undefined,
-      ProfileImage: this.imageBase64 || undefined,
-      role: UserRole.ADMIN 
-    });
+    const formData = new FormData();
+    formData.append('FirstName', this.f['firstName'].value.trim());
+    formData.append('LastName', this.f['lastName'].value.trim());
+    formData.append('Email', this.f['email'].value.trim());
+    formData.append('Password', this.f['password'].value);
+    formData.append('Role', UserRole.ADMIN);
+    if (this.selectedFile) {
+      formData.append('ProfileImagePath', this.selectedFile, this.selectedFile.name)
+    }
 
-    this.authService.register(registerRequest)
+    const email = this.f['email'].value.trim();
+
+    this.authService.register(formData)
       .pipe(finalize(() => this.loading = false))
       .subscribe({
         next: (response: any) => {
           console.log('Registration successful', response);
           this.router.navigate(['/organization-setup'], {
-            state: {
-              userEmail: response.email || this.f['email'].value.trim()
-            }
+            state: { userEmail: email }
           });
         },
         error: (error: any) => {

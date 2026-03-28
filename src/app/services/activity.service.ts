@@ -7,7 +7,7 @@ import { Activity, CreateActivityDto, UpdateActivityDto } from '../interfaces/sc
   providedIn: 'root'
 })
 export class ActivityService {
-  private baseUrl = 'https://localhost:7270/api/OrganizationActivities';
+  private baseUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/OrganizationActivities';
 
   constructor(private http: HttpClient) {}
 

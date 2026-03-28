@@ -23,8 +23,8 @@ export interface ChatMessage {
   providedIn: 'root'
 })
 export class CommunicationService {
-  private apiUrl = 'https://localhost:7270/api/SchoolDashboards';
-  private chatApiUrl = 'https://localhost:7270/api/MeetingsUrl';
+  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/SchoolDashboards';
+  private chatApiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/MeetingsUrl';
   
   private unreadCountSubject = new BehaviorSubject<number>(0);
   public unreadCount$ = this.unreadCountSubject.asObservable();

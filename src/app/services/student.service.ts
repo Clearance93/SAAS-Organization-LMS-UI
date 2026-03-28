@@ -32,7 +32,7 @@ export interface StudentGradeDto {
   providedIn: 'root'
 })
 export class StudentService {
-  private apiUrl = 'https://localhost:7270/api';
+  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api';
 
   constructor(private http: HttpClient) {}
 

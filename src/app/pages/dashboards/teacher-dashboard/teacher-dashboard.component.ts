@@ -79,6 +79,11 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   attendanceData: any = null;
   selectedAttendanceSubject = '';
   attendanceOverview: any = null;
+  selectedAttendanceGradeStreamId = '';
+  attendanceOverviewCurrentPage = 1;
+  attendanceOverviewItemsPerPage = 1;
+  paginatedAttendanceClasses: any[] = [];
+  attendanceOverviewTotalPages = 1;
 
   // Assignments pagination
   assignmentsCurrentPage = 1;
@@ -1077,15 +1082,145 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
   loadAttendanceOverview(): void {
     if (!this.teacherId) return;
-    this.teachingClassService.getTeacherAttendanceOverview(this.teacherId)
+    this.teacherDashboardService.getTeacherDashboardAttendance(this.teacherId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data) => {
           this.attendanceOverview = data;
           console.log('Attendance overview loaded:', data);
+          this.updateAttendanceOverviewPagination();
         },
-        error: (error) => console.error('Failed to load attendance overview:', error)
+        error: (error) => {
+          console.error('Failed to load attendance overview:', error);
+        }
       });
+  }
+
+  // Get unique classes from attendance data
+  getUniqueAttendanceClasses(): Array<{gradeStreamId: string, streamName: string, subject: string}> {
+    if (!this.attendanceOverview?.weeklyAttendance) return [];
+    const uniqueMap = new Map<string, {gradeStreamId: string, streamName: string, subject: string}>();
+    
+    // Extract from weeklyAttendance
+    this.attendanceOverview.weeklyAttendance.forEach((item: any) => {
+      if (item.GradeStreamId && !uniqueMap.has(item.GradeStreamId)) {
+        // Try to find matching data from todayAttendance to get StreamName and Subject
+        const todayItem = this.attendanceOverview.todayAttendance?.find((t: any) => t.GradeStreamId === item.GradeStreamId);
+        uniqueMap.set(item.GradeStreamId, {
+          gradeStreamId: item.GradeStreamId,
+          streamName: todayItem?.StreamName || item.StreamName || 'Unknown Stream',
+          subject: todayItem?.Subject || item.Subject || 'Unknown Subject'
+        });
+      }
+    });
+    
+    return Array.from(uniqueMap.values());
+  }
+
+  // Update attendance overview pagination
+  updateAttendanceOverviewPagination(): void {
+    const allClasses = this.getUniqueAttendanceClasses();
+    this.attendanceOverviewTotalPages = Math.ceil(allClasses.length / this.attendanceOverviewItemsPerPage);
+    const start = (this.attendanceOverviewCurrentPage - 1) * this.attendanceOverviewItemsPerPage;
+    this.paginatedAttendanceClasses = allClasses.slice(start, start + this.attendanceOverviewItemsPerPage);
+    
+    // Auto-select the first class on the current page
+    if (this.paginatedAttendanceClasses.length > 0) {
+      this.selectedAttendanceGradeStreamId = this.paginatedAttendanceClasses[0].gradeStreamId;
+    } else {
+      this.selectedAttendanceGradeStreamId = '';
+    }
+  }
+
+  prevAttendanceOverviewPage(): void {
+    if (this.attendanceOverviewCurrentPage > 1) {
+      this.attendanceOverviewCurrentPage--;
+      this.updateAttendanceOverviewPagination();
+    }
+  }
+
+  nextAttendanceOverviewPage(): void {
+    if (this.attendanceOverviewCurrentPage < this.attendanceOverviewTotalPages) {
+      this.attendanceOverviewCurrentPage++;
+      this.updateAttendanceOverviewPagination();
+    }
+  }
+
+  // Filter attendance by selected class
+  getFilteredWeeklyAttendance(): any {
+    if (!this.attendanceOverview?.weeklyAttendance) return null;
+    if (!this.selectedAttendanceGradeStreamId) {
+      // Return first item or aggregated data for all classes
+      if (this.attendanceOverview.weeklyAttendance.length > 0) {
+        return this.attendanceOverview.weeklyAttendance[0];
+      }
+      return null;
+    }
+    return this.attendanceOverview.weeklyAttendance.find((item: any) => 
+      item.GradeStreamId === this.selectedAttendanceGradeStreamId
+    );
+  }
+
+  getFilteredMonthlyAttendance(): any {
+    if (!this.attendanceOverview?.monhtlyAttendance) return null;
+    if (!this.selectedAttendanceGradeStreamId) {
+      if (this.attendanceOverview.monhtlyAttendance.length > 0) {
+        return this.attendanceOverview.monhtlyAttendance[0];
+      }
+      return null;
+    }
+    return this.attendanceOverview.monhtlyAttendance.find((item: any) => 
+      item.GradeStreamId === this.selectedAttendanceGradeStreamId
+    );
+  }
+
+  getFilteredTodayAttendance(): any {
+    if (!this.attendanceOverview?.todayAttendance) return null;
+    if (!this.selectedAttendanceGradeStreamId) {
+      // For today's attendance, aggregate the data
+      const todayData = this.attendanceOverview.todayAttendance;
+      if (todayData.length === 0) return null;
+      
+      const totalPresent = todayData.reduce((sum: number, item: any) => sum + (item.PresentToday || 0), 0);
+      const totalAbsent = todayData.reduce((sum: number, item: any) => sum + (item.AbsentToday || 0), 0);
+      const totalStudents = totalPresent + totalAbsent;
+      const attendanceRate = totalStudents > 0 ? Math.round((totalPresent / totalStudents) * 100) : 0;
+      
+      return {
+        TotalPresent: totalPresent,
+        TotalAbsent: totalAbsent,
+        TotalStudents: totalStudents,
+        AttendanceRate: attendanceRate,
+        StreamName: 'All Classes',
+        Subject: ''
+      };
+    }
+    
+    // Filter by selected class
+    const classData = this.attendanceOverview.todayAttendance.filter((item: any) => 
+      item.GradeStreamId === this.selectedAttendanceGradeStreamId
+    );
+    
+    if (classData.length === 0) return null;
+    
+    const totalPresent = classData.reduce((sum: number, item: any) => sum + (item.PresentToday || 0), 0);
+    const totalAbsent = classData.reduce((sum: number, item: any) => sum + (item.AbsentToday || 0), 0);
+    const totalStudents = totalPresent + totalAbsent;
+    const attendanceRate = totalStudents > 0 ? Math.round((totalPresent / totalStudents) * 100) : 0;
+    
+    return {
+      TotalPresent: totalPresent,
+      TotalAbsent: totalAbsent,
+      TotalStudents: totalStudents,
+      AttendanceRate: attendanceRate,
+      StreamName: classData[0].StreamName || 'Unknown',
+      Subject: classData[0].Subject || 'Unknown',
+      GradeStreamId: this.selectedAttendanceGradeStreamId
+    };
+  }
+
+  onAttendanceClassChange(): void {
+    console.log('Selected attendance class:', this.selectedAttendanceGradeStreamId);
   }
 
   handleQuickAction(action: string): void {
@@ -1099,7 +1234,9 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       uploadVideo: () => this.isUploadVideoModalOpen = true,
       myVideos: () => { this.isMyVideosModalOpen = true; this.loadUploadedVideos(); },
       checkPlagiarism: () => { this.isPlagiarismModalOpen = true; this.loadPlagiarismAssignments(); },
-      upcomingWorkshops: () => { this.isUpcomingWorkshopsModalOpen = true; this.updateWorkshopsPagination(); }
+      upcomingWorkshops: () => { this.isUpcomingWorkshopsModalOpen = true; this.updateWorkshopsPagination(); },
+      viewReports: () => this.router.navigate(['/teacher-report']),
+      library: () => this.router.navigate(['/library'])
     };
     actions[action]?.();
   }

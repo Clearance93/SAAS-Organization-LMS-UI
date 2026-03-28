@@ -12,7 +12,7 @@ import { OrganizationType, ServiceType, ServiceDuration } from '../features/orga
 export class OrganizationService {
 
   //private apiUrl = 'http://thutonetapi-prod.westeurope.azurecontainer.io/api';
-  private apiUrl = 'https://localhost:7270/api';
+  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api';
 
   private httpOptions = {
     headers: new HttpHeaders({

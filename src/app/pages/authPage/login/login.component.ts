@@ -18,6 +18,7 @@ export class LoginComponent implements OnInit {
   loading = false;
   submitted = false;
   errorMessage = '';
+  emailNotConfirmed = false;
   hidePassword = true;
 
   constructor(
@@ -51,6 +52,7 @@ export class LoginComponent implements OnInit {
   onSubmit(): void {
     this.submitted = true;
     this.errorMessage = '';
+    this.emailNotConfirmed = false;
 
     if (this.loginForm.invalid) {
       return;
@@ -115,7 +117,12 @@ export class LoginComponent implements OnInit {
       },
       error: (error) => {
         console.error('Login error', error);
-        this.errorMessage = error.error?.errorMessage || 'Invalid email pr password. Please try again.';
+        const msg: string = error.error?.errorMessage || error.error?.message || error.message || '';
+        if (msg.toLowerCase().includes('confirm') || msg.toLowerCase().includes('email') && msg.toLowerCase().includes('verif')) {
+          this.emailNotConfirmed = true;
+        } else {
+          this.errorMessage = error.error?.errorMessage || 'Invalid email or password. Please try again.';
+        }
         this.loading = false;
       },
       complete: () => {
@@ -130,5 +137,9 @@ export class LoginComponent implements OnInit {
 
   navigateToRegister(): void {
     this.router.navigate(['/register']);
+  }
+
+  navigateToThankYou(): void {
+    this.router.navigate(['/thank-you']);
   }
 }

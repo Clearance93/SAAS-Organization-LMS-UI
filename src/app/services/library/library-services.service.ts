@@ -9,7 +9,7 @@ import { LibraryModel } from '../../features/organization/models/library/library
   providedIn: 'root'
 })
 export class LibraryServicesService {
-  private apiUrl = "https://localhost:7270/api/Library"
+  private apiUrl = "https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Library"
   
   constructor(private http: HttpClient) {
     console.log('LibraryServicesService initialized with URL:', this.apiUrl);
@@ -40,7 +40,7 @@ export class LibraryServicesService {
   checkApiHealth(): void {
     console.log('=== API Health Check ===');
     console.log('Attempting to connect to:', this.apiUrl);
-    console.log('Make sure your .NET API is running on https://localhost:7270');
+    console.log('Make sure your .NET API is running on https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net');
   }
 
 

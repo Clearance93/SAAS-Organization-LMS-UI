@@ -7,7 +7,7 @@ import { map, switchMap, catchError } from 'rxjs/operators';
   providedIn: 'root'
 })
 export class AdminReportService {
-  private baseUrl = 'https://localhost:7270/api';
+  private baseUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api';
 
   constructor(private http: HttpClient) { }
 
