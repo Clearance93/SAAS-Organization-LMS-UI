@@ -3,14 +3,15 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { StreamResponse, ClassScheduleDto } from '../../interfaces/class-schedule';
 import { AssignmentDto } from '../../interfaces/assignment';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TeacherDashboardService {
-  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/SchoolDashboards';
-  private teacherScheduleUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/TeachersSchedule';
-  private assignmentUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/createAssignment';
+  private apiUrl = `${environment.apiUrl}/SchoolDashboards`;
+  private teacherScheduleUrl = `${environment.apiUrl}/TeachersSchedule`;
+  private assignmentUrl = `${environment.apiUrl}/Assingment/createAssignment`;
 
   constructor(private http: HttpClient) { }
 
@@ -45,7 +46,7 @@ export class TeacherDashboardService {
   // Get teacher assignments
   // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/getTeacherAssignments/{teacherId}
   getTeacherAssignments(teacherId: string): Observable<AssignmentDto[]> {
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/getTeacherAssignments/${teacherId}`;
+    const url = `${environment.apiUrl}/Assingment/getTeacherAssignments/${teacherId}`;
     return this.http.get<AssignmentDto[]>(url);
   }
 
@@ -53,28 +54,28 @@ export class TeacherDashboardService {
   // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/getAllTeacherAssignments/{teacherId}
   // DEPRECATED - Use getAllTeacherAssignmentSubmissions instead
   getAllTeacherSubmittedAssignments(teacherId: string): Observable<any[]> {
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/getAllTeacherAssignments/${teacherId}`;
+    const url = `${environment.apiUrl}/Assingment/getAllTeacherAssignments/${teacherId}`;
     return this.http.get<any[]>(url);
   }
 
   // Get all teacher performance
   // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/ClassPerformance/getAllTeacherPerformance/{teacherId}
   getAllTeacherPerformance(teacherId: string): Observable<any[]> {
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/ClassPerformance/getAllTeacherPerformance/${teacherId}`;
+    const url = `${environment.apiUrl}/ClassPerformance/getAllTeacherPerformance/${teacherId}`;
     return this.http.get<any[]>(url);
   }
 
   // Get teacher by email
   // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School/getTeacherByEmail/{teacherEmail}
   getTeacherByEmail(teacherEmail: string): Observable<any> {
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School/getTeacherByEmail/${teacherEmail}`;
+    const url = `${environment.apiUrl}/School/getTeacherByEmail/${teacherEmail}`;
     return this.http.get<any>(url);
   }
 
   // Update teacher profile
   // PUT https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School/update-teacher/{teacherId}
   updateTeacherProfile(teacherId: string, payload: any): Observable<any> {
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School/update-teacher/${teacherId}`;
+    const url = `${environment.apiUrl}/School/update-teacher/${teacherId}`;
     return this.http.put<any>(url, payload);
   }
 
@@ -88,63 +89,63 @@ export class TeacherDashboardService {
   // Get upcoming sessions by role
   // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/MeetingsUrl/upcommingSession/{usrRole}
   getUpcomingSessionsByRole(usrRole: string): Observable<any[]> {
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/MeetingsUrl/upcommingSession/${usrRole}`;
+    const url = `${environment.apiUrl}/MeetingsUrl/upcommingSession/${usrRole}`;
     return this.http.get<any[]>(url);
   }
 
   // Get all teacher assignment submissions (with PDF data)
   // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/getAllTeacherAssignSubm/{teacherId}
   getAllTeacherAssignmentSubmissions(teacherId: string): Observable<any[]> {
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/getAllTeacherAssignSubm/${teacherId}`;
+    const url = `${environment.apiUrl}/Assingment/getAllTeacherAssignSubm/${teacherId}`;
     return this.http.get<any[]>(url);
   }
 
   // Get submission details including PDF
   // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/submissionAssignment/{assignmentSubmissionId}
   getSubmissionDetails(assignmentSubmissionId: string): Observable<any> {
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/submissionAssignment/${assignmentSubmissionId}`;
+    const url = `${environment.apiUrl}/Assingment/submissionAssignment/${assignmentSubmissionId}`;
     return this.http.get<any>(url);
   }
 
   // Submit assignment grade
   // POST https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/addAssignmentGrades
   submitAssignmentGrade(payload: any): Observable<any> {
-    const url = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/addAssignmentGrades';
+    const url = `${environment.apiUrl}/Assingment/addAssignmentGrades`;
     return this.http.post<any>(url, payload);
   }
 
   // Get AI grade assistance
   // POST https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/AIAssistance/aiGradeAssistance
   getAiGradeAssistance(assignmentId: string, studentId: string): Observable<any> {
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/AIAssistance/aiGradeAssistance?assignmentId=${assignmentId}&studentId=${studentId}`;
+    const url = `${environment.apiUrl}/AIAssistance/aiGradeAssistance?assignmentId=${assignmentId}&studentId=${studentId}`;
     return this.http.post<any>(url, {});
   }
 
   // Get plagiarism result
   // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/AIAssistance/getPlagiarismResult
   getPlagiarismResult(assignmentId: string, studentId: string): Observable<any> {
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/AIAssistance/getPlagiarismResult?assignmentId=${assignmentId}&studentId=${studentId}`;
+    const url = `${environment.apiUrl}/AIAssistance/getPlagiarismResult?assignmentId=${assignmentId}&studentId=${studentId}`;
     return this.http.get<any>(url);
   }
 
   // Upload video
   // POST https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/VideoUpload/uploadVideo
   uploadVideo(payload: any): Observable<any> {
-    const url = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/VideoUpload/uploadVideo';
+    const url = `${environment.apiUrl}/VideoUpload/uploadVideo`;
     return this.http.post<any>(url, payload);
   }
 
   // Get teacher videos
   // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/VideoUpload/teacherVideos/{teacherId}
   getTeacherVideos(teacherId: string): Observable<any[]> {
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/VideoUpload/teacherVideos/${teacherId}`;
+    const url = `${environment.apiUrl}/VideoUpload/teacherVideos/${teacherId}`;
     return this.http.get<any[]>(url);
   }
 
   // Get video by ID (with full video data)
   // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/VideoUpload/video/{videoId}
   getVideoById(videoId: string): Observable<any> {
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/VideoUpload/video/${videoId}`;
+    const url = `${environment.apiUrl}/VideoUpload/video/${videoId}`;
     return this.http.get<any>(url);
   }
 
@@ -158,21 +159,21 @@ export class TeacherDashboardService {
   // Get teacher students
   // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School/teacherStudent/{teacherId}
   getTeacherStudents(teacherId: string): Observable<any[]> {
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School/teacherStudent/${teacherId}`;
+    const url = `${environment.apiUrl}/School/teacherStudent/${teacherId}`;
     return this.http.get<any[]>(url);
   }
 
   // Submit student attendance
   // POST https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Attendance/addStduentAttendance
   submitAttendance(payload: any[]): Observable<any> {
-    const url = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Attendance/addStduentAttendance';
+    const url = `${environment.apiUrl}/Attendance/addStduentAttendance`;
     return this.http.post<any>(url, payload);
   }
 
   // Get teacher dashboard attendance overview
   // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Attendance/teacheDashboard/{teacherId}
   getTeacherDashboardAttendance(teacherId: string): Observable<any> {
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Attendance/teacheDashboard/${teacherId}`;
+    const url = `${environment.apiUrl}/Attendance/teacheDashboard/${teacherId}`;
     return this.http.get<any>(url);
   }
 }

@@ -27,6 +27,7 @@ declare var Swal: any;
 })
 export class TeacherDashboardComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+  private teacherId$ = new Subject<string>();
   
   // Fields populated from API
   teacherId: string | null = null;
@@ -226,50 +227,89 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-    
+    if (!isPlatformBrowser(this.platformId)) return;
+
     const profile = this.authService.getUserProfile();
-    const orgId = profile?.organizationId || localStorage.getItem('organizationId');
-    const roleUserId = profile?.roleUserId || localStorage.getItem('roleUserId') || localStorage.getItem('userId');
-    
-    if (orgId && roleUserId) {
-      this.teacherId = roleUserId;
-      this.loadMyClasses();
-      this.loadScheduledClasses();
-      this.teacherDashboardService.getTeacherDashboard(orgId, roleUserId)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (resp) => {
-            this.applyTeacherDashboard(resp);
-            this.loadUnreadMessageCount(orgId, roleUserId);
-            this.loadAnnouncements();
-            this.loadUpcomingWorkshops();
-            this.loadOrganizationEvents(orgId);
-            this.loadAttendanceOverview();
-          },
-          error: (err) => {
-            console.error('Failed to load teacher dashboard', err);
-          }
-        });
+    const orgId = profile?.organizationId || localStorage.getItem('organizationId') || '';
+    const email = profile?.email || localStorage.getItem('userEmail') || '';
+
+    if (!orgId) return;
+
+    // Try to get teacherId from stored teacherProfile first (set at login)
+    const storedTeacherProfile = localStorage.getItem('teacherProfile');
+    if (storedTeacherProfile) {
+      try {
+        const tp = JSON.parse(storedTeacherProfile);
+        const tid = tp?.teacherId;
+        if (tid) {
+          this.teacherId = tid;
+          this.teacherName = `${tp.firstName || ''} ${tp.lastName || ''}`.trim();
+          this.authService.setRoleTableId(tid);
+          this.loadMyClasses();
+          this.loadScheduledClasses();
+          this.loadDashboardData(orgId, tid);
+          this.teacherId$.next(tid);
+          this.communicationService.unreadCount$.pipe(takeUntil(this.destroy$)).subscribe(count => {
+            this.unreadMessagesCount = count;
+          });
+          return;
+        }
+      } catch (e) {}
     }
-    
-    // Subscribe to unread count changes from communication service
+
+    // Fallback: fetch from API
+    if (!email) return;
+    this.teacherDashboardService.getTeacherByEmail(email)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (teacher: any) => {
+          console.log('getTeacherByEmail full response:', JSON.stringify(teacher));
+          const tid = teacher?.teacherId;
+          if (!tid) {
+            console.error('getTeacherByEmail returned no teacherId', teacher);
+            return;
+          }
+          this.teacherId = tid;
+          this.teacherName = `${teacher.firstName || ''} ${teacher.lastName || ''}`.trim();
+          this.authService.setRoleTableId(tid);
+          localStorage.setItem('teacherProfile', JSON.stringify(teacher));
+          this.loadMyClasses();
+          this.loadScheduledClasses();
+          this.loadDashboardData(orgId, tid);
+          this.teacherId$.next(tid);
+        },
+        error: (err) => console.error('Failed to resolve teacher by email', err)
+      });
+
     this.communicationService.unreadCount$.pipe(takeUntil(this.destroy$)).subscribe(count => {
       this.unreadMessagesCount = count;
     });
   }
 
+  private loadDashboardData(orgId: string, teacherId: string): void {
+    this.teacherDashboardService.getTeacherDashboard(orgId, teacherId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (resp) => {
+          this.applyTeacherDashboard(resp);
+          this.loadUnreadMessageCount(orgId, teacherId);
+          this.loadAnnouncements();
+          this.loadUpcomingWorkshops();
+          this.loadOrganizationEvents(orgId);
+          this.loadAttendanceOverview();
+        },
+        error: (err) => console.error('Failed to load teacher dashboard', err)
+      });
+  }
+
   private applyTeacherDashboard(resp: any): void {
     if (!resp) return;
-    
     if (Array.isArray(resp)) {
       this.teacherClasses = resp;
       if (resp.length > 0) {
         const first = resp[0];
-        this.teacherId = first.teacherId;
-        this.teacherName = first.teacherName;
+        // Do NOT overwrite this.teacherId here — it is already set correctly from getTeacherByEmail
+        this.teacherName = this.teacherName || first.teacherName;
         this.teacherSubject = first.subject;
         this.totalStudents = first.totalStudents;
         this.dailyPresent = first.dailyPresent;
@@ -278,8 +318,6 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
         this.nextClassEndTime = first.nextClassEndTime;
         this.assignmentTitle = first.assignmentTitle;
         this.assignmentProgress = first.assignmentProgress;
-        
-        // Populate myClasses from the response
         this.myClasses = resp.map((cls: any) => ({
           name: cls.subject,
           students: cls.totalStudents,
@@ -313,19 +351,8 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
   // Load assignments from API and map them to the UI model with caching
   loadAssignments(): void {
-    if (!this.teacherId) {
-      const profile = this.authService.getUserProfile();
-      this.teacherId = profile?.teacherId || profile?.roleUserId || profile?.userId ||
-                       localStorage.getItem('teacherId') || localStorage.getItem('roleUserId') ||
-                       localStorage.getItem('userId') || null;
-    }
-
-    if (!this.teacherId) {
-      console.warn('No teacherId available; skipping loadAssignments');
-      return;
-    }
-
-    console.log('Loading assignments for teacherId:', this.teacherId);
+    if (!this.teacherId) this.teacherId = this.authService.getRoleTableId();
+    if (!this.teacherId) return;
 
     // Load from API (no cache to always show latest)
     this.teacherDashboardService.getTeacherAssignments(this.teacherId)
@@ -362,17 +389,8 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
   // Load class performance from API with caching
   loadClassPerformance(): void {
-    if (!this.teacherId) {
-      const profile = this.authService.getUserProfile();
-      this.teacherId = profile?.teacherId || profile?.roleUserId || profile?.userId ||
-                       localStorage.getItem('teacherId') || localStorage.getItem('roleUserId') ||
-                       localStorage.getItem('userId') || null;
-    }
-
-    if (!this.teacherId) {
-      console.warn('No teacherId available; skipping loadClassPerformance');
-      return;
-    }
+    if (!this.teacherId) this.teacherId = this.authService.getRoleTableId();
+    if (!this.teacherId) return;
 
     // Check cache first
     const cacheKey = `classPerformance_${this.teacherId}`;
@@ -417,25 +435,12 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
   // Load attendance data from API with caching
   loadAttendanceData(): void {
-    if (!this.teacherId) {
-      const profile = this.authService.getUserProfile();
-      this.teacherId = profile?.teacherId || profile?.roleUserId || profile?.userId ||
-                       localStorage.getItem('teacherId') || localStorage.getItem('roleUserId') ||
-                       localStorage.getItem('userId') || null;
-    }
-
-    if (!this.teacherId) {
-      console.warn('No teacherId available; skipping loadAttendanceData');
-      return;
-    }
+    if (!this.teacherId) this.teacherId = this.authService.getRoleTableId();
+    if (!this.teacherId) return;
 
     const profile = this.authService.getUserProfile();
     const organizationId = profile?.organizationId || localStorage.getItem('organizationId');
-
-    if (!organizationId) {
-      console.warn('No organizationId available; skipping loadAttendanceData');
-      return;
-    }
+    if (!organizationId) return;
 
     // Check cache first
     const cacheKey = `attendanceData_${this.teacherId}`;
@@ -656,25 +661,30 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       });
   }
 
-  // Assignment Methods
   openAssignmentModal(): void {
     this.isAssignmentModalOpen = true;
-    // Load streams and teaching classes for assignment creation
-    setTimeout(() => {
+    if (this.teacherId) {
       this.loadStreams();
       this.loadAndCacheTeachingClasses();
-    }, 10);
+    } else {
+      this.teacherId$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+        this.loadStreams();
+        this.loadAndCacheTeachingClasses();
+      });
+    }
   }
 
-  // Add Class Methods
   openAddClassModal(): void {
-    console.log('openAddClassModal called — opening modal and loading streams');
     this.isAddClassModalOpen = true;
-    // Force a microtask to ensure change detection shows modal before network call
-    setTimeout(() => {
+    if (this.teacherId) {
       this.loadStreams();
       this.loadAndCacheTeachingClasses();
-    }, 10);
+    } else {
+      this.teacherId$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+        this.loadStreams();
+        this.loadAndCacheTeachingClasses();
+      });
+    }
   }
 
   closeAddClassModal(): void {
@@ -683,88 +693,31 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   }
 
   loadStreams(): void {
-    console.log('loadStreams: current teacherId', this.teacherId);
-    
-    if (!this.teacherId) {
-      const profile = this.authService.getUserProfile();
-      this.teacherId = profile?.teacherId || profile?.roleUserId || profile?.userId || 
-                      localStorage.getItem('teacherId') || localStorage.getItem('roleUserId') || 
-                      localStorage.getItem('userId') || null;
-      console.log('Resolved teacherId from profile/localStorage:', this.teacherId);
-    }
-
-    if (!this.teacherId) {
+    const teacherId = this.teacherId || this.authService.getRoleTableId();
+    if (!teacherId) {
       console.error('No teacher ID available for loading streams');
-      Swal.fire('Error', 'Teacher ID not found. Cannot load streams. Please try logging in again.', 'error');
       return;
     }
+    this.teacherId = teacherId;
+    this.fetchStreamsWithTeacherId(teacherId);
+  }
 
-    // Load teacher subjects with grades for live session modal
-    this.teacherDashboardService.getTeacherSubjectsWithGrades(this.teacherId)
+  private fetchStreamsWithTeacherId(teacherId: string): void {
+    this.teacherDashboardService.getTeacherSubjectsWithGrades(teacherId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response: any[]) => {
-          console.log('=== RAW API RESPONSE: teacherSubjectsWithGrades ===');
-          console.log(JSON.stringify(response, null, 2));
-          
-          // Log each item to see the gradeStreamId mapping
-          response.forEach((item, index) => {
-            console.log(`Item ${index}:`, {
-              subjectName: item.subjectName,
-              streamGradeName: item.streamGradeName,
-              gradeStreamId: item.gradeStreamId,
-              fullItem: item
-            });
-          });
-          
-          this.teacherSubjectsWithGrades = response;
-        },
-        error: (error) => {
-          console.error('Failed to load teacher subjects with grades:', error);
-        }
+        next: (response: any[]) => { this.teacherSubjectsWithGrades = response; },
+        error: (error) => { console.error('Failed to load teacher subjects with grades:', error); }
       });
 
-    // Check cache first
-    const cacheKey = `teacherStreams_${this.teacherId}`;
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        this.streams = JSON.parse(cached);
-        console.log('Using cached streams');
-        return;
-      } catch (e) {
-        console.error('Error parsing cached streams:', e);
-      }
-    }
-
-    // Load from API if not cached
-    console.log('Making API call to getAllStreams with teacherId:', this.teacherId);
-    this.teacherDashboardService.getAllStreams(this.teacherId)
+    this.teacherDashboardService.getAllStreams(teacherId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response: StreamResponse[] | any) => {
-          console.log('getAllStreams API response:', response);
-          if (Array.isArray(response)) {
-            this.streams = response;
-          } else if (response && Array.isArray(response.data)) {
-            this.streams = response.data;
-          } else {
-            this.streams = [];
-            console.warn('Unexpected response format for streams:', response);
-          }
-          
-          // Cache the streams
-          localStorage.setItem(cacheKey, JSON.stringify(this.streams));
-          console.log('Streams loaded and cached');
-          
-          if (this.streams.length === 0) {
-            Swal.fire('Info', 'No streams found for this teacher.', 'info');
-          }
+          this.streams = Array.isArray(response) ? response : (response?.data ?? []);
         },
         error: (error) => {
           console.error('Failed to load streams:', error);
-          const errorMessage = error?.error?.message || error?.message || 'Could not load streams for this teacher.';
-          Swal.fire('Error', errorMessage, 'error');
           this.streams = [];
         }
       });
@@ -774,36 +727,30 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   loadAndCacheTeachingClasses(): void {
     const profile = this.authService.getUserProfile();
     const organizationId = profile?.organizationId || localStorage.getItem('organizationId');
-    
+
     if (!organizationId || !this.teacherId) {
       console.log('Missing organizationId or teacherId for loading teaching classes');
       return;
     }
 
-    // Check if already cached
     const cached = localStorage.getItem('cachedTeachingClasses');
     if (cached) {
       try {
         this.cachedTeachingClasses = JSON.parse(cached);
-        console.log('Using cached teaching classes:', this.cachedTeachingClasses);
         return;
       } catch (e) {
         console.error('Error parsing cached teaching classes:', e);
       }
     }
 
-    // Load from API and cache
     this.teachingClassService.getTeachingClasses(organizationId, this.teacherId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (classes: TeachingClass[]) => {
           this.cachedTeachingClasses = classes;
           localStorage.setItem('cachedTeachingClasses', JSON.stringify(classes));
-          console.log('Teaching classes loaded and cached:', classes);
         },
-        error: (error) => {
-          console.error('Failed to load teaching classes:', error);
-        }
+        error: (error) => { console.error('Failed to load teaching classes:', error); }
       });
   }
 
@@ -1662,12 +1609,9 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   gradeStudent(student: any): void { this.isGradingStudent = true; this.currentGradingSubmission = student; }
 
   loadMyClasses(): void {
-    const profile = this.authService.getUserProfile();
-    const orgId = profile?.organizationId || localStorage.getItem('organizationId');
-    const teacherId = this.teacherId || profile?.roleUserId || localStorage.getItem('roleUserId');
-
+    const orgId = this.authService.getUserProfile()?.organizationId || localStorage.getItem('organizationId');
+    const teacherId = this.teacherId || this.authService.getRoleTableId();
     if (!orgId || !teacherId) {
-      console.error('Missing orgId or teacherId for loading classes');
       this.myClasses = [];
       this.updateClassesPagination();
       return;

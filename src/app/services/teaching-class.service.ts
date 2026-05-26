@@ -3,12 +3,13 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { TeachingClass, CreateTeachingClassRequest } from '../interfaces/teaching-class.interface';
 import { TeacherStream } from '../interfaces/teacher-stream.interface';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TeachingClassService {
-  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/TeachersSchedule';
+  private apiUrl = `${environment.apiUrl}/TeachersSchedule`;
 
   private httpOptions = {
     headers: new HttpHeaders({
@@ -39,11 +40,11 @@ export class TeachingClassService {
   }
 
   getTeacherAttendanceDashboard(organizationId: string, teacherId: string): Observable<any> {
-    return this.http.get<any>(`https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/SchoolDashboards/teacherDashboard/${organizationId}/${teacherId}`);
+    return this.http.get<any>(`${environment.apiUrl}/SchoolDashboards/teacherDashboard/${organizationId}/${teacherId}`);
   }
 
   getTeacherAttendanceOverview(teacherId: string): Observable<any> {
-    return this.http.get<any>(`https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Attendance/teacheDashboard/${teacherId}`);
+    return this.http.get<any>(`${environment.apiUrl}/Attendance/teacheDashboard/${teacherId}`);
   }
 
   updateTeachingClass(teachingClassId: string, teachingClass: Partial<TeachingClass>): Observable<TeachingClass> {

@@ -7,6 +7,7 @@ import { CommunicationService } from '../../../services/communication/communicat
 import { StudentDashboardApiResponse } from '../../../interfaces/student-dashboard-api';
 import { StudentAcademicProgress } from '../../../interfaces/student-academic-progress';
 import { AiAssistantComponent } from '../../../components/ai-assistant/ai-assistant.component';
+import { SettingsService } from '../../../services/settings/settings.service';
 import Swal from 'sweetalert2';
 
 interface SubjectGrade {
@@ -126,6 +127,7 @@ export class StudentDashboardComponent implements OnInit {
     private router: Router,
     private studentDashboardService: StudentDashboardService,
     private communicationService: CommunicationService,
+    private settingsService: SettingsService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
@@ -140,7 +142,6 @@ export class StudentDashboardComponent implements OnInit {
         this.organizationId = studentProfile.organizationId || localStorage.getItem('organizationId') || '';
         this.studentGrade = this.extractGrade(studentProfile.grade || '');
         
-        // Handle profile picture - check if it's base64 or URL
         if (studentProfile.studentProfilePicture) {
           const profilePic = studentProfile.studentProfilePicture;
           if (profilePic.startsWith('data:')) {
@@ -152,11 +153,15 @@ export class StudentDashboardComponent implements OnInit {
           }
         }
       } else {
-        this.studentId = localStorage.getItem('userId') || '';
+        // studentProfile not in localStorage — cannot proceed without a valid studentId GUID
+        console.warn('No studentProfile found in localStorage. Please log in again.');
+        this.router.navigate(['/login']);
+        return;
       }
       
       if (this.studentId) {
         this.loadDashboardData();
+        this.loadStudentAssignments();
         this.loadAcademicProgress();
         this.loadUnreadMessageCount();
         this.loadUpcomingSessions();
@@ -170,6 +175,31 @@ export class StudentDashboardComponent implements OnInit {
         this.messagesCount = count;
       });
     }
+  }
+
+  loadStudentAssignments(): void {
+    this.studentDashboardService.getStudentAssignments(this.studentId).subscribe({
+      next: (data: any[]) => {
+        if (!Array.isArray(data)) return;
+        this.assignments = data.map(a => {
+          let status: 'pending' | 'submitted' | 'graded' = 'pending';
+          if (a.assignmentCompleted || a.assignmentMarksObtained > 0 || a.isGraded) {
+            status = 'graded';
+          } else if (a.assignmentIsSubmitted || a.isSubmitted) {
+            status = 'submitted';
+          }
+          return {
+            id: a.assignmentId,
+            title: a.assignmentTitle || a.title || 'Untitled',
+            subject: a.assignmentSubject || a.subject || '',
+            dueDate: a.assignmentDueDate || a.dueDate || '',
+            status,
+            grade: a.assignmentMarksObtained ? `${a.assignmentMarksObtained}/${a.assignmentTotalMarks}` : undefined
+          };
+        });
+      },
+      error: (error) => console.error('Error loading student assignments:', error)
+    });
   }
 
   loadUpcomingSessions(): void {
@@ -421,7 +451,7 @@ export class StudentDashboardComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading student schedule:', error);
-        Swal.fire('Error', 'Failed to load schedule', 'error');
+        this.todaySchedule = [];
       }
     });
   }
@@ -737,29 +767,28 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   openSubjectEnrollment(): void {
-    Swal.fire({
-      title: '🔍 Search Tip',
-      html: 'To find subjects for your grade, type your grade in the search box.<br><br><strong>Example:</strong> Type "Grade 12" to see all Grade 12 subjects',
-      icon: 'info',
-      confirmButtonText: 'Got it!',
-      timer: 5000
-    });
     this.showSubjectEnrollmentModal = true;
     this.loadAvailableSubjects();
   }
 
   loadAvailableSubjects(): void {
     if (!this.organizationId) return;
-    
-    const teacherId = '920c9f6a-c5a7-4bcd-fae2-08de5dab9d0f';
-    this.studentDashboardService.getTeachingClasses(this.organizationId, teacherId).subscribe({
-      next: (data) => {
-        this.availableSubjects = data;
+
+    this.settingsService.getAllStreamsbyOrganizationId(this.organizationId).subscribe({
+      next: (streams) => {
+        this.availableSubjects = streams.map((s: any) => ({
+          teachingClassId: s.streamId,
+          gradeStreamId: s.streamId,
+          subject: s.streamName,
+          gradeStreamName: s.streamName,
+          classRoomNumber: '',
+          totalStudents: 0,
+          teacherId: s.teacherId,
+          organizationId: this.organizationId
+        }));
         this.applyFilters();
       },
-      error: (error) => {
-        console.error('Error loading subjects:', error);
-      }
+      error: (error) => console.error('Error loading subjects:', error)
     });
   }
 

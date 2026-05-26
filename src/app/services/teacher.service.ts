@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Teacher {
   teacherId: string;
@@ -16,7 +17,7 @@ export interface Teacher {
   providedIn: 'root'
 })
 export class TeacherService {
-  private baseUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/apiSchool';
+  private baseUrl = `${environment.apiUrl}School`;
 
   constructor(private http: HttpClient) {}
 

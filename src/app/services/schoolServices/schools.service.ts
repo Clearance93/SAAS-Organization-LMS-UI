@@ -11,12 +11,13 @@ import { CreateStuffMemberDto } from '../../interfaces/schools/stuff-members/cre
 import { AddStuffMember } from '../../interfaces/schools/stuff-members/add-stuff-member';
 import { CreateTeacherDto } from '../../interfaces/schools/teachers/create-teacher-dto';
 import { AddTeacher } from '../../interfaces/schools/teachers/add-teacher';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class SchoolsService {
- private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School'
+ private apiUrl = `${environment.apiUrl}/School`
 
   constructor(private http: HttpClient) { }
 

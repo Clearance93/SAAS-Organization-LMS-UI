@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../../services/authServices/auth.service';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RoleNavigationService } from '../../../services/role-navigation.service';
 import { TeacherDashboardService } from '../../../services/schoolDashboards/teacher-dashboard.service';
@@ -21,24 +21,30 @@ export class LoginComponent implements OnInit {
   emailNotConfirmed = false;
   hidePassword = true;
 
+  returnUrl = '/';
+
   constructor(
     private formBuilder: FormBuilder,
     private authService: AuthService,
     private router: Router,
-    private roleNavigation: RoleNavigationService
-    , private teacherDashboardService: TeacherDashboardService,
+    private route: ActivatedRoute,
+    private roleNavigation: RoleNavigationService,
+    private teacherDashboardService: TeacherDashboardService,
     private studentService: StudentService
-  ) {}
-
-  ngOnInit(): void {
-    if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/dashboard']);
-    }
-
+  ) {
     this.loginForm = this.formBuilder.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]]
     });
+  }
+
+  ngOnInit(): void {
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+
+    if (this.authService.isAuthenticated()) {
+      this.router.navigateByUrl(this.returnUrl);
+      return;
+    }
   }
 
   get f() {
@@ -65,6 +71,7 @@ export class LoginComponent implements OnInit {
       next: (response) => {
         console.log('Login successful', response);
         localStorage.setItem('adminEmail', this.loginForm.value.email);
+        localStorage.setItem('userEmail', this.loginForm.value.email);
 
         const role = (localStorage.getItem('userRole') || '').toLowerCase();
 
@@ -77,21 +84,19 @@ export class LoginComponent implements OnInit {
             this.teacherDashboardService.getTeacherByEmail(email).subscribe({
               next: (teacherProfile) => {
                 localStorage.setItem('teacherProfile', JSON.stringify(teacherProfile));
+                // Store the real Teacher table ID as the single source of truth
+                if (teacherProfile?.teacherId) {
+                  this.authService.setRoleTableId(teacherProfile.teacherId);
+                }
                 this.teacherDashboardService.getTeacherDashboard(orgId, teacherId).subscribe({
                   next: (stats) => {
                     localStorage.setItem('teacherDashboard', JSON.stringify(stats));
                     this.router.navigate(['/teacher-dashboard']);
                   },
-                  error: (err) => {
-                    console.error('Failed to load teacher dashboard', err);
-                    this.router.navigate(['/teacher-dashboard']);
-                  }
+                  error: () => this.router.navigate(['/teacher-dashboard'])
                 });
               },
-              error: (err) => {
-                console.error('Failed to load teacher profile', err);
-                this.router.navigate(['/teacher-dashboard']);
-              }
+              error: () => this.router.navigate(['/teacher-dashboard'])
             });
             return;
           }

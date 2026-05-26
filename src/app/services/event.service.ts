@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Event, CreateEventDto, UpdateEventDto } from '../interfaces/schools/admin-dashboard/event';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EventService {
-  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/OrganizationActivities';
+  private apiUrl = `${environment.apiUrl}/OrganizationActivities`;
 
   constructor(private http: HttpClient) {}
 

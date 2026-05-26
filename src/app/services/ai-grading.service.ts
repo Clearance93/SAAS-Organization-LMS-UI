@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface GradingSuggestion {
   score: number;
@@ -23,8 +24,8 @@ export interface EssayGrading extends GradingSuggestion {
   providedIn: 'root'
 })
 export class AiGradingService {
-  private backendApiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/AICalls/gradeSubmission';
-  private aiAssistanceUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/AIAssistance';
+  private backendApiUrl = `${environment.apiUrl}/AICalls/gradeSubmission`;
+  private aiAssistanceUrl = `${environment.apiUrl}/AIAssistance`;
 
   constructor(private http: HttpClient) {
     console.log('🤖 Using backend proxy for AI grading');
@@ -39,12 +40,12 @@ export class AiGradingService {
   }
 
   getAllTeacherAssignments(teacherId: string): Observable<any[]> {
-    return this.http.get<any[]>(`https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/getAllTeacherAssignments/${teacherId}`);
+    return this.http.get<any[]>(`${environment.apiUrl}/Assingment/getAllTeacherAssignments/${teacherId}`);
   }
 
   submitGrade(payload: any): Observable<any> {
     console.log('🔵 submitGrade service called with payload:', payload);
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/addAssignmentGrades`;
+    const url = `${environment.apiUrl}/Assingment/addAssignmentGrades`;
     console.log('🔵 Calling URL:', url);
     return this.http.post(url, payload);
   }

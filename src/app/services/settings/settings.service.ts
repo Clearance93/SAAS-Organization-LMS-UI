@@ -29,12 +29,14 @@ import { CourseStreamModel } from '../../features/organization/models/settings/c
 import { IExamGradeScale } from '../../interfaces/settings/iexam-grade-scale';
 import { ExamGradesScaleModel } from '../../features/organization/models/settings/exam-grades-scale-model';
 
+import { environment } from '../../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
 export class SettingsService {
-  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Settings';
-  private schoolApiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School/'
+  private apiUrl = `${environment.apiUrl}/Settings`;
+  private schoolApiUrl = `${environment.apiUrl}/School/`
 
 
 

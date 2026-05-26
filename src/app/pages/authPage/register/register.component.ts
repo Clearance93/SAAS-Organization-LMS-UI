@@ -176,19 +176,18 @@ export class RegisterComponent implements OnInit {
 
     this.loading = true;
 
-    const formData = new FormData();
-    formData.append('FirstName', this.f['firstName'].value.trim());
-    formData.append('LastName', this.f['lastName'].value.trim());
-    formData.append('Email', this.f['email'].value.trim());
-    formData.append('Password', this.f['password'].value);
-    formData.append('Role', UserRole.ADMIN);
-    if (this.selectedFile) {
-      formData.append('ProfileImagePath', this.selectedFile, this.selectedFile.name)
-    }
-
     const email = this.f['email'].value.trim();
 
-    this.authService.register(formData)
+    const payload = {
+      FirstName: this.f['firstName'].value.trim(),
+      LastName: this.f['lastName'].value.trim(),
+      Email: email,
+      Password: this.f['password'].value,
+      Role: UserRole.ADMIN,
+      ProfileImage: this.imageBase64 || ''
+    };
+
+    this.authService.register(payload)
       .pipe(finalize(() => this.loading = false))
       .subscribe({
         next: (response: any) => {

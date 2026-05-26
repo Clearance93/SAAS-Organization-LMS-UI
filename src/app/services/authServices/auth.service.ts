@@ -10,6 +10,7 @@ import { ForgotPasswordRequest } from '../../interfaces/forgot-password/forgot-p
 import { ResetPasswordRequest } from '../../interfaces/forgot-password/reset-password-request';
 import { ConfirmEmailRequest } from '../../interfaces/auth/confirm-email-request';
 import { EmailConfirmationResponse } from '../../interfaces/auth/email-confirmation-response';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -17,8 +18,8 @@ import { EmailConfirmationResponse } from '../../interfaces/auth/email-confirmat
 export class AuthService {
  
 
-  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Auth';
-  private adminApiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Admin';
+  private apiUrl = `${environment.apiUrl}/Auth`;
+  private adminApiUrl = `${environment.apiUrl}/Admin`;
 
   private currentUserSubject: BehaviorSubject<LoginAuthUser | null>;
   private userProfileSubject: BehaviorSubject<any | null>;
@@ -40,8 +41,9 @@ export class AuthService {
     this.userProfile = this.userProfileSubject.asObservable();
    }
 
-  register(formData: FormData): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/register`, formData);
+  register(payload: any): Observable<any> {
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    return this.http.post<any>(`${this.apiUrl}/register`, payload, { headers });
   }
 
    public get currentUserValue(): LoginAuthUser | null {
@@ -176,6 +178,7 @@ export class AuthService {
       localStorage.removeItem('adminId');
       localStorage.removeItem('teacherId');
       localStorage.removeItem('studentId');
+      localStorage.removeItem('roleTableId');
     }
     if (this.userProfileSubject) {
       this.userProfileSubject.next(null);
@@ -185,13 +188,8 @@ export class AuthService {
 
    isAuthenticated(): boolean {
     const user = this.currentUserValue;
-    if (!user) {
-      return false;
-    }
-
-    const now = new Date();
-    const expiration = new Date(user.expiration);
-    return now < expiration;
+    if (!user) return false;
+    return new Date() < new Date(user.expiration);
    }
 
    getToken(): string | null {
@@ -220,6 +218,23 @@ export class AuthService {
   // Return the current normalized user profile (may be null)
   public getUserProfile(): any | null {
     return this.userProfileSubject ? this.userProfileSubject.value : null;
+  }
+
+  // Store the real Teacher/Student table ID once resolved from the API
+  public setRoleTableId(id: string): void {
+    if (!this.isBrowser) return;
+    const profile = this.getUserProfile();
+    if (profile) {
+      profile.roleTableId = id;
+      this.userProfileSubject.next(profile);
+      localStorage.setItem('userProfile', JSON.stringify(profile));
+    }
+    localStorage.setItem('roleTableId', id);
+  }
+
+  public getRoleTableId(): string | null {
+    const profile = this.getUserProfile();
+    return profile?.roleTableId || localStorage.getItem('roleTableId') || null;
   }
 
    forgetPassword(request: ForgotPasswordRequest): Observable<string> {

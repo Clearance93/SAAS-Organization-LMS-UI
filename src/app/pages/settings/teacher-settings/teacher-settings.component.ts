@@ -207,9 +207,8 @@ export class TeacherSettingsComponent implements OnInit {
     this.loadTeacherData();
     this.loadOrganizationId();
     this.loadTeacherId();
-    this.loadTeacherProfileFromAPI();
+    this.loadTeacherProfileFromAPI(); // will call loadTeachingClasses() after resolving correct teacherId
     this.loadTeacherGrades();
-    this.loadTeachingClasses();
     this.loadLibraryBooks();
   }
 
@@ -218,18 +217,16 @@ export class TeacherSettingsComponent implements OnInit {
     const profile = this.authService.getUserProfile();
     const teacherEmail = profile?.email || localStorage.getItem('userEmail');
     
-    console.log('Loading teacher profile for email:', teacherEmail);
-    
     if (!teacherEmail) {
       console.warn('No teacher email available');
       return;
     }
 
-    // Always load from API - no caching
     this.teacherDashboardService.getTeacherByEmail(teacherEmail).subscribe({
       next: (teacher: any) => {
-        console.log('Teacher profile loaded from API:', teacher);
         this.applyTeacherProfile(teacher);
+        // Reload teaching classes now that we have the correct teacherId
+        this.loadTeachingClasses();
       },
       error: (err) => {
         console.error('Failed to load teacher profile from API:', err);
@@ -242,6 +239,12 @@ export class TeacherSettingsComponent implements OnInit {
     this.currentTeacherData = teacher;
     this.teacherProfilePicture = teacher.teacherProfilePicture;
     this.teacherJoinedDate = teacher.createdAt;
+    
+    // Use the actual teacherId from the Teacher table
+    if (teacher.teacherId) {
+      this.teacherId = teacher.teacherId;
+      this.authService.setRoleTableId(teacher.teacherId);
+    }
     
     this.profileForm.patchValue({
       firstName: teacher.firstName || '',
@@ -415,16 +418,25 @@ export class TeacherSettingsComponent implements OnInit {
   }
 
   addClass(): void {
-    if (this.classForm.valid && this.organizationId && this.teacherId) {
+    if (this.classForm.valid && this.organizationId) {
       this.isLoadingClasses = true;
-      
+
+      const selectedStream = this.teacherStreams.find(s => s.streamId === this.classForm.value.gradeStreamId);
+      const teacherId = selectedStream?.teacherId || this.currentTeacherData?.teacherId || this.teacherId;
+
+      if (!teacherId) {
+        Swal.fire('Error!', 'Teacher ID not found. Please refresh the page and try again.', 'error');
+        this.isLoadingClasses = false;
+        return;
+      }
+
       const createRequest: CreateTeachingClassRequest = {
         gradeStreamId: this.classForm.value.gradeStreamId,
         subject: this.classForm.value.subject,
         classRoomNumber: this.classForm.value.classRoomNumber,
         totalStudents: this.classForm.value.totalStudents,
         organizationId: this.organizationId,
-        teacherId: this.teacherId
+        teacherId: teacherId
       };
 
       this.teachingClassService.createTeachingClass(createRequest).subscribe({
@@ -628,20 +640,28 @@ export class TeacherSettingsComponent implements OnInit {
 
   // Load teacher ID from auth service or localStorage
   private loadTeacherId(): void {
+    const stored = this.authService.getRoleTableId();
+    if (stored) {
+      this.teacherId = stored;
+      return;
+    }
     const profile = this.authService.getUserProfile();
-    this.teacherId = profile?.roleUserId || profile?.userId || (typeof localStorage !== 'undefined' ? localStorage.getItem('roleUserId') : null) || (typeof localStorage !== 'undefined' ? localStorage.getItem('userId') : null) || '';
+    this.teacherId = profile?.roleUserId || profile?.userId || localStorage.getItem('roleUserId') || localStorage.getItem('userId') || '';
   }
 
   // Load teaching classes for this teacher without caching
   loadTeachingClasses(): void {
-    if (!this.teacherId || !this.organizationId) {
+    const teacherId = this.currentTeacherData?.teacherId
+      || (this.teacherStreams.length > 0 ? this.teacherStreams[0].teacherId : null)
+      || this.teacherId;
+
+    if (!teacherId || !this.organizationId) {
       console.log('Teacher ID or Organization ID not available');
       return;
     }
 
-    // Always load from API - no caching
     this.isLoadingClasses = true;
-    this.teachingClassService.getTeachingClasses(this.organizationId, this.teacherId).subscribe({
+    this.teachingClassService.getTeachingClasses(this.organizationId, teacherId).subscribe({
       next: (classes: TeachingClass[]) => {
         this.teachingClasses = classes;
         this.isLoadingClasses = false;
@@ -654,21 +674,22 @@ export class TeacherSettingsComponent implements OnInit {
     });
   }
 
-  // Load teacher's grades and streams without caching
+  // Load teacher's grades and streams
   loadTeacherGrades(): void {
-    if (!this.teacherId) {
-      console.log('Teacher ID not available');
+    if (!this.organizationId) {
+      console.log('Organization ID not available');
       return;
     }
 
-    // Always load from API - no caching
     this.isLoadingGrades = true;
-    this.teacherDashboardService.getAllStreams(this.teacherId).subscribe({
-      next: (streams: any) => {
-        const streamData = Array.isArray(streams) ? streams : (streams?.data || []);
-        this.teacherStreams = streamData;
+    this.settingsService.getAllStreamsbyOrganizationId(this.organizationId).subscribe({
+      next: (streams: any[]) => {
+        this.teacherStreams = streams;
         this.isLoadingGrades = false;
-        console.log('Teacher streams loaded from API:', this.teacherStreams);
+        // Now that streams are loaded with correct teacherId, load teaching classes
+        if (this.teachingClasses.length === 0) {
+          this.loadTeachingClasses();
+        }
       },
       error: (err) => {
         console.error('Failed to load teacher streams:', err);
@@ -709,7 +730,9 @@ export class TeacherSettingsComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      // Reload from API to get fresh data
+      if (result) {
+        Swal.fire('Success!', 'Grade & Stream added successfully!', 'success');
+      }
       this.loadTeacherGrades();
     });
   }

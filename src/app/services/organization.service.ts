@@ -5,6 +5,7 @@ import { Organization } from '../features/organization/models/organization.model
 import { CreateOrganizationDto, IOrganization } from '../features/organization/models/organization.interface';
 import { IOrganizationRequest } from '../features/organization/models/Organization/iorganization-request';
 import { OrganizationType, ServiceType, ServiceDuration } from '../features/organization/models/organization.enums';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +13,7 @@ import { OrganizationType, ServiceType, ServiceDuration } from '../features/orga
 export class OrganizationService {
 
   //private apiUrl = 'http://thutonetapi-prod.westeurope.azurecontainer.io/api';
-  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api';
+  private apiUrl = environment.apiUrl;
 
   private httpOptions = {
     headers: new HttpHeaders({

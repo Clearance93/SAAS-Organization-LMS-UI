@@ -4,12 +4,13 @@ import { ILibrary } from '../../interfaces/library/ilibrary';
 import { BehaviorSubject, Observable, throwError, of } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { LibraryModel } from '../../features/organization/models/library/library-model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class LibraryServicesService {
-  private apiUrl = "https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Library"
+  private apiUrl = `${environment.apiUrl}/Library`
   
   constructor(private http: HttpClient) {
     console.log('LibraryServicesService initialized with URL:', this.apiUrl);
@@ -40,7 +41,7 @@ export class LibraryServicesService {
   checkApiHealth(): void {
     console.log('=== API Health Check ===');
     console.log('Attempting to connect to:', this.apiUrl);
-    console.log('Make sure your .NET API is running on https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net');
+    console.log('Make sure your .NET API is running on the configured API URL.');
   }
 
 

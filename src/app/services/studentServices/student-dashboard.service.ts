@@ -3,12 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { StudentDashboardApiResponse } from '../../interfaces/student-dashboard-api';
 import { StudentAcademicProgress } from '../../interfaces/student-academic-progress';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class StudentDashboardService {
-  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/';
+  private apiUrl = `${environment.apiUrl}/`;
 
   constructor(private http: HttpClient) { }
 
@@ -78,6 +79,11 @@ export class StudentDashboardService {
 
   getTeachingClasses(organizationId: string, teacherId: string): Observable<any[]> {
     const url = `${this.apiUrl}TeachersSchedule/getAllteachingClasses/${organizationId}/${teacherId}`;
+    return this.http.get<any[]>(url);
+  }
+
+  getAllTeachingClassesByOrganization(organizationId: string): Observable<any[]> {
+    const url = `${this.apiUrl}TeachersSchedule/getAllteachingClasses/${organizationId}`;
     return this.http.get<any[]>(url);
   }
 
