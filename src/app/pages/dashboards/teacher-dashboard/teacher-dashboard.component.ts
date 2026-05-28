@@ -1512,63 +1512,34 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     const organizationId = profile?.organizationId || localStorage.getItem('organizationId');
     const formValue = this.assignmentForm.value;
 
-    const processFiles = async () => {
-      let assignmentFileBase64 = null;
-      let rubricFileBase64 = null;
-
-      if (this.assignmentFile) {
-        assignmentFileBase64 = await this.fileToBase64(this.assignmentFile);
-      }
-
-      if (this.rubricFile) {
-        rubricFileBase64 = await this.fileToBase64(this.rubricFile);
-      }
-
-      const payload = {
-        organizationId: organizationId,
-        teacherId: this.teacherId,
-        assignmentTitle: formValue.title,
-        assignmentDescription: formValue.description,
-        dueDate: formValue.dueDate,
-        assignmentMarks: formValue.points,
-        gradeStreamId: formValue.gradeStreamId,
-        assignmentSubject: formValue.subject,
-        assignmentFile: assignmentFileBase64,
-        teacherRubricFile: rubricFileBase64
-      };
-
-      this.teacherDashboardService.createAssignment(payload)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: () => {
-            Swal.fire('Success', 'Assignment created successfully', 'success');
-            this.closeAssignmentModal();
-            this.assignmentForm.reset();
-            this.assignmentFile = null;
-            this.rubricFile = null;
-            this.loadAssignments();
-          },
-          error: (error) => {
-            console.error('Failed to create assignment:', error);
-            Swal.fire('Error', 'Failed to create assignment', 'error');
-          }
-        });
+    const payload = {
+      organizationId,
+      teacherId: this.teacherId,
+      assignmentTitle: formValue.title,
+      assignmentDescription: formValue.description,
+      dueDate: formValue.dueDate,
+      assignmentMarks: formValue.points,
+      gradeStreamId: formValue.gradeStreamId,
+      assignmentSubject: formValue.subject
     };
 
-    processFiles();
-  }
-
-  private fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Remove the data URL prefix (e.g., "data:application/pdf;base64,")
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = error => reject(error);
+    this.teacherDashboardService.createAssignment(
+      payload,
+      this.assignmentFile ?? undefined,
+      this.rubricFile ?? undefined
+    ).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        Swal.fire('Success', 'Assignment created successfully', 'success');
+        this.closeAssignmentModal();
+        this.assignmentForm.reset();
+        this.assignmentFile = null;
+        this.rubricFile = null;
+        this.loadAssignments();
+      },
+      error: (error) => {
+        console.error('Failed to create assignment:', error);
+        Swal.fire('Error', 'Failed to create assignment', 'error');
+      }
     });
   }
   onDragOver(e: DragEvent, type: string): void { e.preventDefault(); this.isDraggingAssignment = true; }

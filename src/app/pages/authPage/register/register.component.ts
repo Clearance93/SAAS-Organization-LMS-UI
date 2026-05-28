@@ -114,44 +114,20 @@ export class RegisterComponent implements OnInit {
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    
     if (input.files && input.files[0]) {
       const file = input.files[0];
-      
-      const maxSize = 5 * 1024 * 1024; 
-      if (file.size > maxSize) {
-        this.errorMessage = 'Image size must be less than 5MB';
-        input.value = '';
-        return;
-      }
-
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) { this.errorMessage = 'Image size must be less than 5MB'; input.value = ''; return; }
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-      if (!allowedTypes.includes(file.type)) {
-        this.errorMessage = 'Only JPG, PNG, and GIF images are allowed';
-        input.value = '';
-        return;
-      }
-
+      if (!allowedTypes.includes(file.type)) { this.errorMessage = 'Only JPG, PNG, and GIF images are allowed'; input.value = ''; return; }
       this.selectedFile = file;
-      if (this.registerForm && this.registerForm.controls['profilePicture']) {
-        this.registerForm.controls['profilePicture'].setValue(file.name);
-        this.registerForm.controls['profilePicture'].markAsDirty();
-        this.registerForm.controls['profilePicture'].updateValueAndValidity();
-      }
+      this.registerForm.controls['profilePicture'].setValue(file.name);
+      this.registerForm.controls['profilePicture'].markAsDirty();
+      this.registerForm.controls['profilePicture'].updateValueAndValidity();
       this.errorMessage = '';
-
       const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => {
-        this.imagePreview = e.target?.result as string;
-      };
+      reader.onload = (e) => { this.imagePreview = e.target?.result as string; };
       reader.readAsDataURL(file);
-
-      const base64Reader = new FileReader();
-      base64Reader.onload = (e: ProgressEvent<FileReader>) => {
-        const base64String = e.target?.result as string;
-        this.imageBase64 = base64String.split(',')[1];
-      };
-      base64Reader.readAsDataURL(file);
     }
   }
 
@@ -159,11 +135,9 @@ export class RegisterComponent implements OnInit {
     this.selectedFile = null;
     this.imagePreview = null;
     this.imageBase64 = null;
-    if (this.registerForm && this.registerForm.controls['profilePicture']) {
-      this.registerForm.controls['profilePicture'].setValue(null);
-      this.registerForm.controls['profilePicture'].markAsPristine();
-      this.registerForm.controls['profilePicture'].updateValueAndValidity();
-    }
+    this.registerForm.controls['profilePicture'].setValue(null);
+    this.registerForm.controls['profilePicture'].markAsPristine();
+    this.registerForm.controls['profilePicture'].updateValueAndValidity();
   }
 
   onSubmit(): void {
@@ -178,16 +152,17 @@ export class RegisterComponent implements OnInit {
 
     const email = this.f['email'].value.trim();
 
-    const payload = {
-      FirstName: this.f['firstName'].value.trim(),
-      LastName: this.f['lastName'].value.trim(),
-      Email: email,
-      Password: this.f['password'].value,
-      Role: UserRole.ADMIN,
-      ProfileImage: this.imageBase64 || ''
-    };
+    const formData = new FormData();
+    formData.append('FirstName', this.f['firstName'].value.trim());
+    formData.append('LastName', this.f['lastName'].value.trim());
+    formData.append('Email', email);
+    formData.append('Password', this.f['password'].value);
+    formData.append('Role', UserRole.ADMIN);
+    if (this.selectedFile) {
+      formData.append('ProfileImage', this.selectedFile, this.selectedFile.name);
+    }
 
-    this.authService.register(payload)
+    this.authService.register(formData)
       .pipe(finalize(() => this.loading = false))
       .subscribe({
         next: (response: any) => {

@@ -38,9 +38,16 @@ export class TeacherDashboardService {
 
   // Create a new assignment
   // POST https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/createAssignment
-  createAssignment(payload: any): Observable<any> {
-    const url = this.assignmentUrl;
-    return this.http.post<any>(url, payload);
+  createAssignment(payload: any, assignmentFile?: File, rubricFile?: File): Observable<any> {
+    const formData = new FormData();
+    Object.keys(payload).forEach(key => {
+      if (payload[key] !== null && payload[key] !== undefined) {
+        formData.append(key, payload[key]);
+      }
+    });
+    if (assignmentFile) formData.append('assignmentFormFile', assignmentFile);
+    if (rubricFile) formData.append('rubricFormFile', rubricFile);
+    return this.http.post<any>(this.assignmentUrl, formData);
   }
 
   // Get teacher assignments

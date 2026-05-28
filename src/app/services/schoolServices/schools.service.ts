@@ -32,15 +32,21 @@ export class SchoolsService {
       )
   }
 
-  createTeacher(teacherData: CreateTeacherDto): Observable<AddTeacher> {
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-
-    return this.http.post<AddTeacher>(`${this.apiUrl}/teacher`, teacherData, { headers })
-      .pipe(
-        catchError(this.handleError)
-      )
+  createTeacher(teacherData: CreateTeacherDto, profilePicture?: File): Observable<AddTeacher> {
+    const formData = new FormData();
+    formData.append('firstName', teacherData.firstName);
+    formData.append('lastName', teacherData.lastName);
+    formData.append('teacherEmail', teacherData.teacherEmail);
+    formData.append('isDeleted', String(teacherData.isDeleted));
+    formData.append('isActive', String(teacherData.isActive));
+    formData.append('createdAt', teacherData.createdAt.toISOString());
+    formData.append('updatedAt', teacherData.updatedAt.toISOString());
+    formData.append('organizationSetupId', teacherData.organizationSetupId);
+    if (profilePicture) {
+      formData.append('teacherFormFileProfilePicture', profilePicture, profilePicture.name);
+    }
+    return this.http.post<AddTeacher>(`${this.apiUrl}/teacher`, formData)
+      .pipe(catchError(this.handleError));
   }
 
   updateTeacher(id: string, guestData: Partial<CreateGuestDto>): Observable<AddGuest> {
@@ -151,15 +157,25 @@ export class SchoolsService {
       )
   }
 
-  createStudent(studentData: CreateStudentDto): Observable<any> {
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-
-    return this.http.post(`${this.apiUrl}/student`, studentData, { headers, responseType: 'text' })
-      .pipe(
-        catchError(this.handleError)
-      )
+  createStudent(studentData: CreateStudentDto, profilePicture?: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('firstName', studentData.firstName);
+    formData.append('lastName', studentData.lastName);
+    formData.append('studentEmail', studentData.studentEmail);
+    formData.append('password', studentData.password || '');
+    formData.append('dateOfBirth', studentData.dateOfBirth.toISOString());
+    formData.append('gender', studentData.gender);
+    formData.append('isDeleted', String(studentData.isDeleted));
+    formData.append('isActive', String(studentData.isActive));
+    formData.append('createdAt', studentData.createdAt.toISOString());
+    formData.append('updatedAt', studentData.updatedAt.toISOString());
+    formData.append('organizationSetupId', studentData.organizationSetupId);
+    formData.append('registrationLinkId', studentData.registrationLinkId || '00000000-0000-0000-0000-000000000000');
+    if (profilePicture) {
+      formData.append('studentFormFileProfilePicture', profilePicture, profilePicture.name);
+    }
+    return this.http.post(`${this.apiUrl}/student`, formData, { responseType: 'text' })
+      .pipe(catchError(this.handleError));
   }
 
   updateStudent(id: string, studentData: Partial<CreateStudentDto>): Observable<AddStudent> {
