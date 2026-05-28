@@ -297,8 +297,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
           this.loadUpcomingWorkshops();
           this.loadOrganizationEvents(orgId);
           this.loadAttendanceOverview();
+          this.loadAssignments();
         },
-        error: (err) => console.error('Failed to load teacher dashboard', err)
+        error: (err) => {
+          console.error('Failed to load teacher dashboard', err);
+          // Still load assignments even if dashboard fails
+          this.loadAssignments();
+        }
       });
   }
 
@@ -352,18 +357,23 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   // Load assignments from API and map them to the UI model with caching
   loadAssignments(): void {
     if (!this.teacherId) this.teacherId = this.authService.getRoleTableId();
-    if (!this.teacherId) return;
+    if (!this.teacherId) {
+      console.warn('loadAssignments: no teacherId available');
+      return;
+    }
 
-    // Load from API (no cache to always show latest)
+    console.log('loadAssignments called with teacherId:', this.teacherId);
+
     this.teacherDashboardService.getTeacherAssignments(this.teacherId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (resp: any[]) => {
           console.log('Teacher assignments API response:', resp);
-          
+
           if (!Array.isArray(resp)) {
             console.warn('Unexpected assignments response format:', resp);
             this.assignments = [];
+            this.updateAssignmentsPagination();
             return;
           }
 
@@ -379,10 +389,14 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
           } as any));
 
           console.log('Processed assignments:', this.assignments);
+          this.updateAssignmentsPagination();
+          console.log('paginatedAssignments after update:', this.paginatedAssignments);
+          console.log('filteredSortedAssignments after update:', this.filteredSortedAssignments);
         },
         error: (err) => {
           console.error('Failed to load assignments:', err);
           this.assignments = [];
+          this.updateAssignmentsPagination();
         }
       });
   }
@@ -1452,8 +1466,16 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   filteredSortedAssignments: any[] = [];
   paginatedAssignments: any[] = [];
   assignmentsTotalPages = 1;
-  prevAssignmentsPage(): void { if (this.assignmentsCurrentPage > 1) this.assignmentsCurrentPage--; }
-  nextAssignmentsPage(): void { if (this.assignmentsCurrentPage < this.assignmentsTotalPages) this.assignmentsCurrentPage++; }
+  prevAssignmentsPage(): void { if (this.assignmentsCurrentPage > 1) { this.assignmentsCurrentPage--; this.updateAssignmentsPagination(); } }
+  nextAssignmentsPage(): void { if (this.assignmentsCurrentPage < this.assignmentsTotalPages) { this.assignmentsCurrentPage++; this.updateAssignmentsPagination(); } }
+
+  updateAssignmentsPagination(): void {
+    this.filteredSortedAssignments = [...this.assignments];
+    this.assignmentsTotalPages = Math.max(1, Math.ceil(this.filteredSortedAssignments.length / this.assignmentsItemsPerPage));
+    const start = (this.assignmentsCurrentPage - 1) * this.assignmentsItemsPerPage;
+    this.paginatedAssignments = this.filteredSortedAssignments.slice(start, start + this.assignmentsItemsPerPage);
+    console.log('updateAssignmentsPagination: total=', this.filteredSortedAssignments.length, 'paginated=', this.paginatedAssignments.length);
+  }
 
   paginatedTodaySchedule: any[] = [];
   scheduleTotalPages = 1;

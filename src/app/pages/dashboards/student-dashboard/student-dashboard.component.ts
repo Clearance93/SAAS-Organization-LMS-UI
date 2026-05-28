@@ -24,6 +24,8 @@ interface Assignment {
   dueDate: string;
   status: 'pending' | 'submitted' | 'graded';
   grade?: string;
+  assignmentFile?: string;
+  description?: string;
 }
 
 interface Announcement {
@@ -179,27 +181,60 @@ export class StudentDashboardComponent implements OnInit {
 
   loadStudentAssignments(): void {
     this.studentDashboardService.getStudentAssignments(this.studentId).subscribe({
-      next: (data: any[]) => {
-        if (!Array.isArray(data)) return;
-        this.assignments = data.map(a => {
-          let status: 'pending' | 'submitted' | 'graded' = 'pending';
-          if (a.assignmentCompleted || a.assignmentMarksObtained > 0 || a.isGraded) {
-            status = 'graded';
-          } else if (a.assignmentIsSubmitted || a.isSubmitted) {
-            status = 'submitted';
-          }
-          return {
-            id: a.assignmentId,
-            title: a.assignmentTitle || a.title || 'Untitled',
-            subject: a.assignmentSubject || a.subject || '',
-            dueDate: a.assignmentDueDate || a.dueDate || '',
-            status,
-            grade: a.assignmentMarksObtained ? `${a.assignmentMarksObtained}/${a.assignmentTotalMarks}` : undefined
-          };
+      next: (data: any) => {
+        const list = Array.isArray(data) ? data : [];
+        if (list.length > 0) {
+          this.assignments = list.map(a => this.mapAssignment(a));
+        } else {
+          // Fallback: load assignments via enrolled subjects/streams
+          this.loadAssignmentsByEnrolledStreams();
+        }
+      },
+      error: () => this.loadAssignmentsByEnrolledStreams()
+    });
+  }
+
+  loadAssignmentsByEnrolledStreams(): void {
+    this.studentDashboardService.getStudentSubjects(this.studentId).subscribe({
+      next: (subjects: any[]) => {
+        if (!subjects || subjects.length === 0) return;
+        const streamIds = [...new Set(subjects.map(s => s.streamGradeId || s.gradeStreamId).filter(Boolean))];
+        const allAssignments: any[] = [];
+        let completed = 0;
+        streamIds.forEach(streamId => {
+          this.studentDashboardService.getAssignmentsByGradeStream(streamId).subscribe({
+            next: (assignments: any[]) => {
+              if (Array.isArray(assignments)) allAssignments.push(...assignments);
+              completed++;
+              if (completed === streamIds.length && this.assignments.length === 0) {
+                this.assignments = allAssignments.map(a => this.mapAssignment(a));
+              }
+            },
+            error: () => { completed++; }
+          });
         });
       },
-      error: (error) => console.error('Error loading student assignments:', error)
+      error: (error) => console.error('Error loading enrolled streams:', error)
     });
+  }
+
+  mapAssignment(a: any): Assignment {
+    let status: 'pending' | 'submitted' | 'graded' = 'pending';
+    if (a.assignmentCompleted || a.assignmentMarksObtained > 0 || a.isGraded) {
+      status = 'graded';
+    } else if (a.assignmentIsSubmitted || a.isSubmitted) {
+      status = 'submitted';
+    }
+    return {
+      id: a.assignmentId,
+      title: a.assignmentTitle || a.title || 'Untitled',
+      subject: a.assignmentSubject || a.subject || '',
+      dueDate: a.assignmentDueDate || a.dueDate || '',
+      status,
+      grade: a.assignmentMarksObtained ? `${a.assignmentMarksObtained}/${a.assignmentTotalMarks}` : undefined,
+      assignmentFile: a.assignmentFile || undefined,
+      description: a.assignmentDescription || undefined
+    };
   }
 
   loadUpcomingSessions(): void {
@@ -319,7 +354,9 @@ export class StudentDashboardComponent implements OnInit {
           subject: d.assignmentSubject,
           dueDate: d.assignmentDueDate,
           status: status,
-          grade: d.assignmentMarksObtained ? `${d.assignmentMarksObtained}/${d.assignmentTotalMarks}` : undefined
+          grade: d.assignmentMarksObtained ? `${d.assignmentMarksObtained}/${d.assignmentTotalMarks}` : undefined,
+          assignmentFile: d.assignmentFile || undefined,
+          description: d.assignmentDescription || undefined
         });
         
         // Calculate subject averages from graded assignments
@@ -336,7 +373,10 @@ export class StudentDashboardComponent implements OnInit {
       }
     });
     
-    this.assignments = Array.from(uniqueAssignments.values());
+    // Only use dashboard data assignments if the dedicated API returned nothing
+    if (this.assignments.length === 0) {
+      this.assignments = Array.from(uniqueAssignments.values());
+    }
     
     // Calculate subject grades from assignment marks
     const calculatedGrades: SubjectGrade[] = [];

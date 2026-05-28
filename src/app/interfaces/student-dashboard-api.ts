@@ -13,6 +13,7 @@ export interface StudentDashboardApiResponse {
   eventType: string | null;
   eventIsActive: boolean;
   assignmentId: string;
+  assignmentFile: string | null;
   assignmentTitle: string;
   assignmentDescription: string;
   assignmentDueDate: string;

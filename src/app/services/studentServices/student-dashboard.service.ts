@@ -41,8 +41,13 @@ export class StudentDashboardService {
     return this.http.get<any>(url);
   }
 
+  getAssignmentsByGradeStream(gradeStreamId: string): Observable<any[]> {
+    const url = `${this.apiUrl}Assingment/getAssignmentsByStream/${gradeStreamId}`;
+    return this.http.get<any[]>(url);
+  }
+
   getStudentAssignments(studentId: string, status?: string): Observable<any> {
-    const url = `${this.apiUrl}SchoolDashboards/assignments/${studentId}`;
+    const url = `${this.apiUrl}Assingment/getStudentAssignments/${studentId}`;
     if (status) {
       return this.http.get<any>(url, { params: { status } });
     }

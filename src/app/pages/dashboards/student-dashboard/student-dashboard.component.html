@@ -218,6 +218,15 @@
       <p><strong>Subject:</strong> {{ selectedAssignment.subject }}</p>
       <p><strong>Due Date:</strong> {{ selectedAssignment.dueDate }}</p>
       <p><strong>Status:</strong> {{ selectedAssignment.status }}</p>
+      <p *ngIf="selectedAssignment.description"><strong>Description:</strong> {{ selectedAssignment.description }}</p>
+      <div *ngIf="selectedAssignment.assignmentFile" style="margin-top: 1rem; padding: 1rem; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+        <p style="margin: 0 0 0.75rem 0; font-weight: 600; color: #1e40af;">📎 Assignment File</p>
+        <a [href]="'data:application/pdf;base64,' + selectedAssignment.assignmentFile"
+           download="assignment.pdf"
+           style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #3b82f6; color: white; border-radius: 6px; text-decoration: none; font-size: 0.9rem; font-weight: 500;">
+          📥 Download Assignment PDF
+        </a>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" (click)="closeAssignmentModal()">Close</button>
