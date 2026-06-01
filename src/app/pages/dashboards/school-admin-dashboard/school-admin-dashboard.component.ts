@@ -386,12 +386,14 @@ export class SchoolAdminDashboardComponent implements OnInit, OnDestroy {
       });
   }
 
+  private resolveProfilePicture(pic: string | null | undefined): string | null {
+    if (!pic) return null;
+    if (pic.startsWith('http') || pic.startsWith('data:')) return pic;
+    return `data:image/jpeg;base64,${pic}`;
+  }
+
   updateAdminProfileData(stats: any): void {
-    // Format profile picture with proper base64 prefix if missing
-    let formattedProfilePicture = stats.adminProfilePicture;
-    if (formattedProfilePicture && !formattedProfilePicture.startsWith('data:')) {
-      formattedProfilePicture = `data:image/jpeg;base64,${formattedProfilePicture}`;
-    }
+    const formattedProfilePicture = this.resolveProfilePicture(stats.adminProfilePicture);
 
     this.adminProfileData = {
       organizationSetupId: stats.organizationSetupId,
@@ -535,11 +537,8 @@ export class SchoolAdminDashboardComponent implements OnInit, OnDestroy {
           this.adminName = profile.name || `${profile.firstName} ${profile.lastName}` || 'Admin';
           
           // Get profile picture and ensure proper format
-          let profilePicture = profile.profilePicture || profile.adminProfilePicture || profile.logo || null;
-          if (profilePicture && !profilePicture.startsWith('data:')) {
-            profilePicture = `data:image/jpeg;base64,${profilePicture}`;
-          }
-          this.adminProfilePicture = profilePicture;
+      let profilePicture = profile.profilePicture || profile.adminProfilePicture || profile.logo || null;
+      this.adminProfilePicture = this.resolveProfilePicture(profilePicture);
           
           this.adminInitials = this.getInitials(this.adminName);
           this.adminProfileData = profile; 

@@ -24,16 +24,29 @@ export class AssignmentSubmissionService {
   constructor(private http: HttpClient) {}
 
   submitAssignment(assignmentId: string, studentId: string, text: string, files: File[]): Observable<AssignmentSubmission> {
-    const formData = new FormData();
-    formData.append('assignmentId', assignmentId);
-    formData.append('studentId', studentId);
-    formData.append('submissionText', text);
-    
-    files.forEach((file, index) => {
-      formData.append(`files`, file);
-    });
+    const toBase64 = (file: File): Promise<string> =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1].replace(/\s/g, ''));
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
 
-    return this.http.post<AssignmentSubmission>(`${this.apiUrl}/Assignments/submit`, formData);
+    return new Observable(observer => {
+      Promise.all(files.map(toBase64)).then(base64Files => {
+        const payload = {
+          assignmentSubmissionId: '00000000-0000-0000-0000-000000000000',
+          assignmentId,
+          studentId,
+          assignmentPdfSubmission: base64Files[0] ?? null,
+          submissionDate: new Date().toISOString(),
+          isPending: true,
+          isCompleted: false
+        };
+        this.http.post<AssignmentSubmission>(`${this.apiUrl}/Assingment/submitAssignment`, payload)
+          .subscribe({ next: v => { observer.next(v); observer.complete(); }, error: e => observer.error(e) });
+      }).catch(e => observer.error(e));
+    });
   }
 
   getStudentSubmissions(studentId: string): Observable<AssignmentSubmission[]> {

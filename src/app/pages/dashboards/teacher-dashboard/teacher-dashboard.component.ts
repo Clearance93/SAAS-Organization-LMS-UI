@@ -244,6 +244,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
         if (tid) {
           this.teacherId = tid;
           this.teacherName = `${tp.firstName || ''} ${tp.lastName || ''}`.trim();
+          this.teacherProfilePicture = this.resolveProfilePicture(tp.teacherProfilePicture);
           this.authService.setRoleTableId(tid);
           this.loadMyClasses();
           this.loadScheduledClasses();
@@ -271,6 +272,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
           }
           this.teacherId = tid;
           this.teacherName = `${teacher.firstName || ''} ${teacher.lastName || ''}`.trim();
+          this.teacherProfilePicture = this.resolveProfilePicture(teacher.teacherProfilePicture);
           this.authService.setRoleTableId(tid);
           localStorage.setItem('teacherProfile', JSON.stringify(teacher));
           this.loadMyClasses();
@@ -1224,6 +1226,12 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
   isGradingStudent = false;
   currentGradingSubmission: any = null;
+  private resolveProfilePicture(pic: string | null | undefined): string | null {
+    if (!pic) return null;
+    if (pic.startsWith('http') || pic.startsWith('data:')) return pic;
+    return `data:image/jpeg;base64,${pic}`;
+  }
+
   getInitials(name: string): string { return name?.split(' ').map(n => n[0]).join('').toUpperCase() || ''; }
   
   viewSubmissionFile(): void {

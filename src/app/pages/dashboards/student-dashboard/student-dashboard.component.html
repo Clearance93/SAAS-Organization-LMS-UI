@@ -221,11 +221,38 @@
       <p *ngIf="selectedAssignment.description"><strong>Description:</strong> {{ selectedAssignment.description }}</p>
       <div *ngIf="selectedAssignment.assignmentFile" style="margin-top: 1rem; padding: 1rem; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
         <p style="margin: 0 0 0.75rem 0; font-weight: 600; color: #1e40af;">📎 Assignment File</p>
-        <a [href]="'data:application/pdf;base64,' + selectedAssignment.assignmentFile"
-           download="assignment.pdf"
-           style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #3b82f6; color: white; border-radius: 6px; text-decoration: none; font-size: 0.9rem; font-weight: 500;">
-          📥 Download Assignment PDF
-        </a>
+
+        <!-- URL (blob storage or external link) -->
+        <ng-container *ngIf="selectedAssignment.assignmentFileType === 'url'">
+          <a [href]="selectedAssignment.assignmentFile" target="_blank"
+             style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #3b82f6; color: white; border-radius: 6px; text-decoration: none; font-size: 0.9rem; font-weight: 500; margin-bottom: 0.75rem;">
+            🔗 Open Assignment File
+          </a>
+          <div style="margin-top: 0.75rem;">
+            <img [src]="selectedAssignment.assignmentFile" alt="Assignment" style="max-width: 100%; border-radius: 6px; border: 1px solid #e5e7eb;"
+                 (error)="$any($event.target).style.display='none'">
+          </div>
+        </ng-container>
+
+        <!-- Image (base64) -->
+        <ng-container *ngIf="selectedAssignment.assignmentFileType === 'image'">
+          <img [src]="resolveAssignmentFileUrl(selectedAssignment.assignmentFile, 'image')"
+               alt="Assignment" style="max-width: 100%; border-radius: 6px; border: 1px solid #e5e7eb;">
+          <a [href]="resolveAssignmentFileUrl(selectedAssignment.assignmentFile, 'image')"
+             download="assignment-image.jpg"
+             style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #10b981; color: white; border-radius: 6px; text-decoration: none; font-size: 0.9rem; font-weight: 500; margin-top: 0.75rem;">
+            📥 Download Image
+          </a>
+        </ng-container>
+
+        <!-- PDF (base64) -->
+        <ng-container *ngIf="selectedAssignment.assignmentFileType === 'pdf'">
+          <a [href]="resolveAssignmentFileUrl(selectedAssignment.assignmentFile, 'pdf')"
+             download="assignment.pdf"
+             style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #3b82f6; color: white; border-radius: 6px; text-decoration: none; font-size: 0.9rem; font-weight: 500;">
+            📥 Download Assignment PDF
+          </a>
+        </ng-container>
       </div>
     </div>
     <div class="modal-footer">
@@ -248,7 +275,7 @@
         <p><strong>📅 Due Date:</strong> {{ selectedAssignment.dueDate }}</p>
       </div>
       <div class="file-upload">
-        <label for="file-input">📎 Upload Your Work (PDF Only)</label>
+        <label for="file-input">📎 Upload Your Work (PDF or Image)</label>
         <label 
           for="file-input" 
           class="file-upload-area" 
@@ -259,9 +286,9 @@
         >
           <div class="upload-icon">{{ selectedFile ? '✅' : '📄' }}</div>
           <div class="upload-text">{{ selectedFile ? selectedFile.name : 'Click to browse or drag and drop' }}</div>
-          <div class="upload-hint" *ngIf="!selectedFile">Maximum file size: 10MB</div>
+          <div class="upload-hint" *ngIf="!selectedFile">PDF, PNG, JPG, JPEG and other images accepted</div>
         </label>
-        <input type="file" id="file-input" accept=".pdf" (change)="onFileSelected($event)" style="display: none;">
+        <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg,.gif,.bmp,.tiff,.webp" (change)="onFileSelected($event)" style="display: none;">
       </div>
     </div>
     <div class="modal-footer">

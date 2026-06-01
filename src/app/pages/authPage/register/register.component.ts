@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../services/authServices/auth.service';
 import { UserRole } from '../../../features/organization/models/auth/UserRole';
+import { GlobalMediaOptimizationService } from '../../../services/global-media-optimization.service';
 import { finalize } from 'rxjs/operators';
 
 @Component({
@@ -22,7 +23,6 @@ export class RegisterComponent implements OnInit {
   
   selectedFile: File | null = null;
   imagePreview: string | null = null;
-  imageBase64: string | null = null;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -122,6 +122,7 @@ export class RegisterComponent implements OnInit {
       if (!allowedTypes.includes(file.type)) { this.errorMessage = 'Only JPG, PNG, and GIF images are allowed'; input.value = ''; return; }
       this.selectedFile = file;
       this.registerForm.controls['profilePicture'].setValue(file.name);
+      // Mark as dirty and update validity to ensure form validation reflects the file selection
       this.registerForm.controls['profilePicture'].markAsDirty();
       this.registerForm.controls['profilePicture'].updateValueAndValidity();
       this.errorMessage = '';
@@ -134,7 +135,6 @@ export class RegisterComponent implements OnInit {
   removeImage(): void {
     this.selectedFile = null;
     this.imagePreview = null;
-    this.imageBase64 = null;
     this.registerForm.controls['profilePicture'].setValue(null);
     this.registerForm.controls['profilePicture'].markAsPristine();
     this.registerForm.controls['profilePicture'].updateValueAndValidity();
@@ -152,14 +152,17 @@ export class RegisterComponent implements OnInit {
 
     const email = this.f['email'].value.trim();
 
+    // Construct FormData to match the C# CreateUserDto (IFormFile requirements)
     const formData = new FormData();
     formData.append('FirstName', this.f['firstName'].value.trim());
     formData.append('LastName', this.f['lastName'].value.trim());
     formData.append('Email', email);
     formData.append('Password', this.f['password'].value);
     formData.append('Role', UserRole.ADMIN);
+    
     if (this.selectedFile) {
-      formData.append('ProfileImage', this.selectedFile, this.selectedFile.name);
+      // Key must match: public IFormFile? FormFileProfilePicture { get; set; }
+      formData.append('FormFileProfilePicture', this.selectedFile, this.selectedFile.name);
     }
 
     this.authService.register(formData)

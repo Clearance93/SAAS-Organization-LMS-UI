@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { ActivatedRoute, Router } from '@angular/router';
 import { SettingsService } from '../../../../services/settings/settings.service';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../../environments/environment';
 
 interface Grade {
   gradeId: string;
@@ -71,7 +72,7 @@ export class AddSchoolSubjectComponent implements OnInit {
 
   loadGrades(): void {
     this.loadingGrades = true;
-    const url = `https://localhost:7270/api/Settings/getAllGrades/${this.organizationId}`;
+    const url = `${environment.apiUrl}/Settings/getAllGrades/${this.organizationId}`;
     
     this.http.get<any>(url).subscribe({
       next: (response) => {
@@ -107,7 +108,7 @@ export class AddSchoolSubjectComponent implements OnInit {
 
     console.log('Submitting subject:', subjectPayload);
 
-    const url = 'https://localhost:7270/api/Settings/addSchoolSubject';
+    const url = `${environment.apiUrl}/Settings/addSchoolSubject`;
     this.http.post(url, subjectPayload).subscribe({
       next: (response) => {
         console.log('Subject added successfully:', response);

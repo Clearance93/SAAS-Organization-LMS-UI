@@ -43,7 +43,7 @@ export class SchoolsService {
     formData.append('updatedAt', teacherData.updatedAt.toISOString());
     formData.append('organizationSetupId', teacherData.organizationSetupId);
     if (profilePicture) {
-      formData.append('teacherFormFileProfilePicture', profilePicture, profilePicture.name);
+      formData.append('formFileTeacherProfilePicture', profilePicture, profilePicture.name);
     }
     return this.http.post<AddTeacher>(`${this.apiUrl}/teacher`, formData)
       .pipe(catchError(this.handleError));

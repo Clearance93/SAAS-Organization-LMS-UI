@@ -42,6 +42,15 @@ export class AuthService {
    }
 
   register(payload: any): Observable<any> {
+    // A more robust check for FormData to avoid 415 errors
+    const isFormData = payload instanceof FormData || 
+                       (payload && typeof payload.append === 'function');
+
+    if (isFormData) {
+      return this.http.post<any>(`${this.apiUrl}/register`, payload);
+    }
+    
+    // Fallback for standard JSON registration
     const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
     return this.http.post<any>(`${this.apiUrl}/register`, payload, { headers });
   }
@@ -263,10 +272,7 @@ export class AuthService {
   }
 
   confirmEmail(userId: string, token: string): Observable<EmailConfirmationResponse> {
-
-    const encodedToken = encodeURIComponent(token);
-    const url = `${this.apiUrl}/confirm-email/${userId}-token/${encodedToken}`;
-
+    const url = `${environment.apiUrl}/Auth/confirm-email?userId=${encodeURIComponent(userId)}&token=${encodeURIComponent(token)}`;
     return this.http.put<EmailConfirmationResponse>(url, {});
   }
 

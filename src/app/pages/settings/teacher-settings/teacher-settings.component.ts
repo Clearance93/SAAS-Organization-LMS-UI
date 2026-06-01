@@ -1,4 +1,4 @@
-  import { Component, OnInit, PLATFORM_ID, Inject } from '@angular/core';
+  import { Component, OnInit, PLATFORM_ID, Inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -150,6 +150,7 @@ export class TeacherSettingsComponent implements OnInit {
     private teacherDashboardService: TeacherDashboardService,
     private authService: AuthService,
     private libraryService: LibraryServicesService,
+    private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.profileForm = this.fb.group({
@@ -224,7 +225,10 @@ export class TeacherSettingsComponent implements OnInit {
 
     this.teacherDashboardService.getTeacherByEmail(teacherEmail).subscribe({
       next: (teacher: any) => {
+        console.log('Teacher profile from API:', teacher);
+        console.log('teacherProfilePicture value:', teacher.teacherProfilePicture);
         this.applyTeacherProfile(teacher);
+        console.log('Resolved teacherProfilePicture:', this.teacherProfilePicture);
         // Reload teaching classes now that we have the correct teacherId
         this.loadTeachingClasses();
       },
@@ -237,8 +241,10 @@ export class TeacherSettingsComponent implements OnInit {
   // Apply teacher profile data
   private applyTeacherProfile(teacher: any): void {
     this.currentTeacherData = teacher;
-    this.teacherProfilePicture = teacher.teacherProfilePicture;
+    this.teacherProfilePicture = this.resolveProfilePicture(teacher.teacherProfilePicture);
     this.teacherJoinedDate = teacher.createdAt;
+    console.log('applyTeacherProfile - teacherProfilePicture set to:', this.teacherProfilePicture);
+    this.cdr.detectChanges();
     
     // Use the actual teacherId from the Teacher table
     if (teacher.teacherId) {
@@ -267,11 +273,12 @@ export class TeacherSettingsComponent implements OnInit {
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
-    // Try to load from localStorage
     const cached = localStorage.getItem('teacherDashboard');
+    console.log('loadTeacherData - teacherDashboard from localStorage:', cached ? JSON.parse(cached) : null);
     if (cached) {
       try {
         this.teacherData = JSON.parse(cached);
+        console.log('loadTeacherData - teacherData.teacherProfilePicture:', this.teacherData?.teacherProfilePicture);
         this.populateProfileForm();
       } catch (error) {
         console.error('Error parsing teacher dashboard data:', error);
@@ -292,7 +299,7 @@ export class TeacherSettingsComponent implements OnInit {
     const phone = localStorage.getItem('userPhone') || '';
 
     // Set profile picture
-    this.teacherProfilePicture = this.teacherData.teacherProfilePicture;
+    this.teacherProfilePicture = this.resolveProfilePicture(this.teacherData.teacherProfilePicture);
 
     // Update form with teacher data
     this.profileForm.patchValue({
@@ -330,18 +337,24 @@ export class TeacherSettingsComponent implements OnInit {
     return this.teacherData?.subject || this.profileForm.get('subject')?.value || 'Not specified';
   }
 
+  onProfileImageError(event: any): void {
+    console.error('Profile image failed to load:', this.teacherProfilePicture);
+    this.teacherProfilePicture = null;
+    this.cdr.detectChanges();
+  }
+
+  resolveProfilePicture(pic: string | null | undefined): string | null {
+    if (!pic) return null;
+    if (pic.startsWith('http') || pic.startsWith('data:')) return pic;
+    return `data:image/jpeg;base64,${pic}`;
+  }
+
   hasProfilePicture(): boolean {
-    if (!this.teacherProfilePicture) return false;
-    if (this.teacherProfilePicture.startsWith('data:image')) return true;
-    if (this.teacherProfilePicture.startsWith('http')) return true;
-    return this.teacherProfilePicture.length > 50;
+    return !!this.resolveProfilePicture(this.teacherProfilePicture);
   }
 
   getProfilePictureUrl(): string {
-    if (!this.teacherProfilePicture) return '';
-    if (this.teacherProfilePicture.startsWith('data:image')) return this.teacherProfilePicture;
-    if (this.teacherProfilePicture.startsWith('http')) return this.teacherProfilePicture;
-    return `data:image/jpeg;base64,${this.teacherProfilePicture}`;
+    return this.resolveProfilePicture(this.teacherProfilePicture) || '';
   }
 
   // Profile Methods

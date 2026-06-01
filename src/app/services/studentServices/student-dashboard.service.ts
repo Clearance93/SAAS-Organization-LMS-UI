@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { StudentDashboardApiResponse } from '../../interfaces/student-dashboard-api';
 import { StudentAcademicProgress } from '../../interfaces/student-academic-progress';
 import { environment } from '../../../environments/environment';
@@ -48,10 +49,17 @@ export class StudentDashboardService {
 
   getStudentAssignments(studentId: string, status?: string): Observable<any> {
     const url = `${this.apiUrl}Assingment/getStudentAssignments/${studentId}`;
-    if (status) {
-      return this.http.get<any>(url, { params: { status } });
-    }
-    return this.http.get<any>(url);
+    const fallbackUrl = `${this.apiUrl}SchoolDashboards/assignments/${studentId}`;
+    const options = status ? { params: { status } } : undefined;
+
+    return this.http.get<any>(url, options).pipe(
+      catchError((error) => {
+        if (error?.status === 404 || error?.status === 500) {
+          return this.http.get<any>(fallbackUrl, options);
+        }
+        return throwError(() => error);
+      })
+    );
   }
 
   getStudentAttendance(studentId: string, period?: string): Observable<any> {
@@ -120,9 +128,9 @@ export class StudentDashboardService {
   }
 
   // Get student attendance records
-  // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Attendance/studentAttendance/{studentId}
+  // Expected backend route: StudentAcademicAttendance/getStudentAttendance/{studentId}
   getStudentAttendanceRecords(studentId: string): Observable<any[]> {
-    const url = `${this.apiUrl}Attendance/studentAttendance/${studentId}`;
+    const url = `${this.apiUrl}StudentAcademicAttendance/getStudentAttendance/${studentId}`;
     return this.http.get<any[]>(url);
   }
 

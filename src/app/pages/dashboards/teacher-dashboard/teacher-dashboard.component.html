@@ -380,16 +380,16 @@
              style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.3s;"
              [style.border-color]="isDraggingAssignment ? '#3b82f6' : '#cbd5e1'"
              [style.background]="isDraggingAssignment ? '#eff6ff' : '#f8fafc'">
-          <input type="file" id="assignmentFile" (change)="onAssignmentFileSelected($event)" accept=".pdf,.doc,.docx,.zip,.png,.jpg" style="display: none;" />
+          <input type="file" id="assignmentFile" (change)="onAssignmentFileSelected($event)" accept=".pdf,.doc,.docx,.zip,.png,.jpg,.jpeg,.gif,.bmp,.tiff,.webp" style="display: none;" />
           <div *ngIf="!assignmentFile">
             <div style="font-size: 3rem; margin-bottom: 0.5rem;">📁</div>
             <p style="margin: 0 0 0.5rem 0; color: #64748b; font-weight: 600;">Drag & drop file here or</p>
             <label for="assignmentFile" style="display: inline-block; padding: 0.5rem 1.5rem; background: #3b82f6; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">Browse Files</label>
-            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">PDF, DOC, DOCX, ZIP, PNG, JPG</p>
+            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">PDF, DOC, DOCX, ZIP, PNG, JPG, JPEG and other images</p>
           </div>
           <div *ngIf="assignmentFile" style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 1rem; border-radius: 8px;">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <span style="font-size: 2rem;">📄</span>
+              <span style="font-size: 2rem;">{{ assignmentFile.type.startsWith('image/') ? '🖼️' : '📄' }}</span>
               <div style="text-align: left;">
                 <p style="margin: 0; font-weight: 600; color: #1e293b;">{{ assignmentFile.name }}</p>
                 <p style="margin: 0; color: #64748b; font-size: 0.85rem;">{{ (assignmentFile.size / 1024).toFixed(2) }} KB</p>
@@ -420,12 +420,12 @@
              style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.3s;"
              [style.border-color]="isDraggingRubric ? '#10b981' : '#cbd5e1'"
              [style.background]="isDraggingRubric ? '#f0fdf4' : '#f8fafc'">
-          <input type="file" id="rubricFile" (change)="onRubricFileSelected($event)" accept=".pdf,.doc,.docx" style="display: none;" />
+          <input type="file" id="rubricFile" (change)="onRubricFileSelected($event)" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.bmp,.tiff,.webp" style="display: none;" />
           <div *ngIf="!rubricFile">
             <div style="font-size: 3rem; margin-bottom: 0.5rem;">📋</div>
             <p style="margin: 0 0 0.5rem 0; color: #64748b; font-weight: 600;">Drag & drop rubric here or</p>
             <label for="rubricFile" style="display: inline-block; padding: 0.5rem 1.5rem; background: #10b981; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">Browse Files</label>
-            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">PDF, DOC, DOCX</p>
+            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">PDF, DOC, DOCX, PNG, JPG and other images</p>
           </div>
           <div *ngIf="rubricFile" style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 1rem; border-radius: 8px;">
             <div style="display: flex; align-items: center; gap: 0.75rem;">

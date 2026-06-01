@@ -67,8 +67,13 @@
       <div class="settings-section">
         <div class="profile-card">
           <div class="profile-avatar">
-            <div class="avatar-circle" *ngIf="!hasProfilePicture()">{{ getTeacherInitials() }}</div>
-            <img *ngIf="hasProfilePicture()" [src]="getProfilePictureUrl()" alt="Profile Picture" class="profile-picture">
+                      <div class="avatar-circle" *ngIf="!teacherProfilePicture">{{ getTeacherInitials() }}</div>
+            <img 
+              *ngIf="teacherProfilePicture" 
+              [src]="teacherProfilePicture" 
+              alt="Profile Picture" 
+              class="profile-picture"
+              (error)="onProfileImageError($event)">
             <button class="change-photo-btn">📷 Change Photo</button>
           </div>
           <div class="profile-info">
