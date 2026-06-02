@@ -5,6 +5,7 @@ import { SchoolsService } from '../../../../services/schoolServices/schools.serv
 import { Router, ActivatedRoute } from '@angular/router';
 import { CreateStudentDto } from '../../../../interfaces/schools/students/create-student-dto';
 import { AdminDashboardService } from '../../../../services/schoolDashboards/admin-dashboard.service';
+import { AuthService } from '../../../../services/authServices/auth.service';
 
 @Component({
   selector: 'app-add-student',
@@ -22,15 +23,19 @@ export class AddStudentComponent implements OnInit {
   previewImage: string | null = null;
   selectedFile: File | null = null;
 
+  isLoggedIn = false;
+
   constructor(
     private fb: FormBuilder,
     private schoolService: SchoolsService,
     private router: Router,
     private route: ActivatedRoute,
-    private adminDashboardService: AdminDashboardService
+    private adminDashboardService: AdminDashboardService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
+    this.isLoggedIn = this.authService.isAuthenticated();
     this.initializeForm();
     this.loadOrganizationId();
   }

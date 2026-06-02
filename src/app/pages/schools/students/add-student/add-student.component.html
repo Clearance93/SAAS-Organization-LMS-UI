@@ -1,6 +1,6 @@
 <div class="add-student-container">
   <div class="page-header">
-    <button class="back-button" (click)="onCancel()">
+    <button *ngIf="isLoggedIn" class="back-button" (click)="onCancel()">
       <span class="back-icon">←</span>
       Back to Dashboard
     </button>
