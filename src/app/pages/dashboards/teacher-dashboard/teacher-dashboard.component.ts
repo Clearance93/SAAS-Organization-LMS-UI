@@ -1240,40 +1240,61 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       Swal.fire('Error', 'No submission file available', 'error');
       return;
     }
-    
-    const base64Data = this.currentGradingSubmission.studentAnswerFile;
-    const blob = this.base64ToBlob(base64Data, 'application/pdf');
-    const url = URL.createObjectURL(blob);
-    
-    // Show PDF in modal within the platform
-    Swal.fire({
-      html: `<iframe src="${url}" width="100%" height="600" frameborder="0" style="border-radius: 8px;"></iframe>`,
-      showConfirmButton: true,
-      confirmButtonText: 'Close',
-      width: '90%',
-      customClass: {
-        popup: 'pdf-viewer-modal'
-      },
-      didClose: () => {
-        URL.revokeObjectURL(url);
-      }
-    });
+
+    const file = this.currentGradingSubmission.studentAnswerFile;
+
+    if (file.startsWith('http')) {
+      window.open(file, '_blank');
+      return;
+    }
+
+    try {
+      const base64 = file.includes(',') ? file.split(',')[1] : file;
+      const blob = this.base64ToBlob(base64, 'application/pdf');
+      const url = URL.createObjectURL(blob);
+      Swal.fire({
+        html: `<iframe src="${url}" width="100%" height="600" frameborder="0" style="border-radius: 8px;"></iframe>`,
+        showConfirmButton: true,
+        confirmButtonText: 'Close',
+        width: '90%',
+        customClass: { popup: 'pdf-viewer-modal' },
+        didClose: () => URL.revokeObjectURL(url)
+      });
+    } catch (e) {
+      Swal.fire('Error', 'Could not open submission file', 'error');
+    }
   }
-  
+
   downloadSubmissionFile(): void {
     if (!this.currentGradingSubmission?.studentAnswerFile) {
       Swal.fire('Error', 'No submission file available', 'error');
       return;
     }
-    
-    const base64Data = this.currentGradingSubmission.studentAnswerFile;
-    const blob = this.base64ToBlob(base64Data, 'application/pdf');
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${this.currentGradingSubmission.studentFullNames}_${this.currentGradingSubmission.assignmentTitle}.pdf`;
-    link.click();
-    URL.revokeObjectURL(url);
+
+    const file = this.currentGradingSubmission.studentAnswerFile;
+    const fileName = `${this.currentGradingSubmission.studentFullNames}_${this.currentGradingSubmission.assignmentTitle}.pdf`;
+
+    if (file.startsWith('http')) {
+      const link = document.createElement('a');
+      link.href = file;
+      link.download = fileName;
+      link.target = '_blank';
+      link.click();
+      return;
+    }
+
+    try {
+      const base64 = file.includes(',') ? file.split(',')[1] : file;
+      const blob = this.base64ToBlob(base64, 'application/pdf');
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      Swal.fire('Error', 'Could not download submission file', 'error');
+    }
   }
   
   private base64ToBlob(base64: string, contentType: string): Blob {
