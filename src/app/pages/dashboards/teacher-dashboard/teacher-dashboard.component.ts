@@ -1244,33 +1244,41 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     const file = this.currentGradingSubmission.studentAnswerFile;
     const title = `${this.currentGradingSubmission.studentFullNames} - ${this.currentGradingSubmission.assignmentTitle}`;
 
-    let embedSrc: string;
+    let pdfUrl: string;
 
     if (file.startsWith('http')) {
-      // Use Google Docs viewer to render the PDF from a URL
-      embedSrc = `https://docs.google.com/viewer?url=${encodeURIComponent(file)}&embedded=true`;
+      pdfUrl = file;
     } else {
       try {
         const base64 = file.includes(',') ? file.split(',')[1] : file;
         const blob = this.base64ToBlob(base64, 'application/pdf');
-        embedSrc = URL.createObjectURL(blob);
+        pdfUrl = URL.createObjectURL(blob);
       } catch (e) {
         Swal.fire('Error', 'Could not open submission file', 'error');
         return;
       }
     }
 
-    Swal.fire({
-      title: title,
-      html: `<iframe src="${embedSrc}" width="100%" height="600px" frameborder="0" style="border-radius: 8px; border: none;"></iframe>`,
-      showConfirmButton: true,
-      confirmButtonText: 'Close',
-      width: '90%',
-      customClass: { popup: 'pdf-viewer-modal' },
-      didClose: () => {
-        if (!file.startsWith('http')) URL.revokeObjectURL(embedSrc);
-      }
-    });
+    const newTab = window.open('', '_blank');
+    if (newTab) {
+      newTab.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>${title}</title>
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { width: 100vw; height: 100vh; overflow: hidden; background: #525659; }
+              embed { width: 100%; height: 100%; }
+            </style>
+          </head>
+          <body>
+            <embed src="${pdfUrl}" type="application/pdf" width="100%" height="100%" />
+          </body>
+        </html>
+      `);
+      newTab.document.close();
+    }
   }
 
   downloadSubmissionFile(): void {
