@@ -1242,27 +1242,35 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     }
 
     const file = this.currentGradingSubmission.studentAnswerFile;
+    const title = `${this.currentGradingSubmission.studentFullNames} - ${this.currentGradingSubmission.assignmentTitle}`;
+
+    let embedSrc: string;
 
     if (file.startsWith('http')) {
-      window.open(file, '_blank');
-      return;
+      // Use Google Docs viewer to render the PDF from a URL
+      embedSrc = `https://docs.google.com/viewer?url=${encodeURIComponent(file)}&embedded=true`;
+    } else {
+      try {
+        const base64 = file.includes(',') ? file.split(',')[1] : file;
+        const blob = this.base64ToBlob(base64, 'application/pdf');
+        embedSrc = URL.createObjectURL(blob);
+      } catch (e) {
+        Swal.fire('Error', 'Could not open submission file', 'error');
+        return;
+      }
     }
 
-    try {
-      const base64 = file.includes(',') ? file.split(',')[1] : file;
-      const blob = this.base64ToBlob(base64, 'application/pdf');
-      const url = URL.createObjectURL(blob);
-      Swal.fire({
-        html: `<iframe src="${url}" width="100%" height="600" frameborder="0" style="border-radius: 8px;"></iframe>`,
-        showConfirmButton: true,
-        confirmButtonText: 'Close',
-        width: '90%',
-        customClass: { popup: 'pdf-viewer-modal' },
-        didClose: () => URL.revokeObjectURL(url)
-      });
-    } catch (e) {
-      Swal.fire('Error', 'Could not open submission file', 'error');
-    }
+    Swal.fire({
+      title: title,
+      html: `<iframe src="${embedSrc}" width="100%" height="600px" frameborder="0" style="border-radius: 8px; border: none;"></iframe>`,
+      showConfirmButton: true,
+      confirmButtonText: 'Close',
+      width: '90%',
+      customClass: { popup: 'pdf-viewer-modal' },
+      didClose: () => {
+        if (!file.startsWith('http')) URL.revokeObjectURL(embedSrc);
+      }
+    });
   }
 
   downloadSubmissionFile(): void {
