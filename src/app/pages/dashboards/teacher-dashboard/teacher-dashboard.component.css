@@ -702,6 +702,10 @@
   100% { opacity: 1; }
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .session-participants {
   font-size: 14px;
   color: #666;

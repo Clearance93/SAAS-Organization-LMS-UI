@@ -122,6 +122,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
   // Loading states
   isLoadingSchedule = false;
+  isCreatingAssignment = false;
   isAttendanceModalOpen = false;
   isGradeModalOpen = false;
   isAssignmentModalOpen = false;
@@ -1531,12 +1532,15 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       assignmentSubject: formValue.subject
     };
 
+    this.isCreatingAssignment = true;
+
     this.teacherDashboardService.createAssignment(
       payload,
       this.assignmentFile ?? undefined,
       this.rubricFile ?? undefined
     ).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
+        this.isCreatingAssignment = false;
         Swal.fire('Success', 'Assignment created successfully', 'success');
         this.closeAssignmentModal();
         this.assignmentForm.reset();
@@ -1545,6 +1549,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
         this.loadAssignments();
       },
       error: (error) => {
+        this.isCreatingAssignment = false;
         console.error('Failed to create assignment:', error);
         Swal.fire('Error', 'Failed to create assignment', 'error');
       }

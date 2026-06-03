@@ -442,8 +442,17 @@
       </div>
 
       <div class="modal-actions" style="display: flex; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #e5e7eb;">
-        <button type="button" class="cancel-btn" (click)="closeAssignmentModal()" style="flex: 1; padding: 0.75rem; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
-        <button type="submit" class="save-btn" [disabled]="!assignmentForm.valid" style="flex: 2; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; opacity: 1;" [style.opacity]="!assignmentForm.valid ? '0.5' : '1'" [style.cursor]="!assignmentForm.valid ? 'not-allowed' : 'pointer'">Create Assignment</button>
+        <button type="button" class="cancel-btn" (click)="closeAssignmentModal()" [disabled]="isCreatingAssignment" style="flex: 1; padding: 0.75rem; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!assignmentForm.valid || isCreatingAssignment"
+          style="flex: 2; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;"
+          [style.opacity]="!assignmentForm.valid || isCreatingAssignment ? '0.7' : '1'"
+          [style.cursor]="!assignmentForm.valid || isCreatingAssignment ? 'not-allowed' : 'pointer'">
+          <span *ngIf="!isCreatingAssignment">Create Assignment</span>
+          <span *ngIf="isCreatingAssignment" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+            <span style="display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+            Uploading...
+          </span>
+        </button>
       </div>
     </form>
   </div>
