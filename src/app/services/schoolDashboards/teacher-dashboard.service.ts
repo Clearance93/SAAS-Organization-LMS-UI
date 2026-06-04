@@ -164,16 +164,16 @@ export class TeacherDashboardService {
   }
 
   // Get teacher students
-  // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School/teacherStudent/{teacherId}
+  // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School/teacherSubject/{teacherId}
   getTeacherStudents(teacherId: string): Observable<any[]> {
-    const url = `${environment.apiUrl}/School/teacherStudent/${teacherId}`;
+    const url = `${environment.apiUrl}/School/teacherSubject/${teacherId}`;
     return this.http.get<any[]>(url);
   }
 
   // Submit student attendance
-  // POST https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Attendance/addStduentAttendance
+  // POST /api/StudentAcademicAttendance/studentAttendance
   submitAttendance(payload: any[]): Observable<any> {
-    const url = `${environment.apiUrl}/Attendance/addStduentAttendance`;
+    const url = `${environment.apiUrl}/StudentAcademicAttendance/studentAttendance`;
     return this.http.post<any>(url, payload);
   }
 

@@ -272,15 +272,23 @@
       <div class="students-list">
         <div class="student-item" *ngFor="let student of filteredStudents" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-bottom: 1px solid #e5e7eb;">
           <div class="student-info" style="display: flex; align-items: center; gap: 1rem;">
-            <img *ngIf="student.profilePicture" [src]="'data:image/jpeg;base64,' + student.profilePicture" alt="{{ student.name }}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
-            <div *ngIf="!student.profilePicture" class="student-avatar" style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">{{ getInitials(student.name) }}</div>
+            <img *ngIf="student.profilePicture" [src]="student.profilePicture" alt="{{ student.name }}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;" (error)="student.profilePicture = null">
+            <div *ngIf="!student.profilePicture" class="student-avatar" style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; flex-shrink: 0;">{{ getInitials(student.name) }}</div>
             <div>
               <span class="student-name" style="font-weight: 600; color: #1e293b;">{{ student.name }}</span>
               <p style="margin: 0; font-size: 0.85rem; color: #64748b;">{{ student.streamName }} • {{ student.subject }}</p>
+              <div *ngIf="!student.isPresent" style="margin-top: 0.5rem;">
+                <input
+                  type="text"
+                  [(ngModel)]="student.absenceComment"
+                  placeholder="Reason for absence (optional)"
+                  style="padding: 0.4rem 0.75rem; border: 1px solid #fca5a5; border-radius: 6px; font-size: 0.85rem; width: 250px; background: #fff7f7; color: #374151;"
+                />
+              </div>
             </div>
           </div>
           <div class="attendance-toggle">
-            <button class="toggle-btn" 
+            <button class="toggle-btn"
                     [class.present]="student.isPresent"
                     [class.absent]="!student.isPresent"
                     (click)="toggleAttendance(student.studentId)">

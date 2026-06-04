@@ -580,12 +580,17 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
             name: `${s.studentFirstName} ${s.studentLastName}`,
             firstName: s.studentFirstName,
             lastName: s.studentLastName,
-            profilePicture: s.studentProfilePicture,
+            profilePicture: s.studentProfilePicture
+              ? (s.studentProfilePicture.startsWith('http') || s.studentProfilePicture.startsWith('data:')
+                  ? s.studentProfilePicture
+                  : `data:image/jpeg;base64,${s.studentProfilePicture}`)
+              : null,
             subject: s.subject,
             streamName: s.streamName,
             gradeStreamId: s.streamGradeId,
             teachingClassId: s.teachingClassId,
-            isPresent: true
+            isPresent: true,
+            absenceComment: ''
           }));
           this.filteredStudents = this.allStudents;
           console.log('Students loaded with gradeStreamId:', this.allStudents);
@@ -649,17 +654,14 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
     // Build payload array with individual student records
     const payload = this.filteredStudents.map(student => ({
-      attendanceOverviewId: '00000000-0000-0000-0000-000000000000',
+      studentAttendanceId: '00000000-0000-0000-0000-000000000000',
       organizationId: organizationId,
-      teacherId: this.teacherId,
-      gradeStreamId: student.gradeStreamId,
       studentId: student.studentId,
-      studentFirstName: student.firstName,
-      studentLastName: student.lastName,
-      teachingClassId: student.teachingClassId,
-      dailyPresent: student.isPresent ? 1 : 0,
-      dailyAbsent: student.isPresent ? 0 : 1,
-      date: this.attendanceDate
+      presentCount: student.isPresent ? 1 : 0,
+      absentCount: student.isPresent ? 0 : 1,
+      lateCount: 0,
+      termAttendanceOverview: 0,
+      absenceComment: student.isPresent ? '' : (student.absenceComment || '')
     }));
 
     console.log('Attendance payload:', payload);
