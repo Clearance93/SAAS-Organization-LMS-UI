@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, forkJoin } from 'rxjs';
 import { StreamResponse, ClassScheduleDto } from '../../interfaces/class-schedule';
 import { AssignmentDto } from '../../interfaces/assignment';
 import { environment } from '../../../environments/environment';
@@ -170,11 +170,11 @@ export class TeacherDashboardService {
     return this.http.get<any[]>(url);
   }
 
-  // Submit student attendance
+  // Submit student attendance - sends one record at a time
   // POST /api/StudentAcademicAttendance/studentAttendance
   submitAttendance(payload: any[]): Observable<any> {
     const url = `${environment.apiUrl}/StudentAcademicAttendance/studentAttendance`;
-    return this.http.post<any>(url, payload);
+    return forkJoin(payload.map(record => this.http.post<any>(url, record)));
   }
 
   // Get teacher dashboard attendance overview
