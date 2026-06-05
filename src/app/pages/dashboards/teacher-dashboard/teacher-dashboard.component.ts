@@ -1284,13 +1284,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   }
 
   downloadSubmissionFile(): void {
-    if (!this.currentGradingSubmission?.studentAnswerFile) {
-      Swal.fire('Error', 'No submission file available', 'error');
+    const file = this.currentGradingSubmission?.studentAnswerFile;
+    if (!file) {
+      Swal.fire('No Submission', 'This student has not submitted a file yet.', 'info');
       return;
     }
 
-    const file = this.currentGradingSubmission.studentAnswerFile;
-    const fileName = `${this.currentGradingSubmission.studentFullNames}_${this.currentGradingSubmission.assignmentTitle}.pdf`;
+    const fileName = `${this.currentGradingSubmission.studentFullNames}_${this.currentGradingSubmission.assignmentTitle}_answer.pdf`;
 
     if (file.startsWith('http')) {
       const link = document.createElement('a');
@@ -1492,8 +1492,9 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.currentPlagiarismResult = null;
     this.isLoadingPlagiarism = true;
-    this.aiGradingService.getPlagiarismResult(assignment.assignmentId, assignment.studentId)
+    this.aiGradingService.checkPlagiarism(assignment.assignmentId, assignment.studentId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {
@@ -1502,15 +1503,26 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
           this.isLoadingPlagiarism = false;
         },
         error: (error) => {
-          console.error('Plagiarism check error:', error);
-          Swal.fire('Error', 'Failed to check plagiarism', 'error');
+          const msg: string = error?.message || 'Failed to check plagiarism';
+          const isServerError = msg.toLowerCase().includes('internal error') || (error?.status === 500);
+          Swal.fire({
+            title: isServerError ? '⚠️ Service Unavailable' : 'Plagiarism Check Failed',
+            html: isServerError
+              ? '<p>The plagiarism service is currently experiencing issues.</p><p style="margin-top:0.75rem;color:#6b7280;font-size:0.9rem;">Please try again in a few minutes.</p>'
+              : `<p>${msg}</p>`,
+            icon: 'warning'
+          });
           this.isLoadingPlagiarism = false;
         }
       });
   }
 
   getVerdictColor(verdict: string): string {
-    return verdict === 'Clean' ? '#10b981' : '#ef4444';
+    if (!verdict) return '#6b7280';
+    const v = verdict.toLowerCase();
+    if (v.includes('original') || v.includes('clean')) return '#10b981';
+    if (v.includes('mostly')) return '#f59e0b';
+    return '#ef4444';
   }
 
   openGradeModal(): void {
@@ -1737,7 +1749,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
             assignmentId: sub.assignmentId,
             assignmentSubject: sub.subject,
             streamName: sub.streamName,
-            studentAnswerFile: sub.assignmentFile,
+            studentAnswerFile: sub.studentAnswerFile || sub.submissionFile || sub.studentFile || sub.answerFile || sub.assignmentFile || null,
             isSubmitted: sub.isSubmitted,
             isGraded: sub.isGraded
           }));

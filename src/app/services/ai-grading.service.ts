@@ -62,6 +62,31 @@ export class AiGradingService {
     return this.http.get(`${this.aiAssistanceUrl}/getPlagiarismResult?assignmentId=${assignmentId}&studentId=${studentId}`);
   }
 
+  checkPlagiarism(assignmentId: string, studentId: string): Observable<any> {
+    return this.http.post(`${this.aiAssistanceUrl}/checkPlagiarism?assignmentId=${assignmentId}&studentId=${studentId}`, {}, { responseType: 'text' }).pipe(
+      map((text: string) => {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return { raw: text };
+        }
+      }),
+      catchError((err) => {
+        const body = typeof err?.error === 'string' ? err.error.trim() : null;
+        const status = err?.status;
+        let message: string;
+        if (status === 500) {
+          message = body || 'The plagiarism service encountered an internal error. Please try again later.';
+        } else if (status === 400) {
+          message = body || 'Bad request — please check the assignment and student details.';
+        } else {
+          message = body || err?.message || 'Plagiarism check failed.';
+        }
+        throw new Error(message);
+      })
+    );
+  }
+
   getAllTeacherAssignments(teacherId: string): Observable<any[]> {
     return this.http.get<any[]>(`${environment.apiUrl}/Assingment/getAllTeacherAssignments/${teacherId}`);
   }
