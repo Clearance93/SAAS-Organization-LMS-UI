@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface GradingSuggestion {
@@ -32,7 +33,29 @@ export class AiGradingService {
   }
 
   getAiGradeAssistance(assignmentId: string, studentId: string): Observable<any> {
-    return this.http.post(`${this.aiAssistanceUrl}/aiGradeAssistance?assignmentId=${assignmentId}&studentId=${studentId}`, {});
+    return this.http.post(`${this.aiAssistanceUrl}/aiGradeAssistance?assignmentId=${assignmentId}&studentId=${studentId}`, {}, { responseType: 'text' }).pipe(
+      map((text: string) => {
+        try {
+          return JSON.parse(text);
+        } catch {
+          throw new Error(text || 'AI grading returned an invalid response');
+        }
+      }),
+      catchError((err) => {
+        // err.error is the plain-text body when responseType is 'text'
+        const body = typeof err?.error === 'string' ? err.error.trim() : null;
+        const status = err?.status;
+        let message: string;
+        if (status === 500) {
+          message = body || 'The AI grading service encountered an internal error. Please try again later.';
+        } else if (status === 400) {
+          message = body || 'Bad request — please check the assignment and student details.';
+        } else {
+          message = body || err?.message || 'AI grading request failed.';
+        }
+        throw new Error(message);
+      })
+    );
   }
 
   getPlagiarismResult(assignmentId: string, studentId: string): Observable<any> {

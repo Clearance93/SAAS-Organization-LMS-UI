@@ -1336,31 +1336,44 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       this.currentGradingSubmission.studentId
     ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (result) => {
-        // Transform backend response to match template structure
+        this.aiMarkingResult = result;
         this.aiGradingSuggestion = {
           suggestedScore: result.totalMarks || 0,
-          breakdown: {
-            content: result.content || 0,
-            structure: result.clarity || 0,
-            grammar: result.grammar || 0,
-            accuracy: result.content || 0
-          },
-          strengths: result.strength ? [result.strength] : [],
-          improvements: result.improvement ? [result.improvement] : [],
-          feedback: result.feedback || 'No feedback available'
+          percentage: result.percentage || 0,
+          maxMarks: result.maxMarks || 0,
+          confidence: result.confidence || 0,
+          strengths: result.strengths?.length ? result.strengths : [],
+          improvements: result.areasForImprovement?.length ? result.areasForImprovement : [],
+          feedback: result.overallFeedback || result.teacherComment || 'No feedback available',
+          teacherComment: result.teacherComment || '',
+          questionBreakdown: result.questionBreakdown || []
         };
         this.teacherFinalGrade = result.totalMarks || 0;
         this.isLoadingAiGrade = false;
       },
       error: (error) => {
-        console.error('AI grading error:', error);
-        Swal.fire('Error', 'Failed to get AI grading suggestion', 'error');
+        const msg: string = error?.message || 'Failed to get AI grading suggestion';
+        const isQuestionPaperMissing = msg.toLowerCase().includes('question paper');
+        const isServerError = msg.toLowerCase().includes('internal error') || msg.toLowerCase().includes('500');
+        Swal.fire({
+          title: isQuestionPaperMissing ? '📄 Question Paper Missing'
+               : isServerError ? '⚠️ AI Service Unavailable'
+               : 'AI Grading Failed',
+          html: isQuestionPaperMissing
+            ? `<p>AI grading requires a <strong>question paper / rubric</strong> to be uploaded for this assignment.</p><p style="margin-top:1rem;color:#6b7280;font-size:0.9rem;">Ask the assignment creator to re-upload it with the rubric/memo attached.</p>`
+            : isServerError
+            ? `<p>The AI grading service is currently experiencing issues.</p><p style="margin-top:0.75rem;color:#6b7280;font-size:0.9rem;">Please try again in a few minutes, or grade this submission manually.</p>`
+            : `<p>${msg}</p>`,
+          icon: isQuestionPaperMissing || isServerError ? 'warning' : 'error'
+        });
         this.isLoadingAiGrade = false;
       }
     });
   }
   isLoadingAiGrade = false;
   aiGradingSuggestion: any = null;
+  aiMarkingResult: any = null;
+  showAiDetails = false;
   adjustGrade(amount: number): void { this.teacherFinalGrade = Math.max(0, Math.min(100, this.teacherFinalGrade + amount)); }
   teacherFinalGrade = 0;
   submitFinalGrade(): void { 
@@ -1651,7 +1664,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   prevGradingPage(): void { if (this.gradingCurrentPage > 1) this.gradingCurrentPage--; }
   nextGradingPage(): void { if (this.gradingCurrentPage < this.gradingTotalPages) this.gradingCurrentPage++; }
   gradedStudents = new Set<string>();
-  gradeStudent(student: any): void { this.isGradingStudent = true; this.currentGradingSubmission = student; }
+  gradeStudent(student: any): void { this.isGradingStudent = true; this.currentGradingSubmission = student; this.aiGradingSuggestion = null; this.aiMarkingResult = null; this.showAiDetails = false; }
 
   loadMyClasses(): void {
     const orgId = this.authService.getUserProfile()?.organizationId || localStorage.getItem('organizationId');
@@ -1764,15 +1777,11 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   }
 
   getPendingCount(): number {
-    const count = this.filteredSubmissions.filter(s => !s.isGraded).length;
-    console.log('getPendingCount:', count);
-    return count;
+    return this.filteredSubmissions.filter(s => !s.isGraded).length;
   }
 
   getGradedCount(): number {
-    const count = this.filteredSubmissions.filter(s => s.isGraded).length;
-    console.log('getGradedCount:', count);
-    return count;
+    return this.filteredSubmissions.filter(s => s.isGraded).length;
   }
 
   updateClassesPagination(): void {

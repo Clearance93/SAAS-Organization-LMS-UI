@@ -859,59 +859,86 @@
         </p>
         
         <div *ngIf="aiGradingSuggestion" style="background: white; border-radius: 8px; padding: 1.5rem;">
-          <!-- AI Score Card -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          <!-- Summary Score Cards -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
             <div style="text-align: center; padding: 1rem; background: #f0fdf4; border-radius: 8px; border: 2px solid #10b981;">
-              <div style="font-size: 2rem; font-weight: bold; color: #10b981;">{{ aiGradingSuggestion.suggestedScore }}</div>
-              <div style="color: #6b7280; font-size: 0.85rem;">AI Suggested Score</div>
+              <div style="font-size: 2rem; font-weight: bold; color: #10b981;">{{ aiGradingSuggestion.suggestedScore }}/{{ aiGradingSuggestion.maxMarks }}</div>
+              <div style="color: #6b7280; font-size: 0.85rem;">Total Marks</div>
             </div>
-            <div style="text-align: center; padding: 1rem; background: #eff6ff; border-radius: 8px;">
-              <div style="font-size: 1.5rem; font-weight: bold; color: #3b82f6;">{{ aiGradingSuggestion.breakdown.content }}/100</div>
-              <div style="color: #6b7280; font-size: 0.85rem;">Content</div>
+            <div style="text-align: center; padding: 1rem; background: #eff6ff; border-radius: 8px; border: 2px solid #3b82f6;">
+              <div style="font-size: 2rem; font-weight: bold; color: #3b82f6;">{{ aiGradingSuggestion.percentage }}%</div>
+              <div style="color: #6b7280; font-size: 0.85rem;">Percentage</div>
             </div>
-            <div style="text-align: center; padding: 1rem; background: #fef3c7; border-radius: 8px;">
-              <div style="font-size: 1.5rem; font-weight: bold; color: #f59e0b;">{{ aiGradingSuggestion.breakdown.structure }}/100</div>
-              <div style="color: #6b7280; font-size: 0.85rem;">Structure</div>
-            </div>
-            <div style="text-align: center; padding: 1rem; background: #fce7f3; border-radius: 8px;">
-              <div style="font-size: 1.5rem; font-weight: bold; color: #ec4899;">{{ aiGradingSuggestion.breakdown.grammar }}/100</div>
-              <div style="color: #6b7280; font-size: 0.85rem;">Grammar</div>
-            </div>
-            <div style="text-align: center; padding: 1rem; background: #f3e8ff; border-radius: 8px;">
-              <div style="font-size: 1.5rem; font-weight: bold; color: #a855f7;">{{ aiGradingSuggestion.breakdown.accuracy }}/100</div>
-              <div style="color: #6b7280; font-size: 0.85rem;">Accuracy</div>
+            <div style="text-align: center; padding: 1rem; background: #fef3c7; border-radius: 8px; border: 2px solid #f59e0b;">
+              <div style="font-size: 2rem; font-weight: bold; color: #f59e0b;">{{ (aiGradingSuggestion.confidence * 100) | number:'1.0-0' }}%</div>
+              <div style="color: #6b7280; font-size: 0.85rem;">AI Confidence</div>
             </div>
           </div>
 
-          <!-- Strengths -->
-          <div style="margin-bottom: 1rem;">
-            <h4 style="color: #10b981; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
-              <span>✅</span> Strengths
-            </h4>
-            <ul style="margin: 0; padding-left: 1.5rem; color: #374151;">
-              <li *ngFor="let strength of aiGradingSuggestion.strengths" style="margin-bottom: 0.25rem;">{{ strength }}</li>
-            </ul>
-          </div>
-
-          <!-- Areas for Improvement -->
-          <div style="margin-bottom: 1rem;">
-            <h4 style="color: #f59e0b; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
-              <span>💡</span> Areas for Improvement
-            </h4>
-            <ul style="margin: 0; padding-left: 1.5rem; color: #374151;">
-              <li *ngFor="let improvement of aiGradingSuggestion.improvements" style="margin-bottom: 0.25rem;">{{ improvement }}</li>
-            </ul>
-          </div>
-
-          <!-- AI Feedback -->
-          <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; border-left: 3px solid #3b82f6;">
-            <h4 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 0.9rem;">📋 AI Feedback</h4>
+          <!-- Overall Feedback -->
+          <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; border-left: 3px solid #3b82f6; margin-bottom: 1rem;">
+            <h4 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 0.9rem;">📋 Overall Feedback</h4>
             <p style="margin: 0; color: #475569; line-height: 1.6;">{{ aiGradingSuggestion.feedback }}</p>
+          </div>
+
+          <!-- View Details Button -->
+          <button (click)="showAiDetails = !showAiDetails" style="width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-bottom: 1rem;">
+            {{ showAiDetails ? '▲ Hide Detailed AI Report' : '▼ View Detailed AI Report' }}
+          </button>
+
+          <!-- Detailed AI Results -->
+          <div *ngIf="showAiDetails">
+            <!-- Question Breakdown -->
+            <div *ngIf="aiGradingSuggestion.questionBreakdown?.length" style="margin-bottom: 1.5rem;">
+              <h4 style="margin: 0 0 0.75rem 0; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">📊 Question Breakdown</h4>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                  <thead>
+                    <tr style="background: #f1f5f9;">
+                      <th style="padding: 0.75rem 1rem; text-align: left; color: #374151; border-bottom: 2px solid #e5e7eb;">Question</th>
+                      <th style="padding: 0.75rem 1rem; text-align: center; color: #374151; border-bottom: 2px solid #e5e7eb;">Awarded</th>
+                      <th style="padding: 0.75rem 1rem; text-align: center; color: #374151; border-bottom: 2px solid #e5e7eb;">Max</th>
+                      <th style="padding: 0.75rem 1rem; text-align: left; color: #374151; border-bottom: 2px solid #e5e7eb;">Comment</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let q of aiGradingSuggestion.questionBreakdown" style="border-bottom: 1px solid #e5e7eb;">
+                      <td style="padding: 0.75rem 1rem; font-weight: 600; color: #1e293b;">Q{{ q.questionNumber }}</td>
+                      <td style="padding: 0.75rem 1rem; text-align: center; font-weight: bold;" [style.color]="q.awardedMark === q.maxMark ? '#10b981' : q.awardedMark === 0 ? '#ef4444' : '#f59e0b'">{{ q.awardedMark }}</td>
+                      <td style="padding: 0.75rem 1rem; text-align: center; color: #6b7280;">{{ q.maxMark }}</td>
+                      <td style="padding: 0.75rem 1rem; color: #475569;">{{ q.comment }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Strengths -->
+            <div *ngIf="aiGradingSuggestion.strengths?.length" style="margin-bottom: 1rem;">
+              <h4 style="color: #10b981; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;"><span>✅</span> Strengths</h4>
+              <ul style="margin: 0; padding-left: 1.5rem; color: #374151;">
+                <li *ngFor="let s of aiGradingSuggestion.strengths" style="margin-bottom: 0.25rem;">{{ s }}</li>
+              </ul>
+            </div>
+
+            <!-- Areas for Improvement -->
+            <div *ngIf="aiGradingSuggestion.improvements?.length" style="margin-bottom: 1rem;">
+              <h4 style="color: #f59e0b; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;"><span>💡</span> Areas for Improvement</h4>
+              <ul style="margin: 0; padding-left: 1.5rem; color: #374151;">
+                <li *ngFor="let imp of aiGradingSuggestion.improvements" style="margin-bottom: 0.25rem;">{{ imp }}</li>
+              </ul>
+            </div>
+
+            <!-- Teacher Comment -->
+            <div *ngIf="aiGradingSuggestion.teacherComment" style="background: #f0f9ff; padding: 1rem; border-radius: 6px; border-left: 3px solid #3b82f6;">
+              <h4 style="margin: 0 0 0.5rem 0; color: #1e40af; font-size: 0.9rem;">👨‍🏫 Teacher Comment</h4>
+              <p style="margin: 0; color: #1e293b; line-height: 1.6;">{{ aiGradingSuggestion.teacherComment }}</p>
+            </div>
           </div>
         </div>
 
         <p *ngIf="!aiGradingSuggestion" style="margin: 0; color: #92400e; text-align: center; font-style: italic;">
-          Click "Get AI Suggestion" to analyze this submission with AI
+          Click "Analyze with AI" to get detailed marking feedback
         </p>
       </div>
 
