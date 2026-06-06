@@ -185,6 +185,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   isPlagiarismResultModalOpen = false;
   currentPlagiarismResult: any = null;
   isLoadingPlagiarism = false;
+  plagiarismLoadingId: string | null = null;
 
   constructor(
     private router: Router,
@@ -1213,7 +1214,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   closeGradingModal(): void { this.isGradingStudent = false; }
   closeMyVideosModal(): void { this.isMyVideosModalOpen = false; }
   closeUploadVideoModal(): void { this.isUploadVideoModalOpen = false; }
-  closePlagiarismModal(): void { this.isPlagiarismModalOpen = false; }
+  closePlagiarismModal(): void { this.isPlagiarismModalOpen = false; this.plagiarismLoadingId = null; }
   closePlagiarismResultModal(): void { this.isPlagiarismResultModalOpen = false; }
   closeGradeModal(): void { this.isGradeModalOpen = false; }
   closeAssignmentModal(): void { this.isAssignmentModalOpen = false; }
@@ -1492,14 +1493,17 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.plagiarismLoadingId) return; // prevent concurrent checks
+
     this.currentPlagiarismResult = null;
-    this.isLoadingPlagiarism = true;
+    this.plagiarismLoadingId = assignment.assignmentSubmissionId || assignment.assignmentId;
     this.aiGradingService.checkPlagiarism(assignment.assignmentId, assignment.studentId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {
           this.currentPlagiarismResult = result;
           this.isPlagiarismResultModalOpen = true;
+          this.plagiarismLoadingId = null;
           this.isLoadingPlagiarism = false;
         },
         error: (error) => {
@@ -1512,6 +1516,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
               : `<p>${msg}</p>`,
             icon: 'warning'
           });
+          this.plagiarismLoadingId = null;
           this.isLoadingPlagiarism = false;
         }
       });

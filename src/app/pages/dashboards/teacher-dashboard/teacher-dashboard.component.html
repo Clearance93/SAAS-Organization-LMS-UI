@@ -1076,7 +1076,14 @@
               <td style="padding: 1rem; color: #1e293b;">{{ assignment.subject }}</td>
               <td style="padding: 1rem; color: #1e293b;">{{ assignment.streamName }}</td>
               <td style="padding: 1rem; text-align: center;">
-                <button (click)="checkPlagiarism(assignment)" [disabled]="isLoadingPlagiarism" style="padding: 0.5rem 1rem; background: #8b5cf6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">{{ isLoadingPlagiarism ? 'Loading...' : 'Check' }}</button>
+                <button (click)="checkPlagiarism(assignment)" 
+                        [disabled]="plagiarismLoadingId !== null"
+                        style="padding: 0.5rem 1rem; background: #8b5cf6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;"
+                        [style.opacity]="plagiarismLoadingId !== null ? '0.6' : '1'"
+                        [style.cursor]="plagiarismLoadingId !== null ? 'not-allowed' : 'pointer'">
+                  <span *ngIf="plagiarismLoadingId === (assignment.assignmentSubmissionId || assignment.assignmentId)">⏳ Checking...</span>
+                  <span *ngIf="plagiarismLoadingId !== (assignment.assignmentSubmissionId || assignment.assignmentId)">Check</span>
+                </button>
               </td>
             </tr>
           </tbody>
