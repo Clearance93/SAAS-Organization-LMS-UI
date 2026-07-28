@@ -1394,17 +1394,17 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       next: (result) => {
         this.aiMarkingResult = result;
         this.aiGradingSuggestion = {
-          suggestedScore: result.totalMarks || 0,
-          percentage: result.percentage || 0,
-          maxMarks: result.maxMarks || 0,
-          confidence: result.confidence || 0,
-          strengths: result.strengths?.length ? result.strengths : [],
-          improvements: result.areasForImprovement?.length ? result.areasForImprovement : [],
-          feedback: result.overallFeedback || result.teacherComment || 'No feedback available',
-          teacherComment: result.teacherComment || '',
-          questionBreakdown: result.questionBreakdown || []
+          suggestedScore: result.totalMarks,
+          percentage: result.percentage,
+          maxMarks: result.maxMarks,
+          confidence: result.confidence,
+          strengths: result.strengths ?? [],
+          improvements: result.areasForImprovement ?? [],
+          feedback: result.overallFeedback,
+          teacherComment: result.teacherComment,
+          questionBreakdown: result.questionBreakdown ?? []
         };
-        this.teacherFinalGrade = result.totalMarks || 0;
+        this.teacherFinalGrade = result.totalMarks;
         this.isLoadingAiGrade = false;
       },
       error: (error) => {
