@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, forkJoin } from 'rxjs';
+import { Observable, forkJoin, timeout, catchError, throwError } from 'rxjs';
 import { StreamResponse, ClassScheduleDto } from '../../interfaces/class-schedule';
 import { AssignmentDto } from '../../interfaces/assignment';
 import { environment } from '../../../environments/environment';
@@ -135,9 +135,74 @@ export class TeacherDashboardService {
     return this.http.get<any>(url);
   }
 
-  // Upload video
-  // POST https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/VideoUpload/uploadVideo
-  uploadVideo(payload: any): Observable<any> {
+  // Upload video - POST /api/VideoUpload/uploadVideo [FromForm] with IFormFile
+  uploadVideo(payload: any, videoFile?: File): Observable<any> {
+    const url = `${environment.apiUrl}/VideoUpload/uploadVideo`;
+    const formData = new FormData();
+    formData.append('preRecordedVideoId', '00000000-0000-0000-0000-000000000000');
+    formData.append('teacherId', payload.teacherId || '');
+    formData.append('gradeStreamId', payload.gradeStreamId || '');
+    formData.append('teacherFullNames', payload.teacherFullNames || '');
+    formData.append('streamName', payload.streamName || '');
+    formData.append('videoTitle', payload.videoTitle || '');
+    formData.append('description', payload.description || '');
+    formData.append('videoUpload', payload.videoUpload || '');
+    formData.append('uploadedTime', new Date().toISOString());
+    if (videoFile) {
+      formData.append('formFileVideoFile', videoFile, videoFile.name);
+    }
+    return this.http.post<any>(url, formData).pipe(
+      timeout(120000),
+      catchError(err => {
+        if (err.name === 'TimeoutError') {
+          return throwError(() => new Error('Upload timed out after 2 minutes. Please try a smaller file or check your connection.'));
+        }
+        if (err.status === 0) {
+          return throwError(() => new Error('Unable to reach the server. This may be a CORS or network issue. Please try from the production URL.'));
+        }
+        return throwError(() => err);
+      })
+    );
+  }
+
+  // Generate SAS upload URL for direct-to-blob upload
+  generateUploadUrl(extension: string): Observable<{ uploadUrl: string; blobUrl: string }> {
+    const url = `${environment.apiUrl}/VideoUpload/generate-upload-url`;
+    return this.http.post<{ uploadUrl: string; blobUrl: string }>(url, { extension });
+  }
+
+  // Upload directly to blob using fetch (no Azure SDK needed)
+  uploadToBlob(
+    uploadUrl: string,
+    file: File,
+    onProgress: (percent: number, uploadedMB: number, speedMbps: number) => void
+  ): Observable<void> {
+    return new Observable(observer => {
+      const startTime = Date.now();
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('x-ms-blob-type', 'BlockBlob');
+      xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
+      xhr.upload.onprogress = (ev) => {
+        if (ev.lengthComputable) {
+          const percent = Math.round((ev.loaded / ev.total) * 100);
+          const uploadedMB = +(ev.loaded / 1024 / 1024).toFixed(1);
+          const elapsedSec = (Date.now() - startTime) / 1000;
+          const speedMbps = elapsedSec > 0 ? +((ev.loaded / 1024 / 1024) / elapsedSec).toFixed(1) : 0;
+          onProgress(percent, uploadedMB, speedMbps);
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) { observer.next(); observer.complete(); }
+        else { observer.error(new Error(`Upload failed with status ${xhr.status}`)); }
+      };
+      xhr.onerror = () => observer.error(new Error('Network error during upload'));
+      xhr.send(file);
+    });
+  }
+
+  // Save video metadata after blob upload
+  saveVideoMetadata(payload: any): Observable<any> {
     const url = `${environment.apiUrl}/VideoUpload/uploadVideo`;
     return this.http.post<any>(url, payload);
   }

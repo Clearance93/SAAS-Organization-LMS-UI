@@ -1,8 +1,8 @@
-import { Component, OnInit, OnDestroy, PLATFORM_ID, Inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, PLATFORM_ID, Inject, NgZone } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, Subscription } from 'rxjs';
 import { RoleNavigationService } from '../../../services/role-navigation.service';
 import { TeacherDashboardService } from '../../../services/schoolDashboards/teacher-dashboard.service';
 import { TeachingClassService } from '../../../services/teaching-class.service';
@@ -160,6 +160,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   
   // Video Upload
   isUploadVideoModalOpen = false;
+  isUploadingVideo = false;
   videoUploadType: 'url' | 'file' = 'url';
   videoUrl: string = '';
   videoFile: File | null = null;
@@ -168,6 +169,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   videoSubject: string = '';
   videoGradeStreamId: string = '';
   isDraggingVideo = false;
+  videoUploadProgress = 0;
+  videoUploadStage: 'idle' | 'generating' | 'uploading' | 'saving' | 'done' = 'idle';
+  videoUploadSpeedMbps = 0;
+  videoUploadedMB = 0;
+  videoTotalMB = 0;
+  private uploadSubscription: Subscription | null = null;
+  private uploadStartTime = 0;
   
   // My Videos
   isMyVideosModalOpen = false;
@@ -198,6 +206,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     private workshopService: WorkshopService,
     private aiGradingService: AiGradingService,
     private studentDashboardService: StudentDashboardService,
+    private ngZone: NgZone,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.assignmentForm = this.fb.group({
@@ -726,7 +735,17 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     this.teacherDashboardService.getTeacherSubjectsWithGrades(teacherId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response: any[]) => { this.teacherSubjectsWithGrades = response; },
+        next: (response: any[]) => {
+          console.log('teacherSubjectsWithGrades raw response:', response);
+          // Normalise field names — API may return varying casing/names
+          this.teacherSubjectsWithGrades = response.map(item => ({
+            ...item,
+            gradeStreamId: item.gradeStreamId || item.streamId || item.gradeId,
+            subjectName:   item.subjectName   || item.subject  || item.subjectname || '',
+            streamGradeName: item.streamGradeName || item.streamName || item.gradeName || item.streamgrade || ''
+          }));
+          console.log('teacherSubjectsWithGrades normalised:', this.teacherSubjectsWithGrades);
+        },
         error: (error) => { console.error('Failed to load teacher subjects with grades:', error); }
       });
 
@@ -1198,7 +1217,26 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       myClasses: () => { this.isMyClassesModalOpen = true; this.loadMyClasses(); },
       createLiveSession: () => this.isLiveSessionModalOpen = true,
       joinLiveSession: () => this.isJoinSessionModalOpen = true,
-      uploadVideo: () => this.isUploadVideoModalOpen = true,
+      uploadVideo: () => {
+        this.isUploadVideoModalOpen = true;
+        const tid = this.teacherId || this.authService.getRoleTableId();
+        if (tid) {
+          this.teacherDashboardService.getTeacherSubjectsWithGrades(tid)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (response: any[]) => {
+                console.log('Video modal streams loaded:', response);
+                this.teacherSubjectsWithGrades = response.map(item => ({
+                  ...item,
+                  gradeStreamId:   item.gradeStreamId   || item.streamId   || item.gradeId,
+                  subjectName:     item.subjectName     || item.subject    || item.subjectname || '',
+                  streamGradeName: item.streamGradeName || item.streamName || item.gradeName  || item.streamgrade || ''
+                }));
+              },
+              error: (err) => console.error('Failed to load streams for video modal:', err)
+            });
+        }
+      },
       myVideos: () => { this.isMyVideosModalOpen = true; this.loadUploadedVideos(); },
       checkPlagiarism: () => { this.isPlagiarismModalOpen = true; this.loadPlagiarismAssignments(); },
       upcomingWorkshops: () => { this.isUpcomingWorkshopsModalOpen = true; this.updateWorkshopsPagination(); },
@@ -1213,7 +1251,24 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   closeUpcomingWorkshopsModal(): void { this.isUpcomingWorkshopsModalOpen = false; }
   closeGradingModal(): void { this.isGradingStudent = false; }
   closeMyVideosModal(): void { this.isMyVideosModalOpen = false; }
-  closeUploadVideoModal(): void { this.isUploadVideoModalOpen = false; }
+  closeUploadVideoModal(): void {
+    if (this.isUploadingVideo) {
+      this.uploadSubscription?.unsubscribe();
+      this.uploadSubscription = null;
+    }
+    this.isUploadVideoModalOpen = false;
+    this.isUploadingVideo = false;
+    this.videoFile = null;
+    this.videoUrl = '';
+    this.videoTitle = '';
+    this.videoDescription = '';
+    this.videoGradeStreamId = '';
+    this.videoUploadProgress = 0;
+    this.videoUploadStage = 'idle';
+    this.videoUploadSpeedMbps = 0;
+    this.videoUploadedMB = 0;
+    this.videoTotalMB = 0;
+  }
   closePlagiarismModal(): void { this.isPlagiarismModalOpen = false; this.plagiarismLoadingId = null; }
   closePlagiarismResultModal(): void { this.isPlagiarismResultModalOpen = false; }
   closeGradeModal(): void { this.isGradeModalOpen = false; }
@@ -1426,10 +1481,133 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   }
 
   onVideoStreamSelected(): void { }
+
+  onVideoDragOver(e: DragEvent): void { e.preventDefault(); this.isDraggingVideo = true; }
+  onVideoDragLeave(e: DragEvent): void { this.isDraggingVideo = false; }
+  onVideoDrop(e: DragEvent): void {
+    e.preventDefault();
+    this.isDraggingVideo = false;
+    const file = e.dataTransfer?.files[0];
+    if (file && file.type.startsWith('video/')) {
+      this.videoFile = file;
+      this.videoUploadType = 'file';
+    } else if (file) {
+      Swal.fire('Invalid File', 'Please drop a video file', 'warning');
+    }
+  }
+
+  onVideoFileSelected(e: any): void {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('video/')) {
+      this.videoFile = file;
+      this.videoUploadType = 'file';
+    } else {
+      Swal.fire('Invalid File', 'Please select a video file', 'warning');
+    }
+  }
+
   uploadVideo(): void {
-    if (!this.videoUrl) { Swal.fire('Error', 'Please enter video URL', 'error'); return; }
-    Swal.fire('Success', 'Video uploaded', 'success');
-    this.closeUploadVideoModal();
+    if (!this.videoTitle) { Swal.fire('Error', 'Please enter a video title', 'error'); return; }
+    if (!this.videoGradeStreamId) { Swal.fire('Error', 'Please select a stream', 'error'); return; }
+    if (!this.videoFile && !this.videoUrl) { Swal.fire('Error', 'Please select a video file or enter a URL', 'error'); return; }
+
+    const selectedStream = this.teacherSubjectsWithGrades.find(s => s.gradeStreamId === this.videoGradeStreamId);
+
+    // URL-only path: no file upload needed, save metadata directly
+    if (this.videoUploadType === 'url' || !this.videoFile) {
+      this.isUploadingVideo = true;
+      this.videoUploadStage = 'saving';
+      const payload = {
+        preRecordedVideoId: '00000000-0000-0000-0000-000000000000',
+        teacherId: this.teacherId!,
+        gradeStreamId: this.videoGradeStreamId,
+        teacherFullNames: this.teacherName,
+        streamName: selectedStream?.streamGradeName || '',
+        videoTitle: this.videoTitle,
+        description: this.videoDescription,
+        videoUpload: this.videoUrl,
+        uploadedTime: new Date().toISOString()
+      };
+      this.teacherDashboardService.saveVideoMetadata(payload)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => { this.videoUploadStage = 'done'; this.isUploadingVideo = false; Swal.fire('Success', 'Video saved successfully', 'success'); this.closeUploadVideoModal(); },
+          error: (err) => { this.isUploadingVideo = false; this.videoUploadStage = 'idle'; Swal.fire('Error', err?.message || 'Failed to save video', 'error'); }
+        });
+      return;
+    }
+
+    // File upload path: 3-step direct-to-blob flow
+    this.isUploadingVideo = true;
+    this.videoUploadProgress = 0;
+    this.videoUploadStage = 'generating';
+
+    const extension = '.' + this.videoFile.name.split('.').pop()!.toLowerCase();
+
+    // Step 1: generate SAS URL
+    this.teacherDashboardService.generateUploadUrl(extension)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: ({ uploadUrl, blobUrl }) => {
+          // Step 2: upload using Azure SDK — parallel chunked upload
+          this.videoUploadStage = 'uploading';
+          this.uploadStartTime = Date.now();
+          this.videoTotalMB = +(this.videoFile!.size / 1024 / 1024).toFixed(1);
+
+          this.uploadSubscription = this.teacherDashboardService
+            .uploadToBlob(uploadUrl, this.videoFile!, (percent, uploadedMB, speedMbps) => {
+              this.ngZone.run(() => {
+                this.videoUploadProgress = percent;
+                this.videoUploadedMB = uploadedMB;
+                this.videoUploadSpeedMbps = speedMbps;
+              });
+            })
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: () => {
+                // Step 3: save metadata
+                this.videoUploadStage = 'saving';
+                const payload = {
+                  preRecordedVideoId: '00000000-0000-0000-0000-000000000000',
+                  teacherId: this.teacherId!,
+                  gradeStreamId: this.videoGradeStreamId,
+                  teacherFullNames: this.teacherName,
+                  streamName: selectedStream?.streamGradeName || '',
+                  videoTitle: this.videoTitle,
+                  description: this.videoDescription,
+                  videoUpload: blobUrl,
+                  uploadedTime: new Date().toISOString()
+                };
+                this.teacherDashboardService.saveVideoMetadata(payload)
+                  .pipe(takeUntil(this.destroy$))
+                  .subscribe({
+                    next: () => {
+                      this.videoUploadStage = 'done';
+                      this.isUploadingVideo = false;
+                      Swal.fire('Success', 'Video uploaded successfully', 'success');
+                      this.closeUploadVideoModal();
+                    },
+                    error: (err) => {
+                      this.isUploadingVideo = false;
+                      this.videoUploadStage = 'idle';
+                      Swal.fire('Error', err?.message || 'Video uploaded but failed to save metadata', 'error');
+                    }
+                  });
+              },
+        error: (err: any) => {
+          this.isUploadingVideo = false;
+          this.videoUploadStage = 'idle';
+          this.videoUploadProgress = 0;
+          Swal.fire('Upload Failed', err?.message || 'Failed to upload video to storage', 'error');
+        }
+            });
+        },
+        error: (err) => {
+          this.isUploadingVideo = false;
+          this.videoUploadStage = 'idle';
+          Swal.fire('Error', err?.message || 'Failed to generate upload URL', 'error');
+        }
+      });
   }
 
   loadUploadedVideos(): void {
