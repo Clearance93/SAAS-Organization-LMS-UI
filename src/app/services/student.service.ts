@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface StudentProfile {
   studentId: string;
@@ -32,7 +33,7 @@ export interface StudentGradeDto {
   providedIn: 'root'
 })
 export class StudentService {
-  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api';
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 

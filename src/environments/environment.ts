@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api'
+  apiUrl: 'https://eduhub-f9fmahbnekfzf6b4.southafricanorth-01.azurewebsites.net/api'
 };

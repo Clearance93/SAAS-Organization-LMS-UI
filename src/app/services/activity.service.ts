@@ -1,13 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { Activity, CreateActivityDto, UpdateActivityDto } from '../interfaces/schools/admin-dashboard/activity';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ActivityService {
-  private baseUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/OrganizationActivities';
+  private baseUrl = `${environment.apiUrl}/OrganizationActivities`;
 
   constructor(private http: HttpClient) {}
 

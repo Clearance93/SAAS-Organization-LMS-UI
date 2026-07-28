@@ -5,7 +5,7 @@ import { SchoolsService } from '../../../../services/schoolServices/schools.serv
 import { Router, ActivatedRoute } from '@angular/router';
 import { CreateStudentDto } from '../../../../interfaces/schools/students/create-student-dto';
 import { AdminDashboardService } from '../../../../services/schoolDashboards/admin-dashboard.service';
-import { MediaCompressionUtil } from '../../../../utils/media-compression.util';
+import { AuthService } from '../../../../services/authServices/auth.service';
 
 @Component({
   selector: 'app-add-student',
@@ -21,16 +21,21 @@ export class AddStudentComponent implements OnInit {
   organizationId = '';
   linkId = '';
   previewImage: string | null = null;
+  selectedFile: File | null = null;
+
+  isLoggedIn = false;
 
   constructor(
     private fb: FormBuilder,
     private schoolService: SchoolsService,
     private router: Router,
     private route: ActivatedRoute,
-    private adminDashboardService: AdminDashboardService
+    private adminDashboardService: AdminDashboardService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
+    this.isLoggedIn = this.authService.isAuthenticated();
     this.initializeForm();
     this.loadOrganizationId();
   }
@@ -113,7 +118,7 @@ export class AddStudentComponent implements OnInit {
       registrationLinkId: this.isValidGuid(this.linkId) ? this.linkId : '00000000-0000-0000-0000-000000000000'
     };
 
-    this.schoolService.createStudent(studentDto).subscribe({
+    this.schoolService.createStudent(studentDto, this.selectedFile || undefined).subscribe({
       next: (response) => {
         if (this.linkId && typeof response === 'number') {
           this.adminDashboardService.notifyLinkUsed(this.linkId, response);
@@ -148,43 +153,28 @@ export class AddStudentComponent implements OnInit {
 
   async onImageSelect(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
-
     if (input.files && input.files[0]) {
       const file = input.files[0];
-
       if (!file.type.startsWith('image/')) {
         this.errorMessage = 'Please select a valid image file.';
         return;
       }
-
-      try {
-        // Compress image to reduce base64 size by ~75%
-        const compressed = await MediaCompressionUtil.compressImage(file, 300, 0.6);
-        this.previewImage = `data:image/jpeg;base64,${compressed}`;
-        this.studentForm.patchValue({
-          studentProfilePicture: compressed // Store only compressed data
-        });
-      } catch (error) {
-        console.warn('Image compression failed, using original:', error);
-        // Fallback to original if compression fails
-        const reader = new FileReader();
-        reader.onload = (e: ProgressEvent<FileReader>) => {
-          const result = e.target?.result as string;
-          this.previewImage = result;
-          this.studentForm.patchValue({
-            studentProfilePicture: result.split(',')[1] // Remove data:image prefix
-          });
-        };
-        reader.readAsDataURL(file);
+      if (file.size > 5 * 1024 * 1024) {
+        this.errorMessage = 'Image size must be less than 5MB.';
+        return;
       }
+      this.selectedFile = file;
+      this.studentForm.patchValue({ studentProfilePicture: file.name });
+      const reader = new FileReader();
+      reader.onload = (e) => { this.previewImage = e.target?.result as string; };
+      reader.readAsDataURL(file);
     }
   }
 
   removeImage(): void {
     this.previewImage = null;
-    this.studentForm.patchValue({
-      studentProfilePicture: ''
-    });
+    this.selectedFile = null;
+    this.studentForm.patchValue({ studentProfilePicture: '' });
   }
 
   onCancel(): void {

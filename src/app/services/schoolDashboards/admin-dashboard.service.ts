@@ -5,13 +5,14 @@ import { BehaviorSubject, catchError, map, Observable, tap, throwError } from 'r
 import { HttpClient } from '@angular/common/http';
 import { AdminProfileModel } from '../../features/organization/models/school-dashboards/admin-profile-model';
 import { UpdateAdminDto } from '../../interfaces/schools/admin/update-admin-dto';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AdminDashboardService {
 
-  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/'
+  private apiUrl = `${environment.apiUrl}/`
 
   private organizationIdSubject = new BehaviorSubject<string>('')
   public organizationId$ = this.organizationIdSubject.asObservable();
@@ -55,8 +56,12 @@ export class AdminDashboardService {
       this.setOrganizationId(organizationId)
     }
     
-    return this.http.get<any>(`${this.apiUrl}SchoolDashboards/adminDashboard/${organizationId}`)
+    return this.http.get(`${this.apiUrl}SchoolDashboards/adminDashboard/${organizationId}`, { responseType: 'text' })
       .pipe(
+        map(responseText => {
+          const response = JSON.parse(responseText);
+          return response;
+        }),
         map(response => {
           console.log('Dashboard API response.', response)
 
@@ -97,18 +102,16 @@ export class AdminDashboardService {
   private handleError(error: any): Observable<never> {
     console.error('Full error object:', error);
     console.error('Error status:', error.status);
-    console.error('Error body:', error.error);
 
     let errorMessage = 'An error occurred';
+    const body = error.error;
 
-    if (error.error) {
-      if (typeof error.error === 'string') {
-        errorMessage = this.extractErrorMessage(error.error);
-      } else if (error.error.message) {
-        errorMessage = error.error.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
+    if (typeof body === 'string') {
+      errorMessage = this.extractErrorMessage(body);
+    } else if (body instanceof SyntaxError) {
+      errorMessage = 'Server returned an unexpected response.';
+    } else if (body?.message) {
+      errorMessage = body.message;
     } else if (error.message) {
       errorMessage = error.message;
     }

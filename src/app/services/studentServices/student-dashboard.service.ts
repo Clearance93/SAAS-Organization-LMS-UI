@@ -1,14 +1,16 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { StudentDashboardApiResponse } from '../../interfaces/student-dashboard-api';
 import { StudentAcademicProgress } from '../../interfaces/student-academic-progress';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class StudentDashboardService {
-  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/';
+  private apiUrl = `${environment.apiUrl}/`;
 
   constructor(private http: HttpClient) { }
 
@@ -40,12 +42,24 @@ export class StudentDashboardService {
     return this.http.get<any>(url);
   }
 
+  getAssignmentsByGradeStream(gradeStreamId: string): Observable<any[]> {
+    const url = `${this.apiUrl}Assingment/getAssignmentsByStream/${gradeStreamId}`;
+    return this.http.get<any[]>(url);
+  }
+
   getStudentAssignments(studentId: string, status?: string): Observable<any> {
-    const url = `${this.apiUrl}SchoolDashboards/assignments/${studentId}`;
-    if (status) {
-      return this.http.get<any>(url, { params: { status } });
-    }
-    return this.http.get<any>(url);
+    const url = `${this.apiUrl}Assingment/getStudentAssignments/${studentId}`;
+    const fallbackUrl = `${this.apiUrl}SchoolDashboards/assignments/${studentId}`;
+    const options = status ? { params: { status } } : undefined;
+
+    return this.http.get<any>(url, options).pipe(
+      catchError((error) => {
+        if (error?.status === 404 || error?.status === 500) {
+          return this.http.get<any>(fallbackUrl, options);
+        }
+        return throwError(() => error);
+      })
+    );
   }
 
   getStudentAttendance(studentId: string, period?: string): Observable<any> {
@@ -81,6 +95,11 @@ export class StudentDashboardService {
     return this.http.get<any[]>(url);
   }
 
+  getAllTeachingClassesByOrganization(organizationId: string): Observable<any[]> {
+    const url = `${this.apiUrl}TeachersSchedule/getAllteachingClasses/${organizationId}`;
+    return this.http.get<any[]>(url);
+  }
+
   addStudentSubject(enrollmentData: any): Observable<any> {
     const url = `${this.apiUrl}School/addStudentSubject`;
     return this.http.post<any>(url, enrollmentData);
@@ -109,9 +128,9 @@ export class StudentDashboardService {
   }
 
   // Get student attendance records
-  // GET https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Attendance/studentAttendance/{studentId}
+  // Expected backend route: StudentAcademicAttendance/getStudentAttendance/{studentId}
   getStudentAttendanceRecords(studentId: string): Observable<any[]> {
-    const url = `${this.apiUrl}Attendance/studentAttendance/${studentId}`;
+    const url = `${this.apiUrl}StudentAcademicAttendance/getStudentAttendance/${studentId}`;
     return this.http.get<any[]>(url);
   }
 

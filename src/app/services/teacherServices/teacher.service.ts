@@ -4,12 +4,13 @@ import { CreateTeacherDto } from '../../interfaces/schools/teachers/create-teach
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators'
 import { AddTeacher } from '../../interfaces/schools/teachers/add-teacher';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TeacherService {
-  private apiUrl = "https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School"
+  private apiUrl = `${environment.apiUrl}/School`
 
   constructor(private http: HttpClient) { }
 

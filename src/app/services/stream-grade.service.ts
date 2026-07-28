@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface StreamGrade {
   streamId: string;
@@ -18,7 +19,7 @@ export interface StreamGrade {
   providedIn: 'root'
 })
 export class StreamGradeService {
-  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api';
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 

@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface GradingSuggestion {
   score: number;
@@ -23,28 +25,75 @@ export interface EssayGrading extends GradingSuggestion {
   providedIn: 'root'
 })
 export class AiGradingService {
-  private backendApiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/AICalls/gradeSubmission';
-  private aiAssistanceUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/AIAssistance';
+  private backendApiUrl = `${environment.apiUrl}/AICalls/gradeSubmission`;
+  private aiAssistanceUrl = `${environment.apiUrl}/AIAssistance`;
 
   constructor(private http: HttpClient) {
     console.log('🤖 Using backend proxy for AI grading');
   }
 
   getAiGradeAssistance(assignmentId: string, studentId: string): Observable<any> {
-    return this.http.post(`${this.aiAssistanceUrl}/aiGradeAssistance?assignmentId=${assignmentId}&studentId=${studentId}`, {});
+    return this.http.post(`${this.aiAssistanceUrl}/aiGradeAssistance?assignmentId=${assignmentId}&studentId=${studentId}`, {}, { responseType: 'text' }).pipe(
+      map((text: string) => {
+        try {
+          return JSON.parse(text);
+        } catch {
+          throw new Error(text || 'AI grading returned an invalid response');
+        }
+      }),
+      catchError((err) => {
+        // err.error is the plain-text body when responseType is 'text'
+        const body = typeof err?.error === 'string' ? err.error.trim() : null;
+        const status = err?.status;
+        let message: string;
+        if (status === 500) {
+          message = body || 'The AI grading service encountered an internal error. Please try again later.';
+        } else if (status === 400) {
+          message = body || 'Bad request — please check the assignment and student details.';
+        } else {
+          message = body || err?.message || 'AI grading request failed.';
+        }
+        throw new Error(message);
+      })
+    );
   }
 
   getPlagiarismResult(assignmentId: string, studentId: string): Observable<any> {
     return this.http.get(`${this.aiAssistanceUrl}/getPlagiarismResult?assignmentId=${assignmentId}&studentId=${studentId}`);
   }
 
+  checkPlagiarism(assignmentId: string, studentId: string): Observable<any> {
+    return this.http.post(`${this.aiAssistanceUrl}/checkPlagiarism?assignmentId=${assignmentId}&studentId=${studentId}`, {}, { responseType: 'text' }).pipe(
+      map((text: string) => {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return { raw: text };
+        }
+      }),
+      catchError((err) => {
+        const body = typeof err?.error === 'string' ? err.error.trim() : null;
+        const status = err?.status;
+        let message: string;
+        if (status === 500) {
+          message = body || 'The plagiarism service encountered an internal error. Please try again later.';
+        } else if (status === 400) {
+          message = body || 'Bad request — please check the assignment and student details.';
+        } else {
+          message = body || err?.message || 'Plagiarism check failed.';
+        }
+        throw new Error(message);
+      })
+    );
+  }
+
   getAllTeacherAssignments(teacherId: string): Observable<any[]> {
-    return this.http.get<any[]>(`https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/getAllTeacherAssignments/${teacherId}`);
+    return this.http.get<any[]>(`${environment.apiUrl}/Assingment/getAllTeacherAssignments/${teacherId}`);
   }
 
   submitGrade(payload: any): Observable<any> {
     console.log('🔵 submitGrade service called with payload:', payload);
-    const url = `https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/Assingment/addAssignmentGrades`;
+    const url = `${environment.apiUrl}/Assingment/addAssignmentGrades`;
     console.log('🔵 Calling URL:', url);
     return this.http.post(url, payload);
   }

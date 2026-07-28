@@ -7,7 +7,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { AddGradeModalComponent } from '../../../modals/add-grade-modal/add-grade-modal.component';
 import Swal from 'sweetalert2';
 import { CommonModule } from '@angular/common';
-import { query } from 'express';
+import { SchoolsService } from '../../../../services/schoolServices/schools.service';
 import { MediaCompressionUtil } from '../../../../utils/media-compression.util';
 
 @Component({
@@ -22,11 +22,13 @@ export class AddTeacherComponent implements OnInit{
   errorMessage = '';
   successMessage = '';
   organizationId = '';
-  previewImage: string | null = null
+  previewImage: string | null = null;
+  selectedFile: File | null = null;
 
   constructor (
    private fb: FormBuilder,
    private teacherService: TeacherService,
+   private schoolsService: SchoolsService,
    private router: Router,
    private route: ActivatedRoute,
    public dialog: MatDialog
@@ -108,7 +110,7 @@ ngOnInit(): void {
       organizationSetupId: this.organizationId
     };
 
-    this.teacherService.createTeacher(teacherDto).subscribe({
+    this.schoolsService.createTeacher(teacherDto, this.selectedFile || undefined).subscribe({
       next: () => {
         this.successMessage = 'Teacher added successfully!';
         this.isSubmitting = false;
@@ -148,49 +150,30 @@ ngOnInit(): void {
     });
   }
 
-  async onImageSelect(event: Event): Promise<void> {
+  onImageSelect(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
       const file = input.files[0];
-
       if (!file.type.startsWith('image/')) {
         this.errorMessage = 'Please select a valid image file.';
         return;
       }
-
       if (file.size > 5 * 1024 * 1024) {
         this.errorMessage = 'Image size must be less than 5MB.';
         return;
       }
-
-      try {
-        // Compress image to reduce base64 size by ~75%
-        const compressed = await MediaCompressionUtil.compressImage(file, 300, 0.6);
-        this.previewImage = `data:image/jpeg;base64,${compressed}`;
-        this.teacherForm.patchValue({
-          teacherProfilePicture: compressed // Store only compressed data
-        });
-      } catch (error) {
-        console.warn('Image compression failed, using original:', error);
-        // Fallback to original if compression fails
-        const reader = new FileReader();
-        reader.onload = (e: ProgressEvent<FileReader>) => {
-          const result = e.target?.result as string;
-          this.previewImage = result;
-          this.teacherForm.patchValue({
-            teacherProfilePicture: result.split(',')[1] // Remove data:image prefix
-          });
-        };
-        reader.readAsDataURL(file);
-      }
+      this.selectedFile = file;
+      this.teacherForm.patchValue({ teacherProfilePicture: file.name });
+      const reader = new FileReader();
+      reader.onload = (e) => { this.previewImage = e.target?.result as string; };
+      reader.readAsDataURL(file);
     }
   }
 
   removeImage(): void {
     this.previewImage = null;
-    this.teacherForm.patchValue({
-      teacherProfilePicture: ''
-    });
+    this.selectedFile = null;
+    this.teacherForm.patchValue({ teacherProfilePicture: '' });
   }
 
   onCancel(): void {

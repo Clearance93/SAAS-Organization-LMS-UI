@@ -98,25 +98,32 @@ export class AddGradeModalComponent implements OnInit, OnDestroy {
   onSubmit(): void {
     if (this.gradeForm.valid && !this.isSubmitting) {
       this.isSubmitting = true;
+      this.cdr.detectChanges();
       const formValue = this.gradeForm.value;
+
+      // The dropdown binds teacherEmail directly as the value
       const now = new Date();
       const payload = {
         gradeName: formValue.gradeName,
-        teacherEmail: formValue.teacherId, 
+        teacherEmail: formValue.teacherId,
         streamName: formValue.streamName,
         createdAt: now.toISOString(),
         updatedAt: now.toISOString()
       };
 
+      console.log('Submitting grade & stream payload:', payload);
+
       this.settingsService.addGradeWithStream(payload).subscribe({
-        next: () => {
-          console.log('Grade and stream added succesfully:');
+        next: (response) => {
+          console.log('Grade and stream added successfully:', response);
           this.isSubmitting = false;
-          this.dialogRef.close();
+          this.cdr.detectChanges();
+          this.dialogRef.close(true);
         },
         error: (error) => {
           console.error('Error adding grade and stream:', error);
           this.isSubmitting = false;
+          this.cdr.detectChanges();
         },
       });
     }

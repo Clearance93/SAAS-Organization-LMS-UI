@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { CreateLeadershipProgramDto, LeadershipProgramDto, EnrollParticipantDto } from '../../interfaces/leadership/leadership';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class LeadershipService {
-  private baseUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api';
+  private baseUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) { }
 

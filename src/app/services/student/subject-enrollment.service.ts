@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Grade, Subject, EnrollSubjectDto } from '../../interfaces/student/subject-enrollment';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class SubjectEnrollmentService {
-  private baseUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api';
+  private baseUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) { }
 

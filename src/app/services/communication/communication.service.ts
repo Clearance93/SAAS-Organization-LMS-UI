@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, catchError, tap, of } from 'rxjs';
 import { Message, CreateMessageDto, MessageThread, BroadcastMessageDto } from '../../interfaces/communication/message';
+import { environment } from '../../../environments/environment';
 
 export interface ChatMessage {
   backToBackCommunicationId: string;
@@ -23,8 +24,8 @@ export interface ChatMessage {
   providedIn: 'root'
 })
 export class CommunicationService {
-  private apiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/SchoolDashboards';
-  private chatApiUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/MeetingsUrl';
+  private apiUrl = `${environment.apiUrl}/SchoolDashboards`;
+  private chatApiUrl = `${environment.apiUrl}/MeetingsUrl`;
   
   private unreadCountSubject = new BehaviorSubject<number>(0);
   public unreadCount$ = this.unreadCountSubject.asObservable();

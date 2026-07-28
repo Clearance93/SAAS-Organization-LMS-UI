@@ -7,6 +7,7 @@ import { CommunicationService } from '../../../services/communication/communicat
 import { StudentDashboardApiResponse } from '../../../interfaces/student-dashboard-api';
 import { StudentAcademicProgress } from '../../../interfaces/student-academic-progress';
 import { AiAssistantComponent } from '../../../components/ai-assistant/ai-assistant.component';
+import { SettingsService } from '../../../services/settings/settings.service';
 import Swal from 'sweetalert2';
 
 interface SubjectGrade {
@@ -23,6 +24,9 @@ interface Assignment {
   dueDate: string;
   status: 'pending' | 'submitted' | 'graded';
   grade?: string;
+  assignmentFile?: string;
+  assignmentFileType?: 'pdf' | 'image' | 'url';
+  description?: string;
 }
 
 interface Announcement {
@@ -126,6 +130,7 @@ export class StudentDashboardComponent implements OnInit {
     private router: Router,
     private studentDashboardService: StudentDashboardService,
     private communicationService: CommunicationService,
+    private settingsService: SettingsService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
@@ -140,23 +145,19 @@ export class StudentDashboardComponent implements OnInit {
         this.organizationId = studentProfile.organizationId || localStorage.getItem('organizationId') || '';
         this.studentGrade = this.extractGrade(studentProfile.grade || '');
         
-        // Handle profile picture - check if it's base64 or URL
         if (studentProfile.studentProfilePicture) {
-          const profilePic = studentProfile.studentProfilePicture;
-          if (profilePic.startsWith('data:')) {
-            this.studentProfilePicture = profilePic;
-          } else if (profilePic.startsWith('http')) {
-            this.studentProfilePicture = profilePic;
-          } else {
-            this.studentProfilePicture = `data:image/jpeg;base64,${profilePic}`;
-          }
+          this.studentProfilePicture = this.resolveProfilePicture(studentProfile.studentProfilePicture) || '';
         }
       } else {
-        this.studentId = localStorage.getItem('userId') || '';
+        // studentProfile not in localStorage — cannot proceed without a valid studentId GUID
+        console.warn('No studentProfile found in localStorage. Please log in again.');
+        this.router.navigate(['/login']);
+        return;
       }
       
       if (this.studentId) {
         this.loadDashboardData();
+        this.loadStudentAssignments();
         this.loadAcademicProgress();
         this.loadUnreadMessageCount();
         this.loadUpcomingSessions();
@@ -170,6 +171,57 @@ export class StudentDashboardComponent implements OnInit {
         this.messagesCount = count;
       });
     }
+  }
+
+  loadStudentAssignments(): void {
+    this.studentDashboardService.getStudentAssignments(this.studentId).subscribe({
+      next: (data: any) => {
+        const list = Array.isArray(data) ? data : [];
+        if (list.length > 0) {
+          this.assignments = list.map(a => this.mapAssignment(a));
+        } else {
+          console.warn('No student-specific assignments returned; assignment list will be populated from dashboard data.');
+        }
+      },
+      error: (error) => {
+        console.warn('Failed to load student assignments from dedicated API; assignment list will be populated from dashboard data.', error);
+      }
+    });
+  }
+
+  detectFileType(file: string | undefined): 'pdf' | 'image' | 'url' | undefined {
+    if (!file) return undefined;
+    if (file.startsWith('http')) return 'url';
+    if (file.startsWith('data:image') || file.startsWith('/9j/') || file.startsWith('iVBOR')) return 'image';
+    return 'pdf';
+  }
+
+  resolveAssignmentFileUrl(file: string, type: 'pdf' | 'image' | 'url'): string {
+    if (type === 'url') return file;
+    if (type === 'image') {
+      return file.startsWith('data:') ? file : `data:image/jpeg;base64,${file}`;
+    }
+    return file.startsWith('data:') ? file : `data:application/pdf;base64,${file}`;
+  }
+
+  mapAssignment(a: any): Assignment {
+    let status: 'pending' | 'submitted' | 'graded' = 'pending';
+    if (a.assignmentCompleted || a.assignmentMarksObtained > 0 || a.isGraded) {
+      status = 'graded';
+    } else if (a.assignmentIsSubmitted || a.isSubmitted) {
+      status = 'submitted';
+    }
+    return {
+      id: a.assignmentId,
+      title: a.assignmentTitle || a.title || 'Untitled',
+      subject: a.assignmentSubject || a.subject || '',
+      dueDate: a.assignmentDueDate || a.dueDate || '',
+      status,
+      grade: a.assignmentMarksObtained ? `${a.assignmentMarksObtained}/${a.assignmentTotalMarks}` : undefined,
+      assignmentFile: a.assignmentFile || undefined,
+      assignmentFileType: this.detectFileType(a.assignmentFile),
+      description: a.assignmentDescription || undefined
+    };
   }
 
   loadUpcomingSessions(): void {
@@ -289,7 +341,10 @@ export class StudentDashboardComponent implements OnInit {
           subject: d.assignmentSubject,
           dueDate: d.assignmentDueDate,
           status: status,
-          grade: d.assignmentMarksObtained ? `${d.assignmentMarksObtained}/${d.assignmentTotalMarks}` : undefined
+          grade: d.assignmentMarksObtained ? `${d.assignmentMarksObtained}/${d.assignmentTotalMarks}` : undefined,
+          assignmentFile: d.assignmentFile || undefined,
+          assignmentFileType: this.detectFileType(d.assignmentFile || undefined),
+          description: d.assignmentDescription || undefined
         });
         
         // Calculate subject averages from graded assignments
@@ -306,7 +361,10 @@ export class StudentDashboardComponent implements OnInit {
       }
     });
     
-    this.assignments = Array.from(uniqueAssignments.values());
+    // Only use dashboard data assignments if the dedicated API returned nothing
+    if (this.assignments.length === 0) {
+      this.assignments = Array.from(uniqueAssignments.values());
+    }
     
     // Calculate subject grades from assignment marks
     const calculatedGrades: SubjectGrade[] = [];
@@ -421,7 +479,7 @@ export class StudentDashboardComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading student schedule:', error);
-        Swal.fire('Error', 'Failed to load schedule', 'error');
+        this.todaySchedule = [];
       }
     });
   }
@@ -519,6 +577,11 @@ export class StudentDashboardComponent implements OnInit {
     this.selectedFile = null;
   }
 
+  private isValidSubmissionFileType(file: File): boolean {
+    return file.type === 'application/pdf'
+      || file.type.startsWith('image/');
+  }
+
   onFileSelected(event: any): void {
     console.log('File selection event triggered:', event);
     const file = event.target.files[0];
@@ -531,12 +594,12 @@ export class StudentDashboardComponent implements OnInit {
         size: file.size
       });
       
-      if (file.type === 'application/pdf') {
+      if (this.isValidSubmissionFileType(file)) {
         this.selectedFile = file;
-        console.log('PDF file accepted. selectedFile is now:', this.selectedFile);
+        console.log('Accepted file type. selectedFile is now:', this.selectedFile);
       } else {
         console.warn('Invalid file type:', file.type);
-        Swal.fire('Invalid File', 'Please select a PDF file', 'warning');
+        Swal.fire('Invalid File', 'Please select a PDF or image file', 'warning');
       }
     } else {
       console.error('No file selected from event');
@@ -560,87 +623,52 @@ export class StudentDashboardComponent implements OnInit {
     const files = event.dataTransfer?.files;
     if (files && files.length > 0) {
       const file = files[0];
-      if (file.type === 'application/pdf') {
+      if (this.isValidSubmissionFileType(file)) {
         this.selectedFile = file;
       } else {
-        Swal.fire('Invalid File', 'Please select a PDF file', 'warning');
+        Swal.fire('Invalid File', 'Please select a PDF or image file', 'warning');
       }
     }
   }
 
   async confirmSubmission(): Promise<void> {
-    console.log('confirmSubmission called');
-    console.log('selectedFile:', this.selectedFile);
-    console.log('selectedAssignment:', this.selectedAssignment);
-    
     if (!this.selectedFile || !this.selectedAssignment) {
-      console.error('Validation failed:', {
-        hasFile: !!this.selectedFile,
-        hasAssignment: !!this.selectedAssignment
-      });
       Swal.fire('Error', 'Please select a file to submit', 'error');
       return;
     }
 
     this.isSubmitting = true;
-    console.log('Starting file conversion to base64...');
 
-    try {
-      const base64 = await this.fileToBase64(this.selectedFile);
-      console.log('Base64 conversion successful, length:', base64.length);
-      
-      const submissionData = {
-        assignmentSubmissionId: '00000000-0000-0000-0000-000000000000',
-        assignmentId: this.selectedAssignment.id,
-        studentId: this.studentId,
-        assignmentPdfSubmission: base64,
-        submissionDate: new Date().toISOString(),
-        isPending: true,
-        isCompleted: false
-      };
-      
-      console.log('Submission data prepared:', {
-        ...submissionData,
-        assignmentPdfSubmission: `[base64 string of length ${base64.length}]`
-      });
+    const formData = new FormData();
+    formData.append('assignmentSubmissionId', '00000000-0000-0000-0000-000000000000');
+    formData.append('assignmentId', this.selectedAssignment.id);
+    formData.append('studentId', this.studentId);
+    formData.append('submissionDate', new Date().toISOString());
+    formData.append('isPending', 'true');
+    formData.append('isCompleted', 'false');
+    formData.append('isSubmitted', 'false');
+    formData.append('submissionFile', this.selectedFile);
 
-      this.studentDashboardService.submitStudentAssignment(submissionData).subscribe({
-        next: (response) => {
-          console.log('Submission successful:', response);
-          this.isSubmitting = false;
-          this.selectedFile = null;
-          this.closeSubmissionModal();
-          Swal.fire('Success', 'Assignment submitted successfully', 'success');
-          this.loadDashboardData();
-        },
-        error: (error) => {
-          this.isSubmitting = false;
-          console.error('Submission error:', error);
-          console.error('Error details:', {
-            status: error.status,
-            message: error.message,
-            error: error.error
-          });
-          Swal.fire('Error', 'Failed to submit assignment', 'error');
-        }
-      });
-    } catch (error) {
-      this.isSubmitting = false;
-      console.error('File processing error:', error);
-      Swal.fire('Error', 'Failed to process file', 'error');
-    }
+    this.studentDashboardService.submitStudentAssignment(formData).subscribe({
+      next: () => {
+        this.isSubmitting = false;
+        this.selectedFile = null;
+        this.closeSubmissionModal();
+        Swal.fire('Success', 'Assignment submitted successfully', 'success');
+        this.loadDashboardData();
+      },
+      error: (error) => {
+        this.isSubmitting = false;
+        console.error('Submission error:', error);
+        Swal.fire('Error', 'Failed to submit assignment', 'error');
+      }
+    });
   }
 
-  fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = (reader.result as string).split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+  private resolveProfilePicture(pic: string | null | undefined): string | null {
+    if (!pic) return null;
+    if (pic.startsWith('http') || pic.startsWith('data:')) return pic;
+    return `data:image/jpeg;base64,${pic}`;
   }
 
   getStudentInitials(): string {
@@ -737,29 +765,28 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   openSubjectEnrollment(): void {
-    Swal.fire({
-      title: '🔍 Search Tip',
-      html: 'To find subjects for your grade, type your grade in the search box.<br><br><strong>Example:</strong> Type "Grade 12" to see all Grade 12 subjects',
-      icon: 'info',
-      confirmButtonText: 'Got it!',
-      timer: 5000
-    });
     this.showSubjectEnrollmentModal = true;
     this.loadAvailableSubjects();
   }
 
   loadAvailableSubjects(): void {
     if (!this.organizationId) return;
-    
-    const teacherId = '920c9f6a-c5a7-4bcd-fae2-08de5dab9d0f';
-    this.studentDashboardService.getTeachingClasses(this.organizationId, teacherId).subscribe({
-      next: (data) => {
-        this.availableSubjects = data;
+
+    this.settingsService.getAllStreamsbyOrganizationId(this.organizationId).subscribe({
+      next: (streams) => {
+        this.availableSubjects = streams.map((s: any) => ({
+          teachingClassId: s.streamId,
+          gradeStreamId: s.streamId,
+          subject: s.streamName,
+          gradeStreamName: s.streamName,
+          classRoomNumber: '',
+          totalStudents: 0,
+          teacherId: s.teacherId,
+          organizationId: this.organizationId
+        }));
         this.applyFilters();
       },
-      error: (error) => {
-        console.error('Error loading subjects:', error);
-      }
+      error: (error) => console.error('Error loading subjects:', error)
     });
   }
 

@@ -1,8 +1,8 @@
-import { Component, OnInit, OnDestroy, PLATFORM_ID, Inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, PLATFORM_ID, Inject, NgZone } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, Subscription } from 'rxjs';
 import { RoleNavigationService } from '../../../services/role-navigation.service';
 import { TeacherDashboardService } from '../../../services/schoolDashboards/teacher-dashboard.service';
 import { TeachingClassService } from '../../../services/teaching-class.service';
@@ -27,6 +27,7 @@ declare var Swal: any;
 })
 export class TeacherDashboardComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+  private teacherId$ = new Subject<string>();
   
   // Fields populated from API
   teacherId: string | null = null;
@@ -121,6 +122,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
   // Loading states
   isLoadingSchedule = false;
+  isCreatingAssignment = false;
   isAttendanceModalOpen = false;
   isGradeModalOpen = false;
   isAssignmentModalOpen = false;
@@ -158,6 +160,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   
   // Video Upload
   isUploadVideoModalOpen = false;
+  isUploadingVideo = false;
   videoUploadType: 'url' | 'file' = 'url';
   videoUrl: string = '';
   videoFile: File | null = null;
@@ -166,6 +169,13 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   videoSubject: string = '';
   videoGradeStreamId: string = '';
   isDraggingVideo = false;
+  videoUploadProgress = 0;
+  videoUploadStage: 'idle' | 'generating' | 'uploading' | 'saving' | 'done' = 'idle';
+  videoUploadSpeedMbps = 0;
+  videoUploadedMB = 0;
+  videoTotalMB = 0;
+  private uploadSubscription: Subscription | null = null;
+  private uploadStartTime = 0;
   
   // My Videos
   isMyVideosModalOpen = false;
@@ -183,6 +193,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   isPlagiarismResultModalOpen = false;
   currentPlagiarismResult: any = null;
   isLoadingPlagiarism = false;
+  plagiarismLoadingId: string | null = null;
 
   constructor(
     private router: Router,
@@ -195,6 +206,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     private workshopService: WorkshopService,
     private aiGradingService: AiGradingService,
     private studentDashboardService: StudentDashboardService,
+    private ngZone: NgZone,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.assignmentForm = this.fb.group({
@@ -226,50 +238,96 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-    
+    if (!isPlatformBrowser(this.platformId)) return;
+
     const profile = this.authService.getUserProfile();
-    const orgId = profile?.organizationId || localStorage.getItem('organizationId');
-    const roleUserId = profile?.roleUserId || localStorage.getItem('roleUserId') || localStorage.getItem('userId');
-    
-    if (orgId && roleUserId) {
-      this.teacherId = roleUserId;
-      this.loadMyClasses();
-      this.loadScheduledClasses();
-      this.teacherDashboardService.getTeacherDashboard(orgId, roleUserId)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (resp) => {
-            this.applyTeacherDashboard(resp);
-            this.loadUnreadMessageCount(orgId, roleUserId);
-            this.loadAnnouncements();
-            this.loadUpcomingWorkshops();
-            this.loadOrganizationEvents(orgId);
-            this.loadAttendanceOverview();
-          },
-          error: (err) => {
-            console.error('Failed to load teacher dashboard', err);
-          }
-        });
+    const orgId = profile?.organizationId || localStorage.getItem('organizationId') || '';
+    const email = profile?.email || localStorage.getItem('userEmail') || '';
+
+    if (!orgId) return;
+
+    // Try to get teacherId from stored teacherProfile first (set at login)
+    const storedTeacherProfile = localStorage.getItem('teacherProfile');
+    if (storedTeacherProfile) {
+      try {
+        const tp = JSON.parse(storedTeacherProfile);
+        const tid = tp?.teacherId;
+        if (tid) {
+          this.teacherId = tid;
+          this.teacherName = `${tp.firstName || ''} ${tp.lastName || ''}`.trim();
+          this.teacherProfilePicture = this.resolveProfilePicture(tp.teacherProfilePicture);
+          this.authService.setRoleTableId(tid);
+          this.loadMyClasses();
+          this.loadScheduledClasses();
+          this.loadDashboardData(orgId, tid);
+          this.teacherId$.next(tid);
+          this.communicationService.unreadCount$.pipe(takeUntil(this.destroy$)).subscribe(count => {
+            this.unreadMessagesCount = count;
+          });
+          return;
+        }
+      } catch (e) {}
     }
-    
-    // Subscribe to unread count changes from communication service
+
+    // Fallback: fetch from API
+    if (!email) return;
+    this.teacherDashboardService.getTeacherByEmail(email)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (teacher: any) => {
+          console.log('getTeacherByEmail full response:', JSON.stringify(teacher));
+          const tid = teacher?.teacherId;
+          if (!tid) {
+            console.error('getTeacherByEmail returned no teacherId', teacher);
+            return;
+          }
+          this.teacherId = tid;
+          this.teacherName = `${teacher.firstName || ''} ${teacher.lastName || ''}`.trim();
+          this.teacherProfilePicture = this.resolveProfilePicture(teacher.teacherProfilePicture);
+          this.authService.setRoleTableId(tid);
+          localStorage.setItem('teacherProfile', JSON.stringify(teacher));
+          this.loadMyClasses();
+          this.loadScheduledClasses();
+          this.loadDashboardData(orgId, tid);
+          this.teacherId$.next(tid);
+        },
+        error: (err) => console.error('Failed to resolve teacher by email', err)
+      });
+
     this.communicationService.unreadCount$.pipe(takeUntil(this.destroy$)).subscribe(count => {
       this.unreadMessagesCount = count;
     });
   }
 
+  private loadDashboardData(orgId: string, teacherId: string): void {
+    this.teacherDashboardService.getTeacherDashboard(orgId, teacherId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (resp) => {
+          this.applyTeacherDashboard(resp);
+          this.loadUnreadMessageCount(orgId, teacherId);
+          this.loadAnnouncements();
+          this.loadUpcomingWorkshops();
+          this.loadOrganizationEvents(orgId);
+          this.loadAttendanceOverview();
+          this.loadAssignments();
+        },
+        error: (err) => {
+          console.error('Failed to load teacher dashboard', err);
+          // Still load assignments even if dashboard fails
+          this.loadAssignments();
+        }
+      });
+  }
+
   private applyTeacherDashboard(resp: any): void {
     if (!resp) return;
-    
     if (Array.isArray(resp)) {
       this.teacherClasses = resp;
       if (resp.length > 0) {
         const first = resp[0];
-        this.teacherId = first.teacherId;
-        this.teacherName = first.teacherName;
+        // Do NOT overwrite this.teacherId here — it is already set correctly from getTeacherByEmail
+        this.teacherName = this.teacherName || first.teacherName;
         this.teacherSubject = first.subject;
         this.totalStudents = first.totalStudents;
         this.dailyPresent = first.dailyPresent;
@@ -278,8 +336,6 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
         this.nextClassEndTime = first.nextClassEndTime;
         this.assignmentTitle = first.assignmentTitle;
         this.assignmentProgress = first.assignmentProgress;
-        
-        // Populate myClasses from the response
         this.myClasses = resp.map((cls: any) => ({
           name: cls.subject,
           students: cls.totalStudents,
@@ -313,30 +369,24 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
   // Load assignments from API and map them to the UI model with caching
   loadAssignments(): void {
+    if (!this.teacherId) this.teacherId = this.authService.getRoleTableId();
     if (!this.teacherId) {
-      const profile = this.authService.getUserProfile();
-      this.teacherId = profile?.teacherId || profile?.roleUserId || profile?.userId ||
-                       localStorage.getItem('teacherId') || localStorage.getItem('roleUserId') ||
-                       localStorage.getItem('userId') || null;
-    }
-
-    if (!this.teacherId) {
-      console.warn('No teacherId available; skipping loadAssignments');
+      console.warn('loadAssignments: no teacherId available');
       return;
     }
 
-    console.log('Loading assignments for teacherId:', this.teacherId);
+    console.log('loadAssignments called with teacherId:', this.teacherId);
 
-    // Load from API (no cache to always show latest)
     this.teacherDashboardService.getTeacherAssignments(this.teacherId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (resp: any[]) => {
           console.log('Teacher assignments API response:', resp);
-          
+
           if (!Array.isArray(resp)) {
             console.warn('Unexpected assignments response format:', resp);
             this.assignments = [];
+            this.updateAssignmentsPagination();
             return;
           }
 
@@ -352,27 +402,22 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
           } as any));
 
           console.log('Processed assignments:', this.assignments);
+          this.updateAssignmentsPagination();
+          console.log('paginatedAssignments after update:', this.paginatedAssignments);
+          console.log('filteredSortedAssignments after update:', this.filteredSortedAssignments);
         },
         error: (err) => {
           console.error('Failed to load assignments:', err);
           this.assignments = [];
+          this.updateAssignmentsPagination();
         }
       });
   }
 
   // Load class performance from API with caching
   loadClassPerformance(): void {
-    if (!this.teacherId) {
-      const profile = this.authService.getUserProfile();
-      this.teacherId = profile?.teacherId || profile?.roleUserId || profile?.userId ||
-                       localStorage.getItem('teacherId') || localStorage.getItem('roleUserId') ||
-                       localStorage.getItem('userId') || null;
-    }
-
-    if (!this.teacherId) {
-      console.warn('No teacherId available; skipping loadClassPerformance');
-      return;
-    }
+    if (!this.teacherId) this.teacherId = this.authService.getRoleTableId();
+    if (!this.teacherId) return;
 
     // Check cache first
     const cacheKey = `classPerformance_${this.teacherId}`;
@@ -417,25 +462,12 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
   // Load attendance data from API with caching
   loadAttendanceData(): void {
-    if (!this.teacherId) {
-      const profile = this.authService.getUserProfile();
-      this.teacherId = profile?.teacherId || profile?.roleUserId || profile?.userId ||
-                       localStorage.getItem('teacherId') || localStorage.getItem('roleUserId') ||
-                       localStorage.getItem('userId') || null;
-    }
-
-    if (!this.teacherId) {
-      console.warn('No teacherId available; skipping loadAttendanceData');
-      return;
-    }
+    if (!this.teacherId) this.teacherId = this.authService.getRoleTableId();
+    if (!this.teacherId) return;
 
     const profile = this.authService.getUserProfile();
     const organizationId = profile?.organizationId || localStorage.getItem('organizationId');
-
-    if (!organizationId) {
-      console.warn('No organizationId available; skipping loadAttendanceData');
-      return;
-    }
+    if (!organizationId) return;
 
     // Check cache first
     const cacheKey = `attendanceData_${this.teacherId}`;
@@ -558,12 +590,17 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
             name: `${s.studentFirstName} ${s.studentLastName}`,
             firstName: s.studentFirstName,
             lastName: s.studentLastName,
-            profilePicture: s.studentProfilePicture,
+            profilePicture: s.studentProfilePicture
+              ? (s.studentProfilePicture.startsWith('http') || s.studentProfilePicture.startsWith('data:')
+                  ? s.studentProfilePicture
+                  : `data:image/jpeg;base64,${s.studentProfilePicture}`)
+              : null,
             subject: s.subject,
             streamName: s.streamName,
             gradeStreamId: s.streamGradeId,
             teachingClassId: s.teachingClassId,
-            isPresent: true
+            isPresent: true,
+            absenceComment: ''
           }));
           this.filteredStudents = this.allStudents;
           console.log('Students loaded with gradeStreamId:', this.allStudents);
@@ -627,17 +664,14 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
     // Build payload array with individual student records
     const payload = this.filteredStudents.map(student => ({
-      attendanceOverviewId: '00000000-0000-0000-0000-000000000000',
+      studentAttendanceId: '00000000-0000-0000-0000-000000000000',
       organizationId: organizationId,
-      teacherId: this.teacherId,
-      gradeStreamId: student.gradeStreamId,
       studentId: student.studentId,
-      studentFirstName: student.firstName,
-      studentLastName: student.lastName,
-      teachingClassId: student.teachingClassId,
-      dailyPresent: student.isPresent ? 1 : 0,
-      dailyAbsent: student.isPresent ? 0 : 1,
-      date: this.attendanceDate
+      presentCount: student.isPresent ? 1 : 0,
+      absentCount: student.isPresent ? 0 : 1,
+      lateCount: 0,
+      termAttendanceOverview: 0,
+      absenceComment: student.isPresent ? '' : (student.absenceComment || '')
     }));
 
     console.log('Attendance payload:', payload);
@@ -656,25 +690,30 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       });
   }
 
-  // Assignment Methods
   openAssignmentModal(): void {
     this.isAssignmentModalOpen = true;
-    // Load streams and teaching classes for assignment creation
-    setTimeout(() => {
+    if (this.teacherId) {
       this.loadStreams();
       this.loadAndCacheTeachingClasses();
-    }, 10);
+    } else {
+      this.teacherId$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+        this.loadStreams();
+        this.loadAndCacheTeachingClasses();
+      });
+    }
   }
 
-  // Add Class Methods
   openAddClassModal(): void {
-    console.log('openAddClassModal called — opening modal and loading streams');
     this.isAddClassModalOpen = true;
-    // Force a microtask to ensure change detection shows modal before network call
-    setTimeout(() => {
+    if (this.teacherId) {
       this.loadStreams();
       this.loadAndCacheTeachingClasses();
-    }, 10);
+    } else {
+      this.teacherId$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+        this.loadStreams();
+        this.loadAndCacheTeachingClasses();
+      });
+    }
   }
 
   closeAddClassModal(): void {
@@ -683,88 +722,41 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   }
 
   loadStreams(): void {
-    console.log('loadStreams: current teacherId', this.teacherId);
-    
-    if (!this.teacherId) {
-      const profile = this.authService.getUserProfile();
-      this.teacherId = profile?.teacherId || profile?.roleUserId || profile?.userId || 
-                      localStorage.getItem('teacherId') || localStorage.getItem('roleUserId') || 
-                      localStorage.getItem('userId') || null;
-      console.log('Resolved teacherId from profile/localStorage:', this.teacherId);
-    }
-
-    if (!this.teacherId) {
+    const teacherId = this.teacherId || this.authService.getRoleTableId();
+    if (!teacherId) {
       console.error('No teacher ID available for loading streams');
-      Swal.fire('Error', 'Teacher ID not found. Cannot load streams. Please try logging in again.', 'error');
       return;
     }
+    this.teacherId = teacherId;
+    this.fetchStreamsWithTeacherId(teacherId);
+  }
 
-    // Load teacher subjects with grades for live session modal
-    this.teacherDashboardService.getTeacherSubjectsWithGrades(this.teacherId)
+  private fetchStreamsWithTeacherId(teacherId: string): void {
+    this.teacherDashboardService.getTeacherSubjectsWithGrades(teacherId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response: any[]) => {
-          console.log('=== RAW API RESPONSE: teacherSubjectsWithGrades ===');
-          console.log(JSON.stringify(response, null, 2));
-          
-          // Log each item to see the gradeStreamId mapping
-          response.forEach((item, index) => {
-            console.log(`Item ${index}:`, {
-              subjectName: item.subjectName,
-              streamGradeName: item.streamGradeName,
-              gradeStreamId: item.gradeStreamId,
-              fullItem: item
-            });
-          });
-          
-          this.teacherSubjectsWithGrades = response;
+          console.log('teacherSubjectsWithGrades raw response:', response);
+          // Normalise field names — API may return varying casing/names
+          this.teacherSubjectsWithGrades = response.map(item => ({
+            ...item,
+            gradeStreamId: item.gradeStreamId || item.streamId || item.gradeId,
+            subjectName:   item.subjectName   || item.subject  || item.subjectname || '',
+            streamGradeName: item.streamGradeName || item.streamName || item.gradeName || item.streamgrade || ''
+          }));
+          console.log('teacherSubjectsWithGrades normalised:', this.teacherSubjectsWithGrades);
         },
-        error: (error) => {
-          console.error('Failed to load teacher subjects with grades:', error);
-        }
+        error: (error) => { console.error('Failed to load teacher subjects with grades:', error); }
       });
 
-    // Check cache first
-    const cacheKey = `teacherStreams_${this.teacherId}`;
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      try {
-        this.streams = JSON.parse(cached);
-        console.log('Using cached streams');
-        return;
-      } catch (e) {
-        console.error('Error parsing cached streams:', e);
-      }
-    }
-
-    // Load from API if not cached
-    console.log('Making API call to getAllStreams with teacherId:', this.teacherId);
-    this.teacherDashboardService.getAllStreams(this.teacherId)
+    this.teacherDashboardService.getAllStreams(teacherId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response: StreamResponse[] | any) => {
-          console.log('getAllStreams API response:', response);
-          if (Array.isArray(response)) {
-            this.streams = response;
-          } else if (response && Array.isArray(response.data)) {
-            this.streams = response.data;
-          } else {
-            this.streams = [];
-            console.warn('Unexpected response format for streams:', response);
-          }
-          
-          // Cache the streams
-          localStorage.setItem(cacheKey, JSON.stringify(this.streams));
-          console.log('Streams loaded and cached');
-          
-          if (this.streams.length === 0) {
-            Swal.fire('Info', 'No streams found for this teacher.', 'info');
-          }
+          this.streams = Array.isArray(response) ? response : (response?.data ?? []);
         },
         error: (error) => {
           console.error('Failed to load streams:', error);
-          const errorMessage = error?.error?.message || error?.message || 'Could not load streams for this teacher.';
-          Swal.fire('Error', errorMessage, 'error');
           this.streams = [];
         }
       });
@@ -774,36 +766,30 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   loadAndCacheTeachingClasses(): void {
     const profile = this.authService.getUserProfile();
     const organizationId = profile?.organizationId || localStorage.getItem('organizationId');
-    
+
     if (!organizationId || !this.teacherId) {
       console.log('Missing organizationId or teacherId for loading teaching classes');
       return;
     }
 
-    // Check if already cached
     const cached = localStorage.getItem('cachedTeachingClasses');
     if (cached) {
       try {
         this.cachedTeachingClasses = JSON.parse(cached);
-        console.log('Using cached teaching classes:', this.cachedTeachingClasses);
         return;
       } catch (e) {
         console.error('Error parsing cached teaching classes:', e);
       }
     }
 
-    // Load from API and cache
     this.teachingClassService.getTeachingClasses(organizationId, this.teacherId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (classes: TeachingClass[]) => {
           this.cachedTeachingClasses = classes;
           localStorage.setItem('cachedTeachingClasses', JSON.stringify(classes));
-          console.log('Teaching classes loaded and cached:', classes);
         },
-        error: (error) => {
-          console.error('Failed to load teaching classes:', error);
-        }
+        error: (error) => { console.error('Failed to load teaching classes:', error); }
       });
   }
 
@@ -1231,7 +1217,26 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       myClasses: () => { this.isMyClassesModalOpen = true; this.loadMyClasses(); },
       createLiveSession: () => this.isLiveSessionModalOpen = true,
       joinLiveSession: () => this.isJoinSessionModalOpen = true,
-      uploadVideo: () => this.isUploadVideoModalOpen = true,
+      uploadVideo: () => {
+        this.isUploadVideoModalOpen = true;
+        const tid = this.teacherId || this.authService.getRoleTableId();
+        if (tid) {
+          this.teacherDashboardService.getTeacherSubjectsWithGrades(tid)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (response: any[]) => {
+                console.log('Video modal streams loaded:', response);
+                this.teacherSubjectsWithGrades = response.map(item => ({
+                  ...item,
+                  gradeStreamId:   item.gradeStreamId   || item.streamId   || item.gradeId,
+                  subjectName:     item.subjectName     || item.subject    || item.subjectname || '',
+                  streamGradeName: item.streamGradeName || item.streamName || item.gradeName  || item.streamgrade || ''
+                }));
+              },
+              error: (err) => console.error('Failed to load streams for video modal:', err)
+            });
+        }
+      },
       myVideos: () => { this.isMyVideosModalOpen = true; this.loadUploadedVideos(); },
       checkPlagiarism: () => { this.isPlagiarismModalOpen = true; this.loadPlagiarismAssignments(); },
       upcomingWorkshops: () => { this.isUpcomingWorkshopsModalOpen = true; this.updateWorkshopsPagination(); },
@@ -1246,8 +1251,25 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   closeUpcomingWorkshopsModal(): void { this.isUpcomingWorkshopsModalOpen = false; }
   closeGradingModal(): void { this.isGradingStudent = false; }
   closeMyVideosModal(): void { this.isMyVideosModalOpen = false; }
-  closeUploadVideoModal(): void { this.isUploadVideoModalOpen = false; }
-  closePlagiarismModal(): void { this.isPlagiarismModalOpen = false; }
+  closeUploadVideoModal(): void {
+    if (this.isUploadingVideo) {
+      this.uploadSubscription?.unsubscribe();
+      this.uploadSubscription = null;
+    }
+    this.isUploadVideoModalOpen = false;
+    this.isUploadingVideo = false;
+    this.videoFile = null;
+    this.videoUrl = '';
+    this.videoTitle = '';
+    this.videoDescription = '';
+    this.videoGradeStreamId = '';
+    this.videoUploadProgress = 0;
+    this.videoUploadStage = 'idle';
+    this.videoUploadSpeedMbps = 0;
+    this.videoUploadedMB = 0;
+    this.videoTotalMB = 0;
+  }
+  closePlagiarismModal(): void { this.isPlagiarismModalOpen = false; this.plagiarismLoadingId = null; }
   closePlagiarismResultModal(): void { this.isPlagiarismResultModalOpen = false; }
   closeGradeModal(): void { this.isGradeModalOpen = false; }
   closeAssignmentModal(): void { this.isAssignmentModalOpen = false; }
@@ -1263,6 +1285,12 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
 
   isGradingStudent = false;
   currentGradingSubmission: any = null;
+  private resolveProfilePicture(pic: string | null | undefined): string | null {
+    if (!pic) return null;
+    if (pic.startsWith('http') || pic.startsWith('data:')) return pic;
+    return `data:image/jpeg;base64,${pic}`;
+  }
+
   getInitials(name: string): string { return name?.split(' ').map(n => n[0]).join('').toUpperCase() || ''; }
   
   viewSubmissionFile(): void {
@@ -1270,40 +1298,77 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       Swal.fire('Error', 'No submission file available', 'error');
       return;
     }
-    
-    const base64Data = this.currentGradingSubmission.studentAnswerFile;
-    const blob = this.base64ToBlob(base64Data, 'application/pdf');
-    const url = URL.createObjectURL(blob);
-    
-    // Show PDF in modal within the platform
-    Swal.fire({
-      html: `<iframe src="${url}" width="100%" height="600" frameborder="0" style="border-radius: 8px;"></iframe>`,
-      showConfirmButton: true,
-      confirmButtonText: 'Close',
-      width: '90%',
-      customClass: {
-        popup: 'pdf-viewer-modal'
-      },
-      didClose: () => {
-        URL.revokeObjectURL(url);
+
+    const file = this.currentGradingSubmission.studentAnswerFile;
+    const title = `${this.currentGradingSubmission.studentFullNames} - ${this.currentGradingSubmission.assignmentTitle}`;
+
+    let pdfUrl: string;
+
+    if (file.startsWith('http')) {
+      pdfUrl = file;
+    } else {
+      try {
+        const base64 = file.includes(',') ? file.split(',')[1] : file;
+        const blob = this.base64ToBlob(base64, 'application/pdf');
+        pdfUrl = URL.createObjectURL(blob);
+      } catch (e) {
+        Swal.fire('Error', 'Could not open submission file', 'error');
+        return;
       }
-    });
+    }
+
+    const newTab = window.open('', '_blank');
+    if (newTab) {
+      newTab.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>${title}</title>
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { width: 100vw; height: 100vh; overflow: hidden; background: #525659; }
+              embed { width: 100%; height: 100%; }
+            </style>
+          </head>
+          <body>
+            <embed src="${pdfUrl}" type="application/pdf" width="100%" height="100%" />
+          </body>
+        </html>
+      `);
+      newTab.document.close();
+    }
   }
-  
+
   downloadSubmissionFile(): void {
-    if (!this.currentGradingSubmission?.studentAnswerFile) {
-      Swal.fire('Error', 'No submission file available', 'error');
+    const file = this.currentGradingSubmission?.studentAnswerFile;
+    if (!file) {
+      Swal.fire('No Submission', 'This student has not submitted a file yet.', 'info');
       return;
     }
-    
-    const base64Data = this.currentGradingSubmission.studentAnswerFile;
-    const blob = this.base64ToBlob(base64Data, 'application/pdf');
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${this.currentGradingSubmission.studentFullNames}_${this.currentGradingSubmission.assignmentTitle}.pdf`;
-    link.click();
-    URL.revokeObjectURL(url);
+
+    const fileName = `${this.currentGradingSubmission.studentFullNames}_${this.currentGradingSubmission.assignmentTitle}_answer.pdf`;
+
+    if (file.startsWith('http')) {
+      const link = document.createElement('a');
+      link.href = file;
+      link.download = fileName;
+      link.target = '_blank';
+      link.click();
+      return;
+    }
+
+    try {
+      const base64 = file.includes(',') ? file.split(',')[1] : file;
+      const blob = this.base64ToBlob(base64, 'application/pdf');
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      Swal.fire('Error', 'Could not download submission file', 'error');
+    }
   }
   
   private base64ToBlob(base64: string, contentType: string): Blob {
@@ -1327,31 +1392,44 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       this.currentGradingSubmission.studentId
     ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (result) => {
-        // Transform backend response to match template structure
+        this.aiMarkingResult = result;
         this.aiGradingSuggestion = {
           suggestedScore: result.totalMarks || 0,
-          breakdown: {
-            content: result.content || 0,
-            structure: result.clarity || 0,
-            grammar: result.grammar || 0,
-            accuracy: result.content || 0
-          },
-          strengths: result.strength ? [result.strength] : [],
-          improvements: result.improvement ? [result.improvement] : [],
-          feedback: result.feedback || 'No feedback available'
+          percentage: result.percentage || 0,
+          maxMarks: result.maxMarks || 0,
+          confidence: result.confidence || 0,
+          strengths: result.strengths?.length ? result.strengths : [],
+          improvements: result.areasForImprovement?.length ? result.areasForImprovement : [],
+          feedback: result.overallFeedback || result.teacherComment || 'No feedback available',
+          teacherComment: result.teacherComment || '',
+          questionBreakdown: result.questionBreakdown || []
         };
         this.teacherFinalGrade = result.totalMarks || 0;
         this.isLoadingAiGrade = false;
       },
       error: (error) => {
-        console.error('AI grading error:', error);
-        Swal.fire('Error', 'Failed to get AI grading suggestion', 'error');
+        const msg: string = error?.message || 'Failed to get AI grading suggestion';
+        const isQuestionPaperMissing = msg.toLowerCase().includes('question paper');
+        const isServerError = msg.toLowerCase().includes('internal error') || msg.toLowerCase().includes('500');
+        Swal.fire({
+          title: isQuestionPaperMissing ? '📄 Question Paper Missing'
+               : isServerError ? '⚠️ AI Service Unavailable'
+               : 'AI Grading Failed',
+          html: isQuestionPaperMissing
+            ? `<p>AI grading requires a <strong>question paper / rubric</strong> to be uploaded for this assignment.</p><p style="margin-top:1rem;color:#6b7280;font-size:0.9rem;">Ask the assignment creator to re-upload it with the rubric/memo attached.</p>`
+            : isServerError
+            ? `<p>The AI grading service is currently experiencing issues.</p><p style="margin-top:0.75rem;color:#6b7280;font-size:0.9rem;">Please try again in a few minutes, or grade this submission manually.</p>`
+            : `<p>${msg}</p>`,
+          icon: isQuestionPaperMissing || isServerError ? 'warning' : 'error'
+        });
         this.isLoadingAiGrade = false;
       }
     });
   }
   isLoadingAiGrade = false;
   aiGradingSuggestion: any = null;
+  aiMarkingResult: any = null;
+  showAiDetails = false;
   adjustGrade(amount: number): void { this.teacherFinalGrade = Math.max(0, Math.min(100, this.teacherFinalGrade + amount)); }
   teacherFinalGrade = 0;
   submitFinalGrade(): void { 
@@ -1403,10 +1481,133 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   }
 
   onVideoStreamSelected(): void { }
+
+  onVideoDragOver(e: DragEvent): void { e.preventDefault(); this.isDraggingVideo = true; }
+  onVideoDragLeave(e: DragEvent): void { this.isDraggingVideo = false; }
+  onVideoDrop(e: DragEvent): void {
+    e.preventDefault();
+    this.isDraggingVideo = false;
+    const file = e.dataTransfer?.files[0];
+    if (file && file.type.startsWith('video/')) {
+      this.videoFile = file;
+      this.videoUploadType = 'file';
+    } else if (file) {
+      Swal.fire('Invalid File', 'Please drop a video file', 'warning');
+    }
+  }
+
+  onVideoFileSelected(e: any): void {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('video/')) {
+      this.videoFile = file;
+      this.videoUploadType = 'file';
+    } else {
+      Swal.fire('Invalid File', 'Please select a video file', 'warning');
+    }
+  }
+
   uploadVideo(): void {
-    if (!this.videoUrl) { Swal.fire('Error', 'Please enter video URL', 'error'); return; }
-    Swal.fire('Success', 'Video uploaded', 'success');
-    this.closeUploadVideoModal();
+    if (!this.videoTitle) { Swal.fire('Error', 'Please enter a video title', 'error'); return; }
+    if (!this.videoGradeStreamId) { Swal.fire('Error', 'Please select a stream', 'error'); return; }
+    if (!this.videoFile && !this.videoUrl) { Swal.fire('Error', 'Please select a video file or enter a URL', 'error'); return; }
+
+    const selectedStream = this.teacherSubjectsWithGrades.find(s => s.gradeStreamId === this.videoGradeStreamId);
+
+    // URL-only path: no file upload needed, save metadata directly
+    if (this.videoUploadType === 'url' || !this.videoFile) {
+      this.isUploadingVideo = true;
+      this.videoUploadStage = 'saving';
+      const payload = {
+        preRecordedVideoId: '00000000-0000-0000-0000-000000000000',
+        teacherId: this.teacherId!,
+        gradeStreamId: this.videoGradeStreamId,
+        teacherFullNames: this.teacherName,
+        streamName: selectedStream?.streamGradeName || '',
+        videoTitle: this.videoTitle,
+        description: this.videoDescription,
+        videoUpload: this.videoUrl,
+        uploadedTime: new Date().toISOString()
+      };
+      this.teacherDashboardService.saveVideoMetadata(payload)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => { this.videoUploadStage = 'done'; this.isUploadingVideo = false; Swal.fire('Success', 'Video saved successfully', 'success'); this.closeUploadVideoModal(); },
+          error: (err) => { this.isUploadingVideo = false; this.videoUploadStage = 'idle'; Swal.fire('Error', err?.message || 'Failed to save video', 'error'); }
+        });
+      return;
+    }
+
+    // File upload path: 3-step direct-to-blob flow
+    this.isUploadingVideo = true;
+    this.videoUploadProgress = 0;
+    this.videoUploadStage = 'generating';
+
+    const extension = '.' + this.videoFile.name.split('.').pop()!.toLowerCase();
+
+    // Step 1: generate SAS URL
+    this.teacherDashboardService.generateUploadUrl(extension)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: ({ uploadUrl, blobUrl }) => {
+          // Step 2: upload using Azure SDK — parallel chunked upload
+          this.videoUploadStage = 'uploading';
+          this.uploadStartTime = Date.now();
+          this.videoTotalMB = +(this.videoFile!.size / 1024 / 1024).toFixed(1);
+
+          this.uploadSubscription = this.teacherDashboardService
+            .uploadToBlob(uploadUrl, this.videoFile!, (percent, uploadedMB, speedMbps) => {
+              this.ngZone.run(() => {
+                this.videoUploadProgress = percent;
+                this.videoUploadedMB = uploadedMB;
+                this.videoUploadSpeedMbps = speedMbps;
+              });
+            })
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: () => {
+                // Step 3: save metadata
+                this.videoUploadStage = 'saving';
+                const payload = {
+                  preRecordedVideoId: '00000000-0000-0000-0000-000000000000',
+                  teacherId: this.teacherId!,
+                  gradeStreamId: this.videoGradeStreamId,
+                  teacherFullNames: this.teacherName,
+                  streamName: selectedStream?.streamGradeName || '',
+                  videoTitle: this.videoTitle,
+                  description: this.videoDescription,
+                  videoUpload: blobUrl,
+                  uploadedTime: new Date().toISOString()
+                };
+                this.teacherDashboardService.saveVideoMetadata(payload)
+                  .pipe(takeUntil(this.destroy$))
+                  .subscribe({
+                    next: () => {
+                      this.videoUploadStage = 'done';
+                      this.isUploadingVideo = false;
+                      Swal.fire('Success', 'Video uploaded successfully', 'success');
+                      this.closeUploadVideoModal();
+                    },
+                    error: (err) => {
+                      this.isUploadingVideo = false;
+                      this.videoUploadStage = 'idle';
+                      Swal.fire('Error', err?.message || 'Video uploaded but failed to save metadata', 'error');
+                    }
+                  });
+              },
+        error: (err: any) => {
+          this.isUploadingVideo = false;
+          this.videoUploadStage = 'idle';
+          this.videoUploadProgress = 0;
+          Swal.fire('Upload Failed', err?.message || 'Failed to upload video to storage', 'error');
+        }
+            });
+        },
+        error: (err) => {
+          this.isUploadingVideo = false;
+          this.videoUploadStage = 'idle';
+          Swal.fire('Error', err?.message || 'Failed to generate upload URL', 'error');
+        }
+      });
   }
 
   loadUploadedVideos(): void {
@@ -1470,25 +1671,41 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.isLoadingPlagiarism = true;
-    this.aiGradingService.getPlagiarismResult(assignment.assignmentId, assignment.studentId)
+    if (this.plagiarismLoadingId) return; // prevent concurrent checks
+
+    this.currentPlagiarismResult = null;
+    this.plagiarismLoadingId = assignment.assignmentSubmissionId || assignment.assignmentId;
+    this.aiGradingService.checkPlagiarism(assignment.assignmentId, assignment.studentId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (result) => {
           this.currentPlagiarismResult = result;
           this.isPlagiarismResultModalOpen = true;
+          this.plagiarismLoadingId = null;
           this.isLoadingPlagiarism = false;
         },
         error: (error) => {
-          console.error('Plagiarism check error:', error);
-          Swal.fire('Error', 'Failed to check plagiarism', 'error');
+          const msg: string = error?.message || 'Failed to check plagiarism';
+          const isServerError = msg.toLowerCase().includes('internal error') || (error?.status === 500);
+          Swal.fire({
+            title: isServerError ? '⚠️ Service Unavailable' : 'Plagiarism Check Failed',
+            html: isServerError
+              ? '<p>The plagiarism service is currently experiencing issues.</p><p style="margin-top:0.75rem;color:#6b7280;font-size:0.9rem;">Please try again in a few minutes.</p>'
+              : `<p>${msg}</p>`,
+            icon: 'warning'
+          });
+          this.plagiarismLoadingId = null;
           this.isLoadingPlagiarism = false;
         }
       });
   }
 
   getVerdictColor(verdict: string): string {
-    return verdict === 'Clean' ? '#10b981' : '#ef4444';
+    if (!verdict) return '#6b7280';
+    const v = verdict.toLowerCase();
+    if (v.includes('original') || v.includes('clean')) return '#10b981';
+    if (v.includes('mostly')) return '#f59e0b';
+    return '#ef4444';
   }
 
   openGradeModal(): void {
@@ -1505,8 +1722,16 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   filteredSortedAssignments: any[] = [];
   paginatedAssignments: any[] = [];
   assignmentsTotalPages = 1;
-  prevAssignmentsPage(): void { if (this.assignmentsCurrentPage > 1) this.assignmentsCurrentPage--; }
-  nextAssignmentsPage(): void { if (this.assignmentsCurrentPage < this.assignmentsTotalPages) this.assignmentsCurrentPage++; }
+  prevAssignmentsPage(): void { if (this.assignmentsCurrentPage > 1) { this.assignmentsCurrentPage--; this.updateAssignmentsPagination(); } }
+  nextAssignmentsPage(): void { if (this.assignmentsCurrentPage < this.assignmentsTotalPages) { this.assignmentsCurrentPage++; this.updateAssignmentsPagination(); } }
+
+  updateAssignmentsPagination(): void {
+    this.filteredSortedAssignments = [...this.assignments];
+    this.assignmentsTotalPages = Math.max(1, Math.ceil(this.filteredSortedAssignments.length / this.assignmentsItemsPerPage));
+    const start = (this.assignmentsCurrentPage - 1) * this.assignmentsItemsPerPage;
+    this.paginatedAssignments = this.filteredSortedAssignments.slice(start, start + this.assignmentsItemsPerPage);
+    console.log('updateAssignmentsPagination: total=', this.filteredSortedAssignments.length, 'paginated=', this.paginatedAssignments.length);
+  }
 
   paginatedTodaySchedule: any[] = [];
   scheduleTotalPages = 1;
@@ -1543,63 +1768,38 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
     const organizationId = profile?.organizationId || localStorage.getItem('organizationId');
     const formValue = this.assignmentForm.value;
 
-    const processFiles = async () => {
-      let assignmentFileBase64 = null;
-      let rubricFileBase64 = null;
-
-      if (this.assignmentFile) {
-        assignmentFileBase64 = await this.fileToBase64(this.assignmentFile);
-      }
-
-      if (this.rubricFile) {
-        rubricFileBase64 = await this.fileToBase64(this.rubricFile);
-      }
-
-      const payload = {
-        organizationId: organizationId,
-        teacherId: this.teacherId,
-        assignmentTitle: formValue.title,
-        assignmentDescription: formValue.description,
-        dueDate: formValue.dueDate,
-        assignmentMarks: formValue.points,
-        gradeStreamId: formValue.gradeStreamId,
-        assignmentSubject: formValue.subject,
-        assignmentFile: assignmentFileBase64,
-        teacherRubricFile: rubricFileBase64
-      };
-
-      this.teacherDashboardService.createAssignment(payload)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: () => {
-            Swal.fire('Success', 'Assignment created successfully', 'success');
-            this.closeAssignmentModal();
-            this.assignmentForm.reset();
-            this.assignmentFile = null;
-            this.rubricFile = null;
-            this.loadAssignments();
-          },
-          error: (error) => {
-            console.error('Failed to create assignment:', error);
-            Swal.fire('Error', 'Failed to create assignment', 'error');
-          }
-        });
+    const payload = {
+      organizationId,
+      teacherId: this.teacherId,
+      assignmentTitle: formValue.title,
+      assignmentDescription: formValue.description,
+      dueDate: formValue.dueDate,
+      assignmentMarks: formValue.points,
+      gradeStreamId: formValue.gradeStreamId,
+      assignmentSubject: formValue.subject
     };
 
-    processFiles();
-  }
+    this.isCreatingAssignment = true;
 
-  private fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Remove the data URL prefix (e.g., "data:application/pdf;base64,")
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = error => reject(error);
+    this.teacherDashboardService.createAssignment(
+      payload,
+      this.assignmentFile ?? undefined,
+      this.rubricFile ?? undefined
+    ).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.isCreatingAssignment = false;
+        Swal.fire('Success', 'Assignment created successfully', 'success');
+        this.closeAssignmentModal();
+        this.assignmentForm.reset();
+        this.assignmentFile = null;
+        this.rubricFile = null;
+        this.loadAssignments();
+      },
+      error: (error) => {
+        this.isCreatingAssignment = false;
+        console.error('Failed to create assignment:', error);
+        Swal.fire('Error', 'Failed to create assignment', 'error');
+      }
     });
   }
   onDragOver(e: DragEvent, type: string): void { e.preventDefault(); this.isDraggingAssignment = true; }
@@ -1659,15 +1859,12 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   prevGradingPage(): void { if (this.gradingCurrentPage > 1) this.gradingCurrentPage--; }
   nextGradingPage(): void { if (this.gradingCurrentPage < this.gradingTotalPages) this.gradingCurrentPage++; }
   gradedStudents = new Set<string>();
-  gradeStudent(student: any): void { this.isGradingStudent = true; this.currentGradingSubmission = student; }
+  gradeStudent(student: any): void { this.isGradingStudent = true; this.currentGradingSubmission = student; this.aiGradingSuggestion = null; this.aiMarkingResult = null; this.showAiDetails = false; }
 
   loadMyClasses(): void {
-    const profile = this.authService.getUserProfile();
-    const orgId = profile?.organizationId || localStorage.getItem('organizationId');
-    const teacherId = this.teacherId || profile?.roleUserId || localStorage.getItem('roleUserId');
-
+    const orgId = this.authService.getUserProfile()?.organizationId || localStorage.getItem('organizationId');
+    const teacherId = this.teacherId || this.authService.getRoleTableId();
     if (!orgId || !teacherId) {
-      console.error('Missing orgId or teacherId for loading classes');
       this.myClasses = [];
       this.updateClassesPagination();
       return;
@@ -1735,7 +1932,7 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
             assignmentId: sub.assignmentId,
             assignmentSubject: sub.subject,
             streamName: sub.streamName,
-            studentAnswerFile: sub.assignmentFile,
+            studentAnswerFile: sub.studentAnswerFile || sub.submissionFile || sub.studentFile || sub.answerFile || sub.assignmentFile || null,
             isSubmitted: sub.isSubmitted,
             isGraded: sub.isGraded
           }));
@@ -1775,15 +1972,11 @@ export class TeacherDashboardComponent implements OnInit, OnDestroy {
   }
 
   getPendingCount(): number {
-    const count = this.filteredSubmissions.filter(s => !s.isGraded).length;
-    console.log('getPendingCount:', count);
-    return count;
+    return this.filteredSubmissions.filter(s => !s.isGraded).length;
   }
 
   getGradedCount(): number {
-    const count = this.filteredSubmissions.filter(s => s.isGraded).length;
-    console.log('getGradedCount:', count);
-    return count;
+    return this.filteredSubmissions.filter(s => s.isGraded).length;
   }
 
   updateClassesPagination(): void {

@@ -272,15 +272,23 @@
       <div class="students-list">
         <div class="student-item" *ngFor="let student of filteredStudents" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-bottom: 1px solid #e5e7eb;">
           <div class="student-info" style="display: flex; align-items: center; gap: 1rem;">
-            <img *ngIf="student.profilePicture" [src]="'data:image/jpeg;base64,' + student.profilePicture" alt="{{ student.name }}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
-            <div *ngIf="!student.profilePicture" class="student-avatar" style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">{{ getInitials(student.name) }}</div>
+            <img *ngIf="student.profilePicture" [src]="student.profilePicture" alt="{{ student.name }}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;" (error)="student.profilePicture = null">
+            <div *ngIf="!student.profilePicture" class="student-avatar" style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; flex-shrink: 0;">{{ getInitials(student.name) }}</div>
             <div>
               <span class="student-name" style="font-weight: 600; color: #1e293b;">{{ student.name }}</span>
               <p style="margin: 0; font-size: 0.85rem; color: #64748b;">{{ student.streamName }} • {{ student.subject }}</p>
+              <div *ngIf="!student.isPresent" style="margin-top: 0.5rem;">
+                <input
+                  type="text"
+                  [(ngModel)]="student.absenceComment"
+                  placeholder="Reason for absence (optional)"
+                  style="padding: 0.4rem 0.75rem; border: 1px solid #fca5a5; border-radius: 6px; font-size: 0.85rem; width: 250px; background: #fff7f7; color: #374151;"
+                />
+              </div>
             </div>
           </div>
           <div class="attendance-toggle">
-            <button class="toggle-btn" 
+            <button class="toggle-btn"
                     [class.present]="student.isPresent"
                     [class.absent]="!student.isPresent"
                     (click)="toggleAttendance(student.studentId)">
@@ -380,16 +388,16 @@
              style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.3s;"
              [style.border-color]="isDraggingAssignment ? '#3b82f6' : '#cbd5e1'"
              [style.background]="isDraggingAssignment ? '#eff6ff' : '#f8fafc'">
-          <input type="file" id="assignmentFile" (change)="onAssignmentFileSelected($event)" accept=".pdf,.doc,.docx,.zip,.png,.jpg" style="display: none;" />
+          <input type="file" id="assignmentFile" (change)="onAssignmentFileSelected($event)" accept=".pdf,.doc,.docx,.zip,.png,.jpg,.jpeg,.gif,.bmp,.tiff,.webp" style="display: none;" />
           <div *ngIf="!assignmentFile">
             <div style="font-size: 3rem; margin-bottom: 0.5rem;">📁</div>
             <p style="margin: 0 0 0.5rem 0; color: #64748b; font-weight: 600;">Drag & drop file here or</p>
             <label for="assignmentFile" style="display: inline-block; padding: 0.5rem 1.5rem; background: #3b82f6; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">Browse Files</label>
-            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">PDF, DOC, DOCX, ZIP, PNG, JPG</p>
+            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">PDF, DOC, DOCX, ZIP, PNG, JPG, JPEG and other images</p>
           </div>
           <div *ngIf="assignmentFile" style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 1rem; border-radius: 8px;">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <span style="font-size: 2rem;">📄</span>
+              <span style="font-size: 2rem;">{{ assignmentFile.type.startsWith('image/') ? '🖼️' : '📄' }}</span>
               <div style="text-align: left;">
                 <p style="margin: 0; font-weight: 600; color: #1e293b;">{{ assignmentFile.name }}</p>
                 <p style="margin: 0; color: #64748b; font-size: 0.85rem;">{{ (assignmentFile.size / 1024).toFixed(2) }} KB</p>
@@ -420,12 +428,12 @@
              style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.3s;"
              [style.border-color]="isDraggingRubric ? '#10b981' : '#cbd5e1'"
              [style.background]="isDraggingRubric ? '#f0fdf4' : '#f8fafc'">
-          <input type="file" id="rubricFile" (change)="onRubricFileSelected($event)" accept=".pdf,.doc,.docx" style="display: none;" />
+          <input type="file" id="rubricFile" (change)="onRubricFileSelected($event)" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.bmp,.tiff,.webp" style="display: none;" />
           <div *ngIf="!rubricFile">
             <div style="font-size: 3rem; margin-bottom: 0.5rem;">📋</div>
             <p style="margin: 0 0 0.5rem 0; color: #64748b; font-weight: 600;">Drag & drop rubric here or</p>
             <label for="rubricFile" style="display: inline-block; padding: 0.5rem 1.5rem; background: #10b981; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">Browse Files</label>
-            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">PDF, DOC, DOCX</p>
+            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">PDF, DOC, DOCX, PNG, JPG and other images</p>
           </div>
           <div *ngIf="rubricFile" style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 1rem; border-radius: 8px;">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -442,8 +450,17 @@
       </div>
 
       <div class="modal-actions" style="display: flex; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #e5e7eb;">
-        <button type="button" class="cancel-btn" (click)="closeAssignmentModal()" style="flex: 1; padding: 0.75rem; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
-        <button type="submit" class="save-btn" [disabled]="!assignmentForm.valid" style="flex: 2; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; opacity: 1;" [style.opacity]="!assignmentForm.valid ? '0.5' : '1'" [style.cursor]="!assignmentForm.valid ? 'not-allowed' : 'pointer'">Create Assignment</button>
+        <button type="button" class="cancel-btn" (click)="closeAssignmentModal()" [disabled]="isCreatingAssignment" style="flex: 1; padding: 0.75rem; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
+        <button type="submit" class="save-btn" [disabled]="!assignmentForm.valid || isCreatingAssignment"
+          style="flex: 2; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;"
+          [style.opacity]="!assignmentForm.valid || isCreatingAssignment ? '0.7' : '1'"
+          [style.cursor]="!assignmentForm.valid || isCreatingAssignment ? 'not-allowed' : 'pointer'">
+          <span *ngIf="!isCreatingAssignment">Create Assignment</span>
+          <span *ngIf="isCreatingAssignment" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+            <span style="display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+            Uploading...
+          </span>
+        </button>
       </div>
     </form>
   </div>
@@ -820,11 +837,8 @@
 
       <!-- File Actions -->
       <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
-        <button (click)="viewSubmissionFile()" style="flex: 1; padding: 0.75rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-          <span>👁️</span> View Submission
-        </button>
         <button (click)="downloadSubmissionFile()" style="flex: 1; padding: 0.75rem 1.5rem; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-          <span>⬇️</span> Download PDF
+          <span>⬇️</span> Download Submission
         </button>
       </div>
 
@@ -845,59 +859,86 @@
         </p>
         
         <div *ngIf="aiGradingSuggestion" style="background: white; border-radius: 8px; padding: 1.5rem;">
-          <!-- AI Score Card -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          <!-- Summary Score Cards -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
             <div style="text-align: center; padding: 1rem; background: #f0fdf4; border-radius: 8px; border: 2px solid #10b981;">
-              <div style="font-size: 2rem; font-weight: bold; color: #10b981;">{{ aiGradingSuggestion.suggestedScore }}</div>
-              <div style="color: #6b7280; font-size: 0.85rem;">AI Suggested Score</div>
+              <div style="font-size: 2rem; font-weight: bold; color: #10b981;">{{ aiGradingSuggestion.suggestedScore }}/{{ aiGradingSuggestion.maxMarks }}</div>
+              <div style="color: #6b7280; font-size: 0.85rem;">Total Marks</div>
             </div>
-            <div style="text-align: center; padding: 1rem; background: #eff6ff; border-radius: 8px;">
-              <div style="font-size: 1.5rem; font-weight: bold; color: #3b82f6;">{{ aiGradingSuggestion.breakdown.content }}/100</div>
-              <div style="color: #6b7280; font-size: 0.85rem;">Content</div>
+            <div style="text-align: center; padding: 1rem; background: #eff6ff; border-radius: 8px; border: 2px solid #3b82f6;">
+              <div style="font-size: 2rem; font-weight: bold; color: #3b82f6;">{{ aiGradingSuggestion.percentage }}%</div>
+              <div style="color: #6b7280; font-size: 0.85rem;">Percentage</div>
             </div>
-            <div style="text-align: center; padding: 1rem; background: #fef3c7; border-radius: 8px;">
-              <div style="font-size: 1.5rem; font-weight: bold; color: #f59e0b;">{{ aiGradingSuggestion.breakdown.structure }}/100</div>
-              <div style="color: #6b7280; font-size: 0.85rem;">Structure</div>
-            </div>
-            <div style="text-align: center; padding: 1rem; background: #fce7f3; border-radius: 8px;">
-              <div style="font-size: 1.5rem; font-weight: bold; color: #ec4899;">{{ aiGradingSuggestion.breakdown.grammar }}/100</div>
-              <div style="color: #6b7280; font-size: 0.85rem;">Grammar</div>
-            </div>
-            <div style="text-align: center; padding: 1rem; background: #f3e8ff; border-radius: 8px;">
-              <div style="font-size: 1.5rem; font-weight: bold; color: #a855f7;">{{ aiGradingSuggestion.breakdown.accuracy }}/100</div>
-              <div style="color: #6b7280; font-size: 0.85rem;">Accuracy</div>
+            <div style="text-align: center; padding: 1rem; background: #fef3c7; border-radius: 8px; border: 2px solid #f59e0b;">
+              <div style="font-size: 2rem; font-weight: bold; color: #f59e0b;">{{ (aiGradingSuggestion.confidence * 100) | number:'1.0-0' }}%</div>
+              <div style="color: #6b7280; font-size: 0.85rem;">AI Confidence</div>
             </div>
           </div>
 
-          <!-- Strengths -->
-          <div style="margin-bottom: 1rem;">
-            <h4 style="color: #10b981; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
-              <span>✅</span> Strengths
-            </h4>
-            <ul style="margin: 0; padding-left: 1.5rem; color: #374151;">
-              <li *ngFor="let strength of aiGradingSuggestion.strengths" style="margin-bottom: 0.25rem;">{{ strength }}</li>
-            </ul>
-          </div>
-
-          <!-- Areas for Improvement -->
-          <div style="margin-bottom: 1rem;">
-            <h4 style="color: #f59e0b; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
-              <span>💡</span> Areas for Improvement
-            </h4>
-            <ul style="margin: 0; padding-left: 1.5rem; color: #374151;">
-              <li *ngFor="let improvement of aiGradingSuggestion.improvements" style="margin-bottom: 0.25rem;">{{ improvement }}</li>
-            </ul>
-          </div>
-
-          <!-- AI Feedback -->
-          <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; border-left: 3px solid #3b82f6;">
-            <h4 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 0.9rem;">📋 AI Feedback</h4>
+          <!-- Overall Feedback -->
+          <div style="background: #f8fafc; padding: 1rem; border-radius: 6px; border-left: 3px solid #3b82f6; margin-bottom: 1rem;">
+            <h4 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 0.9rem;">📋 Overall Feedback</h4>
             <p style="margin: 0; color: #475569; line-height: 1.6;">{{ aiGradingSuggestion.feedback }}</p>
+          </div>
+
+          <!-- View Details Button -->
+          <button (click)="showAiDetails = !showAiDetails" style="width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-bottom: 1rem;">
+            {{ showAiDetails ? '▲ Hide Detailed AI Report' : '▼ View Detailed AI Report' }}
+          </button>
+
+          <!-- Detailed AI Results -->
+          <div *ngIf="showAiDetails">
+            <!-- Question Breakdown -->
+            <div *ngIf="aiGradingSuggestion.questionBreakdown?.length" style="margin-bottom: 1.5rem;">
+              <h4 style="margin: 0 0 0.75rem 0; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">📊 Question Breakdown</h4>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                  <thead>
+                    <tr style="background: #f1f5f9;">
+                      <th style="padding: 0.75rem 1rem; text-align: left; color: #374151; border-bottom: 2px solid #e5e7eb;">Question</th>
+                      <th style="padding: 0.75rem 1rem; text-align: center; color: #374151; border-bottom: 2px solid #e5e7eb;">Awarded</th>
+                      <th style="padding: 0.75rem 1rem; text-align: center; color: #374151; border-bottom: 2px solid #e5e7eb;">Max</th>
+                      <th style="padding: 0.75rem 1rem; text-align: left; color: #374151; border-bottom: 2px solid #e5e7eb;">Comment</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let q of aiGradingSuggestion.questionBreakdown" style="border-bottom: 1px solid #e5e7eb;">
+                      <td style="padding: 0.75rem 1rem; font-weight: 600; color: #1e293b;">Q{{ q.questionNumber }}</td>
+                      <td style="padding: 0.75rem 1rem; text-align: center; font-weight: bold;" [style.color]="q.awardedMark === q.maxMark ? '#10b981' : q.awardedMark === 0 ? '#ef4444' : '#f59e0b'">{{ q.awardedMark }}</td>
+                      <td style="padding: 0.75rem 1rem; text-align: center; color: #6b7280;">{{ q.maxMark }}</td>
+                      <td style="padding: 0.75rem 1rem; color: #475569;">{{ q.comment }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Strengths -->
+            <div *ngIf="aiGradingSuggestion.strengths?.length" style="margin-bottom: 1rem;">
+              <h4 style="color: #10b981; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;"><span>✅</span> Strengths</h4>
+              <ul style="margin: 0; padding-left: 1.5rem; color: #374151;">
+                <li *ngFor="let s of aiGradingSuggestion.strengths" style="margin-bottom: 0.25rem;">{{ s }}</li>
+              </ul>
+            </div>
+
+            <!-- Areas for Improvement -->
+            <div *ngIf="aiGradingSuggestion.improvements?.length" style="margin-bottom: 1rem;">
+              <h4 style="color: #f59e0b; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;"><span>💡</span> Areas for Improvement</h4>
+              <ul style="margin: 0; padding-left: 1.5rem; color: #374151;">
+                <li *ngFor="let imp of aiGradingSuggestion.improvements" style="margin-bottom: 0.25rem;">{{ imp }}</li>
+              </ul>
+            </div>
+
+            <!-- Teacher Comment -->
+            <div *ngIf="aiGradingSuggestion.teacherComment" style="background: #f0f9ff; padding: 1rem; border-radius: 6px; border-left: 3px solid #3b82f6;">
+              <h4 style="margin: 0 0 0.5rem 0; color: #1e40af; font-size: 0.9rem;">👨‍🏫 Teacher Comment</h4>
+              <p style="margin: 0; color: #1e293b; line-height: 1.6;">{{ aiGradingSuggestion.teacherComment }}</p>
+            </div>
           </div>
         </div>
 
         <p *ngIf="!aiGradingSuggestion" style="margin: 0; color: #92400e; text-align: center; font-style: italic;">
-          Click "Get AI Suggestion" to analyze this submission with AI
+          Click "Analyze with AI" to get detailed marking feedback
         </p>
       </div>
 
@@ -949,7 +990,7 @@
         <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Video Title *</label>
         <input type="text" [(ngModel)]="videoTitle" placeholder="Enter video title" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
       </div>
-      
+
       <div class="form-group">
         <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Description</label>
         <textarea [(ngModel)]="videoDescription" placeholder="Video description" rows="3" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; resize: vertical;"></textarea>
@@ -965,16 +1006,96 @@
         </select>
       </div>
 
-      <!-- URL Input -->
+      <!-- Upload Type Toggle -->
       <div class="form-group">
-        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Video URL *</label>
-        <input type="url" [(ngModel)]="videoUrl" placeholder="https://youtube.com/watch?v=... or any video URL" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
-        <small style="display: block; margin-top: 0.5rem; color: #64748b;">Supports YouTube, Vimeo, Google Drive, and direct video links</small>
+        <label style="font-weight: 600; color: #374151; margin-bottom: 0.75rem; display: block;">Upload Type</label>
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+          <button type="button" (click)="videoUploadType = 'file'; videoUrl = ''" style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 2px solid; font-weight: 600; cursor: pointer;"
+            [style.background]="videoUploadType === 'file' ? '#f59e0b' : 'white'"
+            [style.color]="videoUploadType === 'file' ? 'white' : '#374151'"
+            [style.border-color]="videoUploadType === 'file' ? '#f59e0b' : '#e5e7eb'">
+            🎬 Upload File
+          </button>
+          <button type="button" (click)="videoUploadType = 'url'; videoFile = null" style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 2px solid; font-weight: 600; cursor: pointer;"
+            [style.background]="videoUploadType === 'url' ? '#f59e0b' : 'white'"
+            [style.color]="videoUploadType === 'url' ? 'white' : '#374151'"
+            [style.border-color]="videoUploadType === 'url' ? '#f59e0b' : '#e5e7eb'">
+            🔗 URL Link
+          </button>
+        </div>
       </div>
 
-      <div class="modal-actions" style="display: flex; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #e5e7eb;">
-        <button type="button" (click)="closeUploadVideoModal()" style="flex: 1; padding: 0.75rem; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
-        <button type="button" (click)="uploadVideo()" style="flex: 2; padding: 0.75rem; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">🚀 Upload Video</button>
+      <!-- File Upload -->
+      <div class="form-group" *ngIf="videoUploadType === 'file'">
+        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Video File *</label>
+        <div (dragover)="onVideoDragOver($event)" (dragleave)="onVideoDragLeave($event)" (drop)="onVideoDrop($event)"
+          style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.3s;"
+          [style.border-color]="isDraggingVideo ? '#f59e0b' : '#cbd5e1'"
+          [style.background]="isDraggingVideo ? '#fffbeb' : '#f8fafc'">
+          <input type="file" id="videoFileInput" accept="video/*" (change)="onVideoFileSelected($event)" style="display: none;">
+          <div *ngIf="!videoFile">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">🎬</div>
+            <p style="margin: 0 0 0.5rem 0; color: #64748b; font-weight: 600;">Drag & drop video here or</p>
+            <label for="videoFileInput" style="display: inline-block; padding: 0.5rem 1.5rem; background: #f59e0b; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">Browse Files</label>
+            <p style="margin: 0.5rem 0 0 0; color: #94a3b8; font-size: 0.85rem;">MP4, MOV, AVI, MKV supported</p>
+          </div>
+          <div *ngIf="videoFile" style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 1rem; border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <span style="font-size: 2rem;">🎥</span>
+              <div style="text-align: left;">
+                <p style="margin: 0; font-weight: 600; color: #1e293b;">{{ videoFile.name }}</p>
+                <p style="margin: 0; color: #64748b; font-size: 0.85rem;">{{ (videoFile.size / 1024 / 1024).toFixed(2) }} MB</p>
+              </div>
+            </div>
+            <button type="button" (click)="videoFile = null" style="padding: 0.5rem 1rem; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Remove</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- URL Input -->
+      <div class="form-group" *ngIf="videoUploadType === 'url'">
+        <label style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block;">Video URL *</label>
+        <input type="url" [(ngModel)]="videoUrl" placeholder="https://youtube.com/watch?v=... or any video URL" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+        <small style="display: block; margin-top: 0.5rem; color: #64748b;">Supports YouTube, Vimeo, and direct video links hosted on EduHub</small>
+      </div>
+
+      <!-- Upload Progress -->
+      <div *ngIf="isUploadingVideo" style="margin-top: 1.5rem; padding: 1.25rem; background: #fffbeb; border: 2px solid #fbbf24; border-radius: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span style="font-weight: 600; color: #92400e; font-size: 0.95rem;">
+            <span *ngIf="videoUploadStage === 'generating'">⏳ Preparing upload...</span>
+            <span *ngIf="videoUploadStage === 'uploading'">📤 Uploading to EduHub...</span>
+            <span *ngIf="videoUploadStage === 'saving'">💾 Saving...</span>
+          </span>
+          <span *ngIf="videoUploadStage === 'uploading'" style="font-weight: 700; color: #d97706;">{{ videoUploadProgress }}%</span>
+        </div>
+        <div style="background: #fde68a; border-radius: 999px; height: 10px; overflow: hidden; margin-bottom: 0.5rem;">
+          <div style="height: 100%; border-radius: 999px; background: linear-gradient(90deg, #f59e0b, #ef4444); transition: width 0.3s ease;"
+               [style.width]="(videoUploadStage === 'generating' ? '5' : videoUploadStage === 'uploading' ? videoUploadProgress : videoUploadStage === 'saving' ? '98' : '100') + '%'"></div>
+        </div>
+        <div *ngIf="videoUploadStage === 'uploading'" style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #92400e;">
+          <span>{{ videoUploadedMB }} MB / {{ videoTotalMB }} MB</span>
+          <span *ngIf="videoUploadSpeedMbps > 0">{{ videoUploadSpeedMbps }} MB/s</span>
+        </div>
+        <p style="margin: 0.5rem 0 0 0; font-size: 0.8rem; color: #b45309; text-align: center;">
+          Large videos take time — please keep this window open.
+        </p>
+      </div>
+
+      <div class="modal-actions" style="display: flex; gap: 1rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid #e5e7eb;">
+        <button type="button" (click)="closeUploadVideoModal()" style="flex: 1; padding: 0.75rem; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+          {{ isUploadingVideo ? 'Cancel Upload' : 'Cancel' }}
+        </button>
+        <button type="button" (click)="uploadVideo()" [disabled]="isUploadingVideo"
+          style="flex: 2; padding: 0.75rem; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;"
+          [style.opacity]="isUploadingVideo ? '0.7' : '1'"
+          [style.cursor]="isUploadingVideo ? 'not-allowed' : 'pointer'">
+          <span *ngIf="!isUploadingVideo">🚀 Upload Video</span>
+          <span *ngIf="isUploadingVideo" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+            <span style="display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+            Processing...
+          </span>
+        </button>
       </div>
     </div>
   </div>
@@ -1035,7 +1156,14 @@
               <td style="padding: 1rem; color: #1e293b;">{{ assignment.subject }}</td>
               <td style="padding: 1rem; color: #1e293b;">{{ assignment.streamName }}</td>
               <td style="padding: 1rem; text-align: center;">
-                <button (click)="checkPlagiarism(assignment)" [disabled]="isLoadingPlagiarism" style="padding: 0.5rem 1rem; background: #8b5cf6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">{{ isLoadingPlagiarism ? 'Loading...' : 'Check' }}</button>
+                <button (click)="checkPlagiarism(assignment)" 
+                        [disabled]="plagiarismLoadingId !== null"
+                        style="padding: 0.5rem 1rem; background: #8b5cf6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;"
+                        [style.opacity]="plagiarismLoadingId !== null ? '0.6' : '1'"
+                        [style.cursor]="plagiarismLoadingId !== null ? 'not-allowed' : 'pointer'">
+                  <span *ngIf="plagiarismLoadingId === (assignment.assignmentSubmissionId || assignment.assignmentId)">⏳ Checking...</span>
+                  <span *ngIf="plagiarismLoadingId !== (assignment.assignmentSubmissionId || assignment.assignmentId)">Check</span>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -1072,7 +1200,7 @@
       <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border: 3px solid;" [style.border-color]="getVerdictColor(currentPlagiarismResult.overallVerdict)">
         <div style="text-align: center;">
           <h2 style="margin: 0 0 0.5rem 0; font-size: 2rem;" [style.color]="getVerdictColor(currentPlagiarismResult.overallVerdict)">{{ currentPlagiarismResult.overallVerdict }}</h2>
-          <p style="margin: 0; color: #6b7280; font-size: 0.9rem;">Detected on {{ currentPlagiarismResult.detectedAt | date:'medium' }}</p>
+          <p style="margin: 0; color: #6b7280; font-size: 0.9rem;">Detected on {{ currentPlagiarismResult.detectedAt && !currentPlagiarismResult.detectedAt.startsWith('0001') ? (currentPlagiarismResult.detectedAt | date:'medium') : 'Just now' }}</p>
         </div>
       </div>
 

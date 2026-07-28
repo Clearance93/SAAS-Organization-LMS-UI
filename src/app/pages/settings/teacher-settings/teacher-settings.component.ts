@@ -1,4 +1,4 @@
-  import { Component, OnInit, PLATFORM_ID, Inject } from '@angular/core';
+  import { Component, OnInit, PLATFORM_ID, Inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -150,6 +150,7 @@ export class TeacherSettingsComponent implements OnInit {
     private teacherDashboardService: TeacherDashboardService,
     private authService: AuthService,
     private libraryService: LibraryServicesService,
+    private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.profileForm = this.fb.group({
@@ -207,9 +208,8 @@ export class TeacherSettingsComponent implements OnInit {
     this.loadTeacherData();
     this.loadOrganizationId();
     this.loadTeacherId();
-    this.loadTeacherProfileFromAPI();
+    this.loadTeacherProfileFromAPI(); // will call loadTeachingClasses() after resolving correct teacherId
     this.loadTeacherGrades();
-    this.loadTeachingClasses();
     this.loadLibraryBooks();
   }
 
@@ -218,18 +218,19 @@ export class TeacherSettingsComponent implements OnInit {
     const profile = this.authService.getUserProfile();
     const teacherEmail = profile?.email || localStorage.getItem('userEmail');
     
-    console.log('Loading teacher profile for email:', teacherEmail);
-    
     if (!teacherEmail) {
       console.warn('No teacher email available');
       return;
     }
 
-    // Always load from API - no caching
     this.teacherDashboardService.getTeacherByEmail(teacherEmail).subscribe({
       next: (teacher: any) => {
-        console.log('Teacher profile loaded from API:', teacher);
+        console.log('Teacher profile from API:', teacher);
+        console.log('teacherProfilePicture value:', teacher.teacherProfilePicture);
         this.applyTeacherProfile(teacher);
+        console.log('Resolved teacherProfilePicture:', this.teacherProfilePicture);
+        // Reload teaching classes now that we have the correct teacherId
+        this.loadTeachingClasses();
       },
       error: (err) => {
         console.error('Failed to load teacher profile from API:', err);
@@ -240,8 +241,16 @@ export class TeacherSettingsComponent implements OnInit {
   // Apply teacher profile data
   private applyTeacherProfile(teacher: any): void {
     this.currentTeacherData = teacher;
-    this.teacherProfilePicture = teacher.teacherProfilePicture;
+    this.teacherProfilePicture = this.resolveProfilePicture(teacher.teacherProfilePicture);
     this.teacherJoinedDate = teacher.createdAt;
+    console.log('applyTeacherProfile - teacherProfilePicture set to:', this.teacherProfilePicture);
+    this.cdr.detectChanges();
+    
+    // Use the actual teacherId from the Teacher table
+    if (teacher.teacherId) {
+      this.teacherId = teacher.teacherId;
+      this.authService.setRoleTableId(teacher.teacherId);
+    }
     
     this.profileForm.patchValue({
       firstName: teacher.firstName || '',
@@ -264,11 +273,12 @@ export class TeacherSettingsComponent implements OnInit {
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
-    // Try to load from localStorage
     const cached = localStorage.getItem('teacherDashboard');
+    console.log('loadTeacherData - teacherDashboard from localStorage:', cached ? JSON.parse(cached) : null);
     if (cached) {
       try {
         this.teacherData = JSON.parse(cached);
+        console.log('loadTeacherData - teacherData.teacherProfilePicture:', this.teacherData?.teacherProfilePicture);
         this.populateProfileForm();
       } catch (error) {
         console.error('Error parsing teacher dashboard data:', error);
@@ -289,7 +299,7 @@ export class TeacherSettingsComponent implements OnInit {
     const phone = localStorage.getItem('userPhone') || '';
 
     // Set profile picture
-    this.teacherProfilePicture = this.teacherData.teacherProfilePicture;
+    this.teacherProfilePicture = this.resolveProfilePicture(this.teacherData.teacherProfilePicture);
 
     // Update form with teacher data
     this.profileForm.patchValue({
@@ -327,18 +337,24 @@ export class TeacherSettingsComponent implements OnInit {
     return this.teacherData?.subject || this.profileForm.get('subject')?.value || 'Not specified';
   }
 
+  onProfileImageError(event: any): void {
+    console.error('Profile image failed to load:', this.teacherProfilePicture);
+    this.teacherProfilePicture = null;
+    this.cdr.detectChanges();
+  }
+
+  resolveProfilePicture(pic: string | null | undefined): string | null {
+    if (!pic) return null;
+    if (pic.startsWith('http') || pic.startsWith('data:')) return pic;
+    return `data:image/jpeg;base64,${pic}`;
+  }
+
   hasProfilePicture(): boolean {
-    if (!this.teacherProfilePicture) return false;
-    if (this.teacherProfilePicture.startsWith('data:image')) return true;
-    if (this.teacherProfilePicture.startsWith('http')) return true;
-    return this.teacherProfilePicture.length > 50;
+    return !!this.resolveProfilePicture(this.teacherProfilePicture);
   }
 
   getProfilePictureUrl(): string {
-    if (!this.teacherProfilePicture) return '';
-    if (this.teacherProfilePicture.startsWith('data:image')) return this.teacherProfilePicture;
-    if (this.teacherProfilePicture.startsWith('http')) return this.teacherProfilePicture;
-    return `data:image/jpeg;base64,${this.teacherProfilePicture}`;
+    return this.resolveProfilePicture(this.teacherProfilePicture) || '';
   }
 
   // Profile Methods
@@ -415,16 +431,25 @@ export class TeacherSettingsComponent implements OnInit {
   }
 
   addClass(): void {
-    if (this.classForm.valid && this.organizationId && this.teacherId) {
+    if (this.classForm.valid && this.organizationId) {
       this.isLoadingClasses = true;
-      
+
+      const selectedStream = this.teacherStreams.find(s => s.streamId === this.classForm.value.gradeStreamId);
+      const teacherId = selectedStream?.teacherId || this.currentTeacherData?.teacherId || this.teacherId;
+
+      if (!teacherId) {
+        Swal.fire('Error!', 'Teacher ID not found. Please refresh the page and try again.', 'error');
+        this.isLoadingClasses = false;
+        return;
+      }
+
       const createRequest: CreateTeachingClassRequest = {
         gradeStreamId: this.classForm.value.gradeStreamId,
         subject: this.classForm.value.subject,
         classRoomNumber: this.classForm.value.classRoomNumber,
         totalStudents: this.classForm.value.totalStudents,
         organizationId: this.organizationId,
-        teacherId: this.teacherId
+        teacherId: teacherId
       };
 
       this.teachingClassService.createTeachingClass(createRequest).subscribe({
@@ -628,20 +653,28 @@ export class TeacherSettingsComponent implements OnInit {
 
   // Load teacher ID from auth service or localStorage
   private loadTeacherId(): void {
+    const stored = this.authService.getRoleTableId();
+    if (stored) {
+      this.teacherId = stored;
+      return;
+    }
     const profile = this.authService.getUserProfile();
-    this.teacherId = profile?.roleUserId || profile?.userId || (typeof localStorage !== 'undefined' ? localStorage.getItem('roleUserId') : null) || (typeof localStorage !== 'undefined' ? localStorage.getItem('userId') : null) || '';
+    this.teacherId = profile?.roleUserId || profile?.userId || localStorage.getItem('roleUserId') || localStorage.getItem('userId') || '';
   }
 
   // Load teaching classes for this teacher without caching
   loadTeachingClasses(): void {
-    if (!this.teacherId || !this.organizationId) {
+    const teacherId = this.currentTeacherData?.teacherId
+      || (this.teacherStreams.length > 0 ? this.teacherStreams[0].teacherId : null)
+      || this.teacherId;
+
+    if (!teacherId || !this.organizationId) {
       console.log('Teacher ID or Organization ID not available');
       return;
     }
 
-    // Always load from API - no caching
     this.isLoadingClasses = true;
-    this.teachingClassService.getTeachingClasses(this.organizationId, this.teacherId).subscribe({
+    this.teachingClassService.getTeachingClasses(this.organizationId, teacherId).subscribe({
       next: (classes: TeachingClass[]) => {
         this.teachingClasses = classes;
         this.isLoadingClasses = false;
@@ -654,21 +687,22 @@ export class TeacherSettingsComponent implements OnInit {
     });
   }
 
-  // Load teacher's grades and streams without caching
+  // Load teacher's grades and streams
   loadTeacherGrades(): void {
-    if (!this.teacherId) {
-      console.log('Teacher ID not available');
+    if (!this.organizationId) {
+      console.log('Organization ID not available');
       return;
     }
 
-    // Always load from API - no caching
     this.isLoadingGrades = true;
-    this.teacherDashboardService.getAllStreams(this.teacherId).subscribe({
-      next: (streams: any) => {
-        const streamData = Array.isArray(streams) ? streams : (streams?.data || []);
-        this.teacherStreams = streamData;
+    this.settingsService.getAllStreamsbyOrganizationId(this.organizationId).subscribe({
+      next: (streams: any[]) => {
+        this.teacherStreams = streams;
         this.isLoadingGrades = false;
-        console.log('Teacher streams loaded from API:', this.teacherStreams);
+        // Now that streams are loaded with correct teacherId, load teaching classes
+        if (this.teachingClasses.length === 0) {
+          this.loadTeachingClasses();
+        }
       },
       error: (err) => {
         console.error('Failed to load teacher streams:', err);
@@ -709,7 +743,9 @@ export class TeacherSettingsComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      // Reload from API to get fresh data
+      if (result) {
+        Swal.fire('Success!', 'Grade & Stream added successfully!', 'success');
+      }
       this.loadTeacherGrades();
     });
   }

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
+import { inviteGuard } from './guards/invite.guard';
 import { OrganizationSetupComponent } from './pages/organization-setup/organization-setup.component';
 import { LoginComponent } from './pages/authPage/login/login.component';
 import { RegisterComponent } from './pages/authPage/register/register.component';
@@ -55,11 +56,11 @@ export const routes: Routes = [
     { path: 'netcash-payment', component: NetcashPaymentComponent, canActivate: [authGuard] },
     { path: 'thank-you', component: ThankYouComponent },
     { path: 'school-admin-dashboard', component: SchoolAdminDashboardComponent, canActivate: [authGuard] },
-    { path: 'add-teacher', component: AddTeacherComponent, canActivate: [authGuard] },
-    { path: 'add-guest', component: AddGuestComponent, canActivate: [authGuard] },
-    { path: 'add-learner', component: AddLearnerComponent, canActivate: [authGuard] },
-    { path: 'add-student', component: AddStudentComponent, canActivate: [authGuard] },
-    { path: 'add-stuff-member', component: AddStuffMemberComponent, canActivate: [authGuard] },
+    { path: 'add-teacher', component: AddTeacherComponent, canActivate: [inviteGuard] },
+    { path: 'add-guest', component: AddGuestComponent, canActivate: [inviteGuard] },
+    { path: 'add-learner', component: AddLearnerComponent, canActivate: [inviteGuard] },
+    { path: 'add-student', component: AddStudentComponent, canActivate: [inviteGuard] },
+    { path: 'add-stuff-member', component: AddStuffMemberComponent, canActivate: [inviteGuard] },
     { path: 'admin-profile-modal', component: AdminProfileModalComponent, canActivate: [authGuard] },
     { path: 'edit-admin-profile', component: EditAdminProfileComponent, canActivate: [authGuard] },
     { path: 'admin-settings', component: AdminSettingsComponent, canActivate: [authGuard] },

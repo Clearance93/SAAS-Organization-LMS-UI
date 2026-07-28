@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface StudentTimetable {
   teacherFirstNames: string;
@@ -19,7 +20,7 @@ export interface StudentTimetable {
   providedIn: 'root'
 })
 export class StudentTimetableService {
-  private baseUrl = 'https://eduhubapi-g8a3atfufkgdfjhn.southafricanorth-01.azurewebsites.net/api/School';
+  private baseUrl = `${environment.apiUrl}/School`;
 
   constructor(private http: HttpClient) { }
 

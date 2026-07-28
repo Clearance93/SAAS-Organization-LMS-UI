@@ -7,8 +7,8 @@ export class AppConfigService {
 
   private config = {
     production: false,
-    apiUrl: 'https://localhost:7109/api',
-    productionApiUrl: 'http://thutonetapi-prod.westeurope.azurecontainer.io/api',
+    apiUrl: 'https://eduhub-f9fmahbnekfzf6b4.southafricanorth-01.azurewebsites.net/api',
+    productionApiUrl: 'https://eduhub-f9fmahbnekfzf6b4.southafricanorth-01.azurewebsites.net/api',
 
     netcash: {
       apiUrl: 'https://paynow.netcash.co.za/site/paynow.aspx',
